@@ -6,6 +6,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"menteslibres.net/gosexy/redis"
+	"github.com/gorilla/mux"
+	"net/http"
 )
 
 var (
@@ -25,7 +27,15 @@ func main() {
 		return
 	}
 	defer dbClient.Quit()
+	//------------------------View
+	r := mux.NewRouter()
 
+	r.HandleFunc("/devices", staticHandler)
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./View/")))
+
+	http.Handle("/", r)
+	http.ListenAndServe(":8100", nil)
+	//------------------TCP
 	ln, _ := net.Listen(connType, connHost+":"+connPort)
 
 	for {

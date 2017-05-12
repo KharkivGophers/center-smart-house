@@ -43,3 +43,9 @@ type WasherData struct {
 	Drying string
 	Temp   map[int64]float32
 }
+type ViewDevice struct {
+	Location   string `json:location`
+	Name       string `json:name`
+	Type       string `json:type`
+	Functions  []string `json:functions`
+}

@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
+	"fmt"
+
 )
 
 func requestHandler(conn net.Conn) {
@@ -95,4 +97,57 @@ func Float32ToString(num float64) string {
 
 func Int64ToString(n int64) string {
 	return strconv.FormatInt(int64(n), 10)
+}
+
+//------------------------------------------DB
+func GetKeyFromHTable(key, nameTable string) (string, error) {
+	value, err := dbClient.HGet(nameTable, key)
+
+	if err != nil {
+		fmt.Println("Error when use hget")
+		return "", err
+	}
+	return value, nil
+}
+
+func GetAllKeysFromHSet(nametable string) []string {
+	keys, err := dbClient.HKeys(nametable)
+	if err!=nil{
+		return nil
+	}
+	fmt.Println(keys)
+	return keys
+}
+
+//-------------------View handler
+func staticHandler(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode(buildingRespone())
+}
+
+
+
+func buildingRespone() []ViewDevice{
+	var nameGeneralTable string = "devices"
+	var nameTableWithFunction string = "function:"
+	var nameType struct{Name,Type string}
+	collection :=[]ViewDevice{}
+
+	macs := GetAllKeysFromHSet(nameGeneralTable)
+
+	for _, value:=range macs{
+		var device ViewDevice = ViewDevice{}
+		data,_ :=GetKeyFromHTable(value, nameGeneralTable)
+		function:=GetAllKeysFromHSet(nameTableWithFunction+value)
+
+		json.Unmarshal([]byte(data), &nameType)
+
+		device.Name = nameType.Name
+		device.Type = nameType.Type
+		device.Location ="Home"
+		device.Functions = function
+
+		collection = append(collection,device)
+
+	}
+	return collection
 }
