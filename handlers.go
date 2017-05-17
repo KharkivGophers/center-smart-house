@@ -10,8 +10,7 @@ import (
 )
 
 var (
-	updDevConfigList = "updDevConfigList"
-	updDevDataList = "updDevDataList"
+	updDevData = "updDevData"
 )
 
 func requestHandler(conn net.Conn) {
@@ -67,19 +66,19 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	devName := req.Meta.Name
 
 	devKey := "device" + ":" + devType + ":" + devName + ":" + mac
-	devDataKey := devKey + ":" + "data"
-	//updListKey := updDevDataList + ":" + devKey
+	devParamsKey := devKey + ":" + "params"
+	//updDevDataKey := updDevDataList + ":" + devKey
 
-	dbClient.SAdd("devDataKeys", devDataKey)
+	dbClient.SAdd("devParamsKeys", devParamsKey)
 	dbClient.HMSet(devKey, "ReqTime", devReqTime)
-	dbClient.SAdd(devDataKey, "TempCam1", "TempCam2")
-	dbClient.LPush(updDevDataList, devKey)
+	dbClient.SAdd(devParamsKey, "TempCam1", "TempCam2")
+	//dbClient.LPush(updDevDataList, devKey)
 
 	var devData FridgeData
 	json.Unmarshal([]byte(req.Data), &devData)
 
 	for time, value := range devData.TempCam1 {
-		dbClient.ZAdd(devDataKey + ":" + "TempCam1",
+		dbClient.ZAdd(devParamsKey + ":" + "TempCam1",
 			Int64ToString(time), Int64ToString(time) + ":" + Float32ToString(float64(value)))
 
 		/*dbClient.ZAdd(updListKey + ":" + "TempCam1",
@@ -87,7 +86,7 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	}
 
 	for time, value := range devData.TempCam2 {
-		dbClient.ZAdd(devDataKey + ":" + "TempCam2",
+		dbClient.ZAdd(devParamsKey + ":" + "TempCam2",
 			Int64ToString(time), Int64ToString(time) + ":" + Float32ToString(float64(value)))
 
 		/*dbClient.ZAdd(updListKey + ":" + "TempCam2",
@@ -111,18 +110,18 @@ func Int64ToString(n int64) string {
 }
 
 func httpDevHandler(w http.ResponseWriter, r *http.Request) {
-	devKeys, _ := dbClient.SMembers("devDataKeys")
+	devParamsKeys, _ := dbClient.SMembers("devParamsKeys")
 
-	var devKeysTokens [][]string = make([][]string, len(devKeys))
-	for index, key := range devKeys {
-		devKeysTokens[index] = strings.Split(key, ":")
+	var devParamsKeysTokens [][]string = make([][]string, len(devParamsKeys))
+	for i, k := range devParamsKeys {
+		devParamsKeysTokens[i] = strings.Split(k, ":")
 	}
 
 	var device Device
 	var devices []Device
 
-	for index, key := range devKeysTokens {
-		params, _ := dbClient.SMembers(devKeys[index])
+	for index, key := range devParamsKeysTokens {
+		params, _ := dbClient.SMembers(devParamsKeys[index])
 
 		device.Type = key[1]
 		device.Name = key[2]
@@ -130,7 +129,7 @@ func httpDevHandler(w http.ResponseWriter, r *http.Request) {
 
 		values := make([][]string, len(params))
 		for i, p := range params {
-			values[i], _ = dbClient.ZRangeByScore(devKeys[index] + ":" + p, "-inf", "inf")
+			values[i], _ = dbClient.ZRangeByScore(devParamsKeys[index] + ":" + p, "-inf", "inf")
 			device.Data[p] = values[i]
 		}
 

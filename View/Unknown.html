@@ -89,8 +89,8 @@
                 //$("#"+back).append('<p>' + dateAndValue[0] + ' : ' + dateAndValue[1] + '</p>');
                 TempCam2Length--;
             }
-            $("#"+back).append('<p>' + "Cam1Time: " + dateAndValueCam1[0] + '<br>' + "Cam1Temp: " + dateAndValueCam1[1]  +
-                '<br>' + '<br>' + "Cam2Time: " + dateAndValueCam2[0] + '<br>' + "Cam2Temp: " + dateAndValueCam2[1] + '</p>');
+            $("#"+back).append('<p>' + "Cam1Time: " + new Date(dateAndValueCam1[0]).toLocaleString() + typeof(dateAndValueCam1[0]) + '<br>' + "Cam1Temp: " + dateAndValueCam1[1]  +
+                '<br>' + '<br>' + "Cam2Time: " + new Date(dateAndValueCam2[0]).toLocaleString() + '<br>' + "Cam2Temp: " + dateAndValueCam2[1] + '</p>');
 
 
           $('#'+info_card).append('</div'); // Close
