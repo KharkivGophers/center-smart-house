@@ -6,8 +6,9 @@ import (
 	"strings"
 	"net/http"
 	"strconv"
-	log "github.com/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
+	"fmt"
 )
 
 var (
@@ -121,6 +122,7 @@ func Int64ToString(n int64) string {
 }
 
 func httpDevHandler(w http.ResponseWriter, r *http.Request) {
+
 	devKeys, _ := dbClient.SMembers("devDataKeys")
 
 	var devKeysTokens [][]string = make([][]string, len(devKeys))
@@ -161,7 +163,7 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer delete(connection, conn)
 
 	for {
-		err := conn.WriteJSON(json)
+		err := conn.WriteJSON("23")
 		if err != nil {
 			log.Println("write:", err)
 			break

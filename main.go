@@ -1,14 +1,12 @@
-
 package main
 
 import (
 	"net"
-	log "github.com/logrus"
+	log "github.com/Sirupsen/logrus"
 	"menteslibres.net/gosexy/redis"
 	"github.com/gorilla/mux"
 	"net/http"
 	"time"
-	"github.com/gorilla/websocket"
 )
 
 var (
@@ -18,13 +16,13 @@ var (
 	//for SS network
 	connHost = "192.168.104.23"
 	//connHost = "127.0.0.1"
-	devConnPort = "3030"
-	devConnType = "tcp"
-	httpConnPort = "8100"
+	devConnPort         = "3030"
+	devConnType         = "tcp"
+	httpStaticConnPort  = "8100"
+	httpDynamicConnPort = "8101"
+	//for web socket
+	wsConnPort = "2540"
 )
-
-
-
 
 func main() {
 	//db connection
@@ -35,26 +33,52 @@ func main() {
 	}
 	defer dbClient.Quit()
 
-	//http connection with browser
+	//http dynamic connection with browser
 	go func() {
 		r := mux.NewRouter()
-		r.HandleFunc("/devWS", webSocketHandler)
 		r.HandleFunc("/devices", httpDevHandler)
-		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./View/")))
-
 		srv := &http.Server{
 			Handler: r,
-			Addr:    "127.0.0.1" + ":" + httpConnPort,
+			Addr:    "127.0.0.1" + ":" + httpDynamicConnPort,
 			// Good practice: enforce timeouts for servers you create!
 			WriteTimeout: 15 * time.Second,
 			ReadTimeout:  15 * time.Second,
 		}
 
 		go log.Fatal(srv.ListenAndServe())
-	} ()
+	}()
+
+	//http static connection with browser
+	go func() {
+		r := mux.NewRouter()
+		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./View/")))
+		srv := &http.Server{
+			Handler: r,
+			Addr:    "127.0.0.1" + ":" + httpStaticConnPort,
+			// Good practice: enforce timeouts for servers you create!
+			WriteTimeout: 15 * time.Second,
+			ReadTimeout:  15 * time.Second,
+		}
+		go log.Fatal(srv.ListenAndServe())
+	}()
+
+	//http web socket connection
+	go func() {
+		r := mux.NewRouter()
+		r.HandleFunc("/devWS", webSocketHandler)
+
+		srv := &http.Server{
+			Handler: r,
+			Addr:    "127.0.0.1" + ":" + wsConnPort,
+			// Good practice: enforce timeouts for servers you create!
+			WriteTimeout: 15 * time.Second,
+			ReadTimeout:  15 * time.Second,
+		}
+		go log.Fatal(srv.ListenAndServe())
+	}()
 
 	//tcp connection with devices
-	ln, err := net.Listen(devConnType, connHost + ":" + devConnPort)
+	ln, err := net.Listen(devConnType, "127.0.0.1"+":"+devConnPort)
 	if err != nil {
 		log.Println(err)
 		return
