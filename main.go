@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"time"
+	"github.com/gorilla/websocket"
 )
 
 var (
@@ -18,9 +20,11 @@ var (
 	//connHost = "127.0.0.1"
 	devConnPort = "3030"
 	devConnType = "tcp"
-
 	httpConnPort = "8100"
 )
+
+
+
 
 func main() {
 	//db connection
@@ -34,7 +38,7 @@ func main() {
 	//http connection with browser
 	go func() {
 		r := mux.NewRouter()
-
+		r.HandleFunc("/devWS", webSocketHandler)
 		r.HandleFunc("/devices", httpDevHandler)
 		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./View/")))
 
