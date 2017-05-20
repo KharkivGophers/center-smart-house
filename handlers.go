@@ -6,25 +6,25 @@ import (
 	"net/http"
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
 	"fmt"
 
+	log "github.com/Sirupsen/logrus"
 )
 
 func requestHandler(conn net.Conn) {
+	log.Println("22: requestHandler intro")
 	var req Request
 	var res Response
 
 	err := json.NewDecoder(conn).Decode(&req)
 	if err != nil {
+		log.Println("22: requestHandler JSON DEc error")
 		log.Errorln(err)
 	}
 
-	defer conn.Close()
-
 	//sends resp struct from  devTypeHandler by channel;
 	go devTypeHandler(req)
-
+	log.Println("22: requestHandler after dataTypeH")
 	res = Response{
 		Status: http.StatusOK,
 		Descr:  "Data have been delivered successfully",
@@ -32,8 +32,10 @@ func requestHandler(conn net.Conn) {
 
 	err = json.NewEncoder(conn).Encode(&res)
 	if err != nil {
+		log.Println("22: requestHandler JSON Enc err")
 		log.Errorln(err)
 	}
+	log.Println("22: requestHandler out")
 }
 
 func devTypeHandler(req Request) {
@@ -66,13 +68,22 @@ func (req *Request) fridgeDataHandler() *ServerError {
 
 	var key = devType + ":" + devName + ":" + mac
 
-	dbClient.HMSet(key,
+	_, err := dbClient.HMSet(key,
 		"ReqTime", devReqTime,
 	)
+	if err != nil {
+		log.Errorln(err)
+	}
+
+	// 	dbClient.HMSet(key,
+	// 	"ReqTime", devReqTime,
+	// )
 
 	var devData FridgeData
-	json.Unmarshal([]byte(req.Data), &devData)
-
+	err = json.Unmarshal([]byte(req.Data), &devData)
+	if err != nil {
+		log.Errorln(err)
+	}
 	for time, value := range devData.TempCam1 {
 		dbClient.ZAdd(key+":"+"TempCam1",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
@@ -112,7 +123,7 @@ func GetKeyFromHTable(key, nameTable string) (string, error) {
 
 func GetAllKeysFromHSet(nametable string) []string {
 	keys, err := dbClient.HKeys(nametable)
-	if err!=nil{
+	if err != nil {
 		return nil
 	}
 	fmt.Println(keys)
@@ -124,29 +135,27 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(buildingRespone())
 }
 
-
-
-func buildingRespone() []ViewDevice{
+func buildingRespone() []ViewDevice {
 	var nameGeneralTable string = "devices"
 	var nameTableWithFunction string = "function:"
-	var nameType struct{Name,Type string}
-	collection :=[]ViewDevice{}
+	var nameType struct{ Name, Type string }
+	collection := []ViewDevice{}
 
 	macs := GetAllKeysFromHSet(nameGeneralTable)
 
-	for _, value:=range macs{
+	for _, value := range macs {
 		var device ViewDevice = ViewDevice{}
-		data,_ :=GetKeyFromHTable(value, nameGeneralTable)
-		function:=GetAllKeysFromHSet(nameTableWithFunction+value)
+		data, _ := GetKeyFromHTable(value, nameGeneralTable)
+		function := GetAllKeysFromHSet(nameTableWithFunction + value)
 
 		json.Unmarshal([]byte(data), &nameType)
 
 		device.Name = nameType.Name
 		device.Type = nameType.Type
-		device.Location ="Home"
+		device.Location = "Home"
 		device.Functions = function
 
-		collection = append(collection,device)
+		collection = append(collection, device)
 
 	}
 	return collection
