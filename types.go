@@ -16,8 +16,8 @@ type Response struct {
 
 type Config struct {
 	Turned      bool `json:"turned"`
-	CollectFreq int `json:"collectFreq"`
-	SendFreq    int `json:"sendFreq"`
+	CollectFreq int  `json:"collectFreq"`
+	SendFreq    int  `json:"sendFreq"`
 }
 
 type Metadata struct {
@@ -44,8 +44,8 @@ type WasherData struct {
 	Temp   map[int64]float32
 }
 type ViewDevice struct {
-	Location   string `json:location`
-	Name       string `json:name`
-	Type       string `json:type`
-	Functions  []string `json:functions`
+	Location  string   `json:location`
+	Name      string   `json:name`
+	Type      string   `json:type`
+	Functions []string `json:functions`
 }

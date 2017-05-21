@@ -15,26 +15,22 @@ func requestHandler(conn net.Conn) {
 	log.Println("22: requestHandler intro")
 	var req Request
 	var res Response
-
 	err := json.NewDecoder(conn).Decode(&req)
 	if err != nil {
-		log.Println("22: requestHandler JSON DEc error")
-		log.Errorln(err)
+		log.Errorln("rH JSON Dec", err)
 	}
-
 	//sends resp struct from  devTypeHandler by channel;
 	go devTypeHandler(req)
-	log.Println("22: requestHandler after dataTypeH")
+
 	res = Response{
 		Status: http.StatusOK,
 		Descr:  "Data have been delivered successfully",
 	}
-
 	err = json.NewEncoder(conn).Encode(&res)
 	if err != nil {
-		log.Println("22: requestHandler JSON Enc err")
-		log.Errorln(err)
+		log.Errorln("rH JSON Enc", err)
 	}
+
 	log.Println("22: requestHandler out")
 }
 
@@ -45,6 +41,7 @@ func devTypeHandler(req Request) {
 		case "fridge":
 			if err := req.fridgeDataHandler(); err != nil {
 				log.Errorf("%v", err.Error)
+				log.Errorln("fridgeDataHandler")
 			}
 		case "washer":
 			if err := req.washerDataHandler(); err != nil {
@@ -65,33 +62,45 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	devReqTime := req.Time
 	devType := req.Meta.Type
 	devName := req.Meta.Name
-
+	var devData FridgeData
 	var key = devType + ":" + devName + ":" + mac
 
 	_, err := dbClient.HMSet(key,
 		"ReqTime", devReqTime,
 	)
 	if err != nil {
-		log.Errorln(err)
+		log.Errorln("dbClient.HMSet", err)
+		return &ServerError{Error: err}
 	}
 
 	// 	dbClient.HMSet(key,
 	// 	"ReqTime", devReqTime,
 	// )
 
-	var devData FridgeData
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
-		log.Errorln(err)
+		log.Errorln("fDH Unmarsh", err)
+		return &ServerError{Error: err}
 	}
+
 	for time, value := range devData.TempCam1 {
-		dbClient.ZAdd(key+":"+"TempCam1",
+		_, err := dbClient.ZAdd(key+":"+"TempCam1",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+
+		if err != nil {
+			log.Errorln("add to DB", err)
+			return &ServerError{Error: err}
+		}
 	}
 
 	for time, value := range devData.TempCam2 {
-		dbClient.ZAdd(key+":"+"TempCam2",
+		_, err = dbClient.ZAdd(key+":"+"TempCam2",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+
+		if err != nil {
+			log.Errorln("add to DB", err)
+			return &ServerError{Error: err}
+		}
 	}
 
 	return nil
@@ -115,7 +124,7 @@ func GetKeyFromHTable(key, nameTable string) (string, error) {
 	value, err := dbClient.HGet(nameTable, key)
 
 	if err != nil {
-		fmt.Println("Error when use hget")
+		fmt.Println("Error when use hget", err)
 		return "", err
 	}
 	return value, nil

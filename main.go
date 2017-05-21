@@ -30,19 +30,21 @@ var (
 
 func main() {
 	wg.Add(4)
+
 	//-----DB
-	go runDBConnection()
-	log.Println("DB connected 1")
-	//-----TCP
-	go runTCPServer()
-	log.Println("TCP server connected 2")
+	go func() {
+		dbClient = runDBConnection()
+	}()
+	defer dbClient.Close()
+
 	//-----View
 	go runViewServer()
-	log.Println("View server connected 3")
-	//-----TCP-Config
-	//	go runTCPConfig()
-	log.Println("TCP config server connected 4")
 
+	//-----TCP-Config
+	// go runTCPConfig()
+
+	//-----TCP
+	go runTCPServer()
 	wg.Wait()
 }
 
@@ -79,37 +81,31 @@ func SendRequest(turned bool, collFreq int, sendFreq int, conn net.Conn) {
 
 func runTCPServer() {
 	var i int
-	reconnect := time.NewTicker(time.Second * 1)
-	defer reconnect.Stop()
+	var reconnect *time.Ticker
 
 	ln, err := net.Listen(connType, connHost+":"+connPort)
 
 	for err != nil {
-		log.Println("2: net.Listen err != nil")
+		reconnect = time.NewTicker(time.Second * 1)
 		for range reconnect.C {
 			ln, _ = net.Listen(connType, connHost+":"+connPort)
 			i++
 			log.Println("2: net.Listen for range", i)
 		}
+		reconnect.Stop()
 	}
-	log.Println("2: net.Listen connected after loop")
 
 	for {
-		log.Println("2: ln.Accept inf for")
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Println("2: ln.Accept inf for err!=nil")
-			log.Errorln(err)
-			continue
+			log.Errorln("ln.Accept", err)
 		}
-		log.Println("2: before requestHandler")
 		go requestHandler(conn)
-		log.Println("2: after requestHandler")
 	}
 }
 
-func runDBConnection() {
-	reconnect := time.NewTicker(time.Second * 1)
+func runDBConnection() *redis.Client {
+	var reconnect *time.Ticker
 	dbClient = redis.New()
 
 	// if err := dbClient.Connect(dbHost, dbPort); err != nil {
@@ -118,13 +114,16 @@ func runDBConnection() {
 	// }
 	err := dbClient.Connect(dbHost, dbPort)
 	for err != nil {
+		log.Errorln("Database: connection has failed: %s\n", err)
+		reconnect = time.NewTicker(time.Second * 1)
 		for range reconnect.C {
 			err := dbClient.Connect(dbHost, dbPort)
-			log.Errorln(err)
+			log.Errorln("Database: connection has failed: %s\n", err)
 		}
 	}
-	//produce connection error
+	//produce connection error; replaced to main.go
 	// defer dbClient.Quit()
+	return dbClient
 }
 
 func runViewServer() {
@@ -142,30 +141,26 @@ func runTCPConfig() {
 	connType := "tcp"
 	host := "localhost"
 	port := "3000"
-
+	var reconnect *time.Ticker
 	ticker := time.NewTicker(time.Second * 5)
-	reconnect := time.NewTicker(time.Second * 1)
+
 	defer reconnect.Stop()
 
 	conn, err := net.Dial(connType, host+":"+port)
-	log.Warningln("Config Dial 1st conn")
 	for err != nil {
+		log.Errorln(err)
+		reconnect = time.NewTicker(time.Second * 1)
 		for range reconnect.C {
 			conn, _ = net.Dial(connType, host+":"+port)
 		}
 	}
-	log.Warningln("Config Dial after loop conn")
-	go func() {
-		for {
-			log.Warningln("SenRequest for intro")
-			select {
-			case <-ticker.C:
-				log.Warningln("SenRequest case intro")
-				go SendRequest(switcher(), 1, 3, conn)
-				log.Warningln("SenRequest case out")
 
-			}
+	for {
+		select {
+		case <-ticker.C:
+			go SendRequest(switcher(), 1, 3, conn)
+
 		}
-	}()
+	}
 
 }
