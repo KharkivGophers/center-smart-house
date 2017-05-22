@@ -8,6 +8,7 @@ import (
 	"strconv"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
+
 	"fmt"
 )
 
@@ -18,10 +19,19 @@ var (
 
 //For work with web socket
 var (
-	connection = make(map[*websocket.Conn]bool)
+	connChanal =make(chan string)
+	quit = make(chan string)
+	connection = make([]*websocket.Conn, 0, 0)
 	upgrader   = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		//CheckOrigin I think it is bad practice
+		CheckOrigin: func(r *http.Request) bool {
+			if r.Host=="localhost:"+wsConnPort{
+				return true
+			}
+			return  false
+		},
 	}
 )
 
@@ -36,6 +46,7 @@ func requestHandler(conn net.Conn) {
 
 	defer conn.Close()
 
+	go publishMessage(conn)
 	go devTypeHandler(req)
 
 	res = Response{
@@ -153,17 +164,26 @@ func httpDevHandler(w http.ResponseWriter, r *http.Request) {
 
 //-------------------WEB Socket Handler -----------------------
 func webSocketHandler(w http.ResponseWriter, r *http.Request) {
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
+		fmt.Println(err)
 		return
 	}
 
-	connection[conn] = true
-	defer delete(connection, conn)
+	connection = append(connection, conn)
+
 
 	for {
-		err := conn.WriteJSON("23")
+		_, _, err := conn.ReadMessage()
+
+		if err != nil {
+			log.Println("write:", err)
+			break
+		}
+
+		err = conn.WriteJSON("23")
 		if err != nil {
 			log.Println("write:", err)
 			break
@@ -171,6 +191,44 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	connChanal<-conn.RemoteAddr().String()
+
+	if err := conn.Close(); err != nil {
+		log.Error("Cant close connections")
+	}
+
 }
 
+/**
+using with tcp.
+ */
+func publishMessage(conn net.Conn) {
+	_, err := dbClient.Publish("", conn)
+	fmt.Println("This is message in PUBLISH", conn)
+	if err != nil {
+		log.Println("publish:", err)
+	}
+}
 
+func deleteConn(connAdres string) {
+	var position int = 0
+	for _, v := range connection {
+		if v.RemoteAddr().String() == connAdres {
+			connection = append(connection[:position], connection[position+1:]...)
+			log.Info("Web sockets connection deleted: ",connAdres )
+			break
+		}
+	}
+}
+func CloseWebsocket() {
+	for {
+		select {
+		case connAddres:= <-connChanal:
+			deleteConn(connAddres)
+		case <-quit:
+			fmt.Println("quit")
+			return
+		}
+
+	}
+}

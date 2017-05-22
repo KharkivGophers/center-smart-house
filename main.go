@@ -25,12 +25,16 @@ var (
 )
 
 func main() {
+	log.Info("Server has started")
 	//db connection
 	dbClient = redis.New()
 	if err := dbClient.Connect(dbHost, dbPort); err != nil {
 		log.Fatalf("Database: connection has failed: %s\n", err.Error())
 		return
 	}
+
+
+
 	defer dbClient.Quit()
 
 	//http dynamic connection with browser
@@ -63,6 +67,7 @@ func main() {
 	}()
 
 	//http web socket connection
+	go CloseWebsocket()
 	go func() {
 		r := mux.NewRouter()
 		r.HandleFunc("/devWS", webSocketHandler)
@@ -83,7 +88,6 @@ func main() {
 		log.Println(err)
 		return
 	}
-
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
