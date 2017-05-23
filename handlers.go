@@ -11,27 +11,27 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func requestHandler(conn net.Conn) {
-	log.Println("22: requestHandler intro")
+func requestHandler(conn *net.Conn) {
 	var req Request
 	var res Response
-	err := json.NewDecoder(conn).Decode(&req)
-	if err != nil {
-		log.Errorln("rH JSON Dec", err)
-	}
-	//sends resp struct from  devTypeHandler by channel;
-	go devTypeHandler(req)
+	for {
+		err := json.NewDecoder(*conn).Decode(&req)
+		if err != nil {
+			log.Errorln("requestHandler JSON Decod", err)
+			return
+		}
+		//sends resp struct from  devTypeHandler by channel;
+		go devTypeHandler(req)
 
-	res = Response{
-		Status: http.StatusOK,
-		Descr:  "Data have been delivered successfully",
+		res = Response{
+			Status: http.StatusOK,
+			Descr:  "Data have been delivered successfully",
+		}
+		err = json.NewEncoder(*conn).Encode(&res)
+		if err != nil {
+			log.Errorln("requestHandler JSON Encod", err)
+		}
 	}
-	err = json.NewEncoder(conn).Encode(&res)
-	if err != nil {
-		log.Errorln("rH JSON Enc", err)
-	}
-
-	log.Println("22: requestHandler out")
 }
 
 func devTypeHandler(req Request) {
@@ -79,7 +79,6 @@ func (req *Request) fridgeDataHandler() *ServerError {
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
-		log.Errorln("fDH Unmarsh", err)
 		return &ServerError{Error: err}
 	}
 
