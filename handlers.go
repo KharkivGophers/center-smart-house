@@ -11,6 +11,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+func updateConfig(conn *net.Conn) {
+	// var req Request
+
+}
+
 func requestHandler(conn *net.Conn) {
 	var req Request
 	var res Response
@@ -22,6 +27,8 @@ func requestHandler(conn *net.Conn) {
 		}
 		//sends resp struct from  devTypeHandler by channel;
 		go devTypeHandler(req)
+
+		log.Println("Data has been received")
 
 		res = Response{
 			Status: http.StatusOK,
@@ -101,7 +108,7 @@ func (req *Request) fridgeDataHandler() *ServerError {
 			return &ServerError{Error: err}
 		}
 	}
-
+	log.Println("Data has been saved")
 	return nil
 }
 
