@@ -14,8 +14,8 @@ var (
 	dbPort   = uint(6379)
 	dbClient *redis.Client
 	//for SS network
-	connHost = "192.168.104.23"
-	//connHost = "127.0.0.1"
+	//connHost = "192.168.104.23"
+	connHost = "127.0.0.1"
 	devConnPort = "3030"
 	devConnType = "tcp"
 
@@ -35,13 +35,18 @@ func main() {
 	go func() {
 		r := mux.NewRouter()
 
-		r.HandleFunc("/devices", httpDevHandler)
-		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./View/")))
+		r.HandleFunc("/devices", getDevicesHandler).Methods("GET")
+		r.HandleFunc("/devices/{id}", getDevDataHandler).Methods("GET")
+
+		r.HandleFunc("/devices/{id}/config", postDevConfigHandler).Methods("POST")
+		//r.HandleFunc("/devices/{id}/config", getDevConfigHandler).Methods("GET")
+		//r.HandleFunc("/devices/{id}/data", httpDevConfigHandler)
+
+		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./view")))
 
 		srv := &http.Server{
 			Handler: r,
 			Addr:    "127.0.0.1" + ":" + httpConnPort,
-			// Good practice: enforce timeouts for servers you create!
 			WriteTimeout: 15 * time.Second,
 			ReadTimeout:  15 * time.Second,
 		}
@@ -63,6 +68,6 @@ func main() {
 			continue
 		}
 
-		go requestHandler(conn)
+		go tcpDevHandler(conn)
 	}
 }

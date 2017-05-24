@@ -14,9 +14,10 @@ type Response struct {
 }
 
 type Configuration struct {
-	Turned      bool	`json:"turned"`
-	CollectFreq int		`json:"collectFreq"`
-	SendFreq    int		`json:"sendFreq"`
+	TurnedOn	bool	`json:"turnedOn"`
+	StreamOn	bool	`json:"streamOn"`
+	CollectFreq	float64	`json:"collectFreq"`
+	SendFreq	float64	`json:"sendFreq"`
 }
 
 type Metadata struct {
@@ -44,9 +45,16 @@ type WasherData struct {
 	Temp	map[int64]float32
 }
 
-type Device struct {
+type DeviceView struct {
 	Site	string			`json:"site"`
-	Name	string			`json:"name"`
-	Type	string			`json:"type"`
+	Meta	Metadata		`json:"meta"`
 	Data 	map[string][]string	`json:"data"`
 }
+
+type DetailedDevData struct {
+	Site	string			`json:"site"`
+	Meta	Metadata		`json:"meta"`
+	Config	Configuration		`json:"config"`
+	Data 	map[string][]string	`json:"data"`
+}
+

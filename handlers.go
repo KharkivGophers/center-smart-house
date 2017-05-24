@@ -7,33 +7,30 @@ import (
 	"net/http"
 	"strconv"
 	log "github.com/logrus"
+	"github.com/gorilla/mux"
 )
 
-var (
-	updDevData = "updDevData"
-)
-
-func requestHandler(conn net.Conn) {
+func tcpDevHandler(conn net.Conn) {
 	var req Request
 	var res Response
 
-	err := json.NewDecoder(conn).Decode(&req)
-	if err != nil {
-		log.Errorln(err)
-	}
+	for {
+		err := json.NewDecoder(conn).Decode(&req)
+		if err != nil {
+			log.Errorln(err)
+		}
 
-	defer conn.Close()
+		go devTypeHandler(req)
 
-	go devTypeHandler(req)
+		res = Response{
+			Status: http.StatusOK,
+			Descr:  "Data have been delivered successfully",
+		}
 
-	res = Response{
-		Status: http.StatusOK,
-		Descr:  "Data have been delivered successfully",
-	}
-
-	err = json.NewEncoder(conn).Encode(&res)
-	if err != nil {
-		log.Errorln(err)
+		err = json.NewEncoder(conn).Encode(&res)
+		if err != nil {
+			log.Errorln(err)
+		}
 	}
 }
 
@@ -67,12 +64,10 @@ func (req *Request) fridgeDataHandler() *ServerError {
 
 	devKey := "device" + ":" + devType + ":" + devName + ":" + mac
 	devParamsKey := devKey + ":" + "params"
-	//updDevDataKey := updDevDataList + ":" + devKey
 
 	dbClient.SAdd("devParamsKeys", devParamsKey)
 	dbClient.HMSet(devKey, "ReqTime", devReqTime)
 	dbClient.SAdd(devParamsKey, "TempCam1", "TempCam2")
-	//dbClient.LPush(updDevDataList, devKey)
 
 	var devData FridgeData
 	json.Unmarshal([]byte(req.Data), &devData)
@@ -80,17 +75,11 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	for time, value := range devData.TempCam1 {
 		dbClient.ZAdd(devParamsKey + ":" + "TempCam1",
 			Int64ToString(time), Int64ToString(time) + ":" + Float32ToString(float64(value)))
-
-		/*dbClient.ZAdd(updListKey + ":" + "TempCam1",
-			Int64ToString(time), Int64ToString(time) + ":" + Float32ToString(float64(value))) */
 	}
 
 	for time, value := range devData.TempCam2 {
 		dbClient.ZAdd(devParamsKey + ":" + "TempCam2",
 			Int64ToString(time), Int64ToString(time) + ":" + Float32ToString(float64(value)))
-
-		/*dbClient.ZAdd(updListKey + ":" + "TempCam2",
-			Int64ToString(time), Int64ToString(time) + ":" + Float32ToString(float64(value))) */
 	}
 
 	return nil
@@ -109,7 +98,7 @@ func Int64ToString(n int64) string {
 	return strconv.FormatInt(int64(n), 10)
 }
 
-func httpDevHandler(w http.ResponseWriter, r *http.Request) {
+func getDevicesHandler(w http.ResponseWriter, r *http.Request) {
 	devParamsKeys, _ := dbClient.SMembers("devParamsKeys")
 
 	var devParamsKeysTokens [][]string = make([][]string, len(devParamsKeys))
@@ -117,14 +106,15 @@ func httpDevHandler(w http.ResponseWriter, r *http.Request) {
 		devParamsKeysTokens[i] = strings.Split(k, ":")
 	}
 
-	var device Device
-	var devices []Device
+	var device DeviceView
+	var devices []DeviceView
 
 	for index, key := range devParamsKeysTokens {
 		params, _ := dbClient.SMembers(devParamsKeys[index])
 
-		device.Type = key[1]
-		device.Name = key[2]
+		device.Meta.Type = key[1]
+		device.Meta.Name = key[2]
+		device.Meta.MAC  = key[3]
 		device.Data = make(map[string][]string)
 
 		values := make([][]string, len(params))
@@ -139,4 +129,41 @@ func httpDevHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(devices)
 }
 
+func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	devID := "device:" + vars["id"]
 
+	devParamsKeysTokens := []string{}
+	devParamsKeysTokens = strings.Split(devID, ":")
+	devParamsKey := devID + ":" + "params"
+
+	var device DetailedDevData
+
+	params, _ := dbClient.SMembers(devParamsKey)
+	device.Meta.Type = devParamsKeysTokens[1]
+	device.Meta.Name = devParamsKeysTokens[2]
+	device.Meta.MAC  = devParamsKeysTokens[3]
+	device.Data = make(map[string][]string)
+
+	values := make([][]string, len(params))
+	for i, p := range params {
+		values[i], _ = dbClient.ZRangeByScore(devParamsKey + ":" + p, "-inf", "inf")
+		device.Data[p] = values[i]
+	}
+
+	json.NewEncoder(w).Encode(device)
+}
+
+func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := "device:" + vars["id"]
+
+	var config Configuration
+	err := json.NewDecoder(r.Body).Decode(&config)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+
+	log.Println("Received configuration: ", config, "id: ", id)
+	w.WriteHeader(http.StatusOK)
+}
