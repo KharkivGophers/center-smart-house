@@ -236,15 +236,15 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) error {
 	dbClient.SAdd("Config", configInfo)
 
 	_, err = dbClient.HMSet(req.Meta.MAC, "ConfigTime", Time)
-	checkDBError(err)
+	CheckDBError(err)
 	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
-	checkDBError(err)
+	CheckDBError(err)
 	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", defaultConfig.TurnedOn)
-	checkDBError(err)
+	CheckDBError(err)
 	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", defaultConfig.CollectFreq)
-	checkDBError(err)
+	CheckDBError(err)
 	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", defaultConfig.SendFreq)
-	checkDBError(err)
+	CheckDBError(err)
 
 	// Send to Device
 	err = json.NewEncoder(*conn).Encode(&defaultConfig)
@@ -253,13 +253,5 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) error {
 	}
 
 	log.Warningln("default config has been sent")
-	return nil
-}
-
-func checkDBError(err error) error {
-	if err != nil {
-		log.Errorln("Failed operation with DB", err)
-		return err
-	}
 	return nil
 }

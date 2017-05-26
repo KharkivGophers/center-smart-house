@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"menteslibres.net/gosexy/redis"
 
@@ -27,7 +29,7 @@ var (
 
 		//CheckOrigin I think it is bad practice
 		CheckOrigin: func(r *http.Request) bool {
-			if r.Host == "localhost:"+wsConnPort {
+			if r.Host == connHost+":"+wsConnPort {
 				return true
 			}
 			return false
@@ -96,20 +98,11 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	devParamsKey := devKey + ":" + "params"
 
 	_, err := dbClient.SAdd("devParamsKeys", devParamsKey)
-	if err != nil {
-		log.Errorln("dbClient.SAdd", err)
-		return &ServerError{Error: err}
-	}
+	CheckDBError(err)
 	_, err = dbClient.HMSet(devKey, "ReqTime", devReqTime)
-	if err != nil {
-		log.Errorln("dbClient.HMSet", err)
-		return &ServerError{Error: err}
-	}
+	CheckDBError(err)
 	_, err = dbClient.SAdd(devParamsKey, "TempCam1", "TempCam2")
-	if err != nil {
-		log.Errorln("dbClient.SAdd", err)
-		return &ServerError{Error: err}
-	}
+	CheckDBError(err)
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
@@ -119,19 +112,15 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
-		if err != nil {
-			log.Errorln("add to DB", err)
-			return &ServerError{Error: err}
-		}
+		CheckDBError(err)
+		return &ServerError{Error: err}
 	}
 
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
-		if err != nil {
-			log.Errorln("add to DB", err)
-			return &ServerError{Error: err}
-		}
+		CheckDBError(err)
+		return &ServerError{Error: err}
 	}
 
 	return nil
@@ -213,15 +202,104 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var config Config
 	vars := mux.Vars(r)
+
 	id := "device:" + vars["id"]
+	mac := vars["id"]
+	configInfo := vars["if"] + ":" + "data"
 
 	err := json.NewDecoder(r.Body).Decode(&config)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
 
+	Time := time.Now().UnixNano() / int64(time.Millisecond)
 	log.Println("Received configuration: ", config, "id: ", id)
 	w.WriteHeader(http.StatusOK)
+
+	// Validate MAC
+	validateMAC(mac, w)
+	// Validate State
+	validateState(config, w)
+	// Validate Collect Frequency
+	validateCollectFreq(config, w)
+	// Validate Send Frequency
+	validateSendFreq(config, w)
+
+	// Save to DB
+	_, err = dbClient.SAdd("Config", configInfo)
+	CheckDBError(err)
+	_, err = dbClient.HMSet(vars["id"], "ConfigTime", Time)
+	CheckDBError(err)
+	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
+	CheckDBError(err)
+	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", config.TurnedOn)
+	CheckDBError(err)
+	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", config.CollectFreq)
+	CheckDBError(err)
+	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", config.SendFreq)
+	CheckDBError(err)
+
+	log.Println("Received configuration: ", config, "id: ", id)
+	w.WriteHeader(http.StatusOK)
+}
+
+func validateSendFreq(c Config, w http.ResponseWriter) {
+	switch reflect.TypeOf(c.SendFreq).String() {
+	case "int":
+		switch {
+		case c.SendFreq > 0 && c.SendFreq < 100:
+			return
+		default:
+			http.Error(w, "0 < Send Frequency < 100", 400)
+			break
+		}
+	default:
+		http.Error(w, "Send Frequency should be in integer format", 415)
+		break
+	}
+}
+
+func validateCollectFreq(c Config, w http.ResponseWriter) {
+	switch reflect.TypeOf(c.CollectFreq).String() {
+	case "int":
+		switch {
+		case c.CollectFreq > 0 && c.CollectFreq < 100:
+			return
+		default:
+			http.Error(w, "0 < Collect Frequency < 100", 400)
+			break
+		}
+	default:
+		http.Error(w, "Collect Frequency should be in integer format", 415)
+		break
+	}
+}
+
+func validateState(c Config, w http.ResponseWriter) {
+	switch reflect.TypeOf(c.TurnedOn).String() {
+	case "bool":
+		return
+	default:
+		http.Error(w, "State should be in byte format", 415)
+		break
+	}
+}
+
+func validateMAC(mac string, w http.ResponseWriter) {
+	switch reflect.TypeOf(mac).String() {
+	case "string":
+		fmt.Println("This is string")
+		switch len(mac) {
+		case 17:
+			return
+		default:
+			http.Error(w, "MAC should contain 17 symbols", 400)
+			break
+		}
+	default:
+		http.Error(w, "MAC should be in string format", 415)
+		break
+	}
 }
 
 //-------------------WEB Socket Handler -----------------------
@@ -324,4 +402,12 @@ func sendInfoToWSClient(mac, message string) {
 
 func getToChanal(conn *websocket.Conn) {
 	connChanal <- conn
+}
+
+func CheckDBError(err error) error {
+	if err != nil {
+		log.Errorln("Failed operation with DB", err)
+		return err
+	}
+	return nil
 }
