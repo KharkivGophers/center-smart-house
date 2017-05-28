@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	connChanal = make(chan *websocket.Conn)
-	quit       = make(chan string)
-	quitSub    = make(chan bool)
-	mapConn    = make(map[string]*listConnection)
+	connChanal  = make(chan *websocket.Conn)
+	stopCloseWS = make(chan string)
+	stopSub     = make(chan bool)
+	mapConn     = make(map[string]*listConnection)
 
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -109,14 +109,14 @@ func (req *Request) fridgeDataHandler() *ServerError {
 
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
 		CheckError("DB error", err)
 		return &ServerError{Error: err}
 	}
 
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
 		CheckError("DB error", err)
 		return &ServerError{Error: err}
 	}
@@ -129,11 +129,11 @@ func (req *Request) washerDataHandler() *ServerError {
 	return nil
 }
 
-func Float32ToString(num float64) string {
+func float32ToString(num float64) string {
 	return strconv.FormatFloat(num, 'f', -1, 32)
 }
 
-func Int64ToString(n int64) string {
+func int64ToString(n int64) string {
 	return strconv.FormatInt(int64(n), 10)
 }
 
@@ -233,6 +233,8 @@ func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", config.SendFreq)
 	CheckError("DB error", err)
 
+	go publishMessage(r.Body, "configChan")
+
 	log.Println("Received configuration: ", config, "id: ", id)
 	w.WriteHeader(http.StatusOK)
 }
@@ -315,9 +317,8 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 /**
 using with tcp.
 */
-func publishMessage(req Request, roomID string) {
-	_, err := dbClient.Publish(roomID, req)
-	fmt.Println("This is message in PUBLISH", req)
+func publishMessage(message interface{}, roomID string) {
+	_, err := dbClient.Publish(roomID, message)
 	CheckError("Publish", err)
 }
 
@@ -333,7 +334,7 @@ func CloseWebsocket() {
 					break
 				}
 			}
-		case <-quit:
+		case <-stopCloseWS:
 			log.Info("CloseWebsocket closed")
 			return
 		}
@@ -341,19 +342,39 @@ func CloseWebsocket() {
 	}
 }
 
-func Subscribe(client *redis.Client, roomID string) {
+func subscribe(client *redis.Client, roomID string, channel chan []string) {
 	client = redis.New()
 	err := client.ConnectNonBlock(dbHost, dbPort)
 	CheckError("Subscribe", err)
 
-	messages := make(chan []string)
-	go client.Subscribe(messages, roomID)
+	go client.Subscribe(channel, roomID)
+}
 
+func configSubscribe(client *redis.Client, roomID string, messages chan []string, pool *ConectionPool) {
+	subscribe(client, roomID, messages)
+	var cnfg Config
+
+	for msg := range messages {
+
+		for _, v := range msg {
+			log.Warningln(v)
+		}
+
+		err := json.Unmarshal([]byte(msg[2]), &cnfg)
+		if CheckError("configSubscribe", err) != nil {
+			return
+		}
+		sendNewConfiguration(cnfg, pool)
+	}
+}
+
+func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
+	subscribe(client, roomID, channel)
 	for {
 		select {
-		case msg := <-messages:
+		case msg := <-channel:
 			go checkAndSendInfoToWSClient(msg)
-		case <-quitSub:
+		case <-stopSub:
 			log.Info("Subscribe closed")
 			return
 		}
