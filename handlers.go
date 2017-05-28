@@ -56,9 +56,7 @@ func tcpDataHandler(conn *net.Conn) {
 			Descr:  "Data have been delivered successfully",
 		}
 		err = json.NewEncoder(*conn).Encode(&res)
-		if err != nil {
-			log.Errorln("requestHandler JSON Encod", err)
-		}
+		CheckError("tcpDataHandler JSON enc", err)
 	}
 
 }
@@ -98,11 +96,11 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	devParamsKey := devKey + ":" + "params"
 
 	_, err := dbClient.SAdd("devParamsKeys", devParamsKey)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.HMSet(devKey, "ReqTime", devReqTime)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.SAdd(devParamsKey, "TempCam1", "TempCam2")
-	CheckDBError(err)
+	CheckError("DB error", err)
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
@@ -112,14 +110,14 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
-		CheckDBError(err)
+		CheckError("DB error", err)
 		return &ServerError{Error: err}
 	}
 
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
-		CheckDBError(err)
+		CheckError("DB error", err)
 		return &ServerError{Error: err}
 	}
 
@@ -167,9 +165,7 @@ func getDevicesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := json.NewEncoder(w).Encode(devices)
-	if err != nil {
-		log.Errorln("getDevicesHandler JSON Encod", err)
-	}
+	CheckError("getDevicesHandler JSON enc", err)
 }
 
 func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -194,9 +190,7 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := json.NewEncoder(w).Encode(device)
-	if err != nil {
-		log.Errorln("getDevDataHandler JSON Encod", err)
-	}
+	CheckError("getDevDataHandler JSON enc", err)
 }
 
 func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
@@ -227,17 +221,17 @@ func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save to DB
 	_, err = dbClient.SAdd("Config", configInfo)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.HMSet(vars["id"], "ConfigTime", Time)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", config.TurnedOn)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", config.CollectFreq)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", config.SendFreq)
-	CheckDBError(err)
+	CheckError("DB error", err)
 
 	log.Println("Received configuration: ", config, "id: ", id)
 	w.WriteHeader(http.StatusOK)
@@ -324,9 +318,7 @@ using with tcp.
 func publishMessage(req Request, roomID string) {
 	_, err := dbClient.Publish(roomID, req)
 	fmt.Println("This is message in PUBLISH", req)
-	if err != nil {
-		log.Println("publish:", err)
-	}
+	CheckError("Publish", err)
 }
 
 /**
@@ -352,9 +344,7 @@ func CloseWebsocket() {
 func Subscribe(client *redis.Client, roomID string) {
 	client = redis.New()
 	err := client.ConnectNonBlock(dbHost, dbPort)
-	if err != nil {
-		fmt.Println(err)
-	}
+	CheckError("Subscribe", err)
 
 	messages := make(chan []string)
 	go client.Subscribe(messages, roomID)
@@ -377,9 +367,7 @@ func checkAndSendInfoToWSClient(msg []string) {
 	fmt.Println(msg)
 	r := new(Request)
 	err := json.Unmarshal([]byte(msg[2]), r)
-	if err != nil {
-		fmt.Println(err)
-	}
+	CheckError("checkAndSendInfoToWSClient", err)
 	fmt.Println(r)
 	if _, ok := mapConn[r.Meta.MAC]; ok {
 		sendInfoToWSClient(r.Meta.MAC, msg[2])
@@ -404,9 +392,9 @@ func getToChanal(conn *websocket.Conn) {
 	connChanal <- conn
 }
 
-func CheckDBError(err error) error {
+func CheckError(desc string, err error) error {
 	if err != nil {
-		log.Errorln("Failed operation with DB", err)
+		log.Errorln(desc, err)
 		return err
 	}
 	return nil

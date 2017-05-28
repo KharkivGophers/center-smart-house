@@ -145,9 +145,7 @@ func runTCPServer() {
 
 	for {
 		conn, err := ln.Accept()
-		if err != nil {
-			log.Errorln("ln.Accept", err)
-		}
+		CheckError("TCP conn Accept", err)
 
 		go tcpDataHandler(&conn)
 	}
@@ -183,50 +181,35 @@ func runConfigServer() {
 
 	for {
 		conn, err := ln.Accept()
-		if err != nil {
-			log.Errorln("ln.Accept", err)
-		}
+		CheckError("TCP config conn Accept", err)
 		//save conn to the map[MAC]net.conn
 		go sendDefaultConfiguration(&conn, &pool)
 	}
 
 }
 
-func sendNewConfiguration(config Config, pool *ConectionPool) error {
+func sendNewConfiguration(config Config, pool *ConectionPool) {
 	var resp Response
 	conn := pool.getConn(config.MAC)
 
 	err := json.NewEncoder(*conn).Encode(&config)
-	if err != nil {
-		log.Errorln("sendNewConfiguration JSON Encod", err)
-		return err
-	}
-
+	CheckError("sendNewConfiguration JSON Encod", err)
 	err = json.NewDecoder(*conn).Decode(&resp)
-	if err != nil {
-		log.Errorln("sendNewConfiguration JSON Decod", err)
-		return err
-	}
-
-	return nil
+	CheckError("sendNewConfiguration JSON Decod", err)
 }
 
-func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) error {
+func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
 	// Send Default Configuration to Device
 	var req Request
 	log.Warningln("received default config request")
 	err := json.NewDecoder(*conn).Decode(&req)
-	if err != nil {
-		log.Errorln("sendDefaultConfiguration JSON Decod", err)
-		return err
-	}
+	CheckError("sendDefaultConfiguration JSON Decod", err)
 	pool.addConn(conn, req.Meta.MAC)
 
 	Time := time.Now().UnixNano() / int64(time.Millisecond)
 	configInfo := req.Meta.MAC + ":" + "params" // key
 
 	// Save default configuration to DB
-
 	defaultConfig := Config{
 		TurnedOn:    true,
 		CollectFreq: 5,
@@ -236,22 +219,18 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) error {
 	dbClient.SAdd("Config", configInfo)
 
 	_, err = dbClient.HMSet(req.Meta.MAC, "ConfigTime", Time)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", defaultConfig.TurnedOn)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", defaultConfig.CollectFreq)
-	CheckDBError(err)
+	CheckError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", defaultConfig.SendFreq)
-	CheckDBError(err)
+	CheckError("DB error", err)
 
 	// Send to Device
 	err = json.NewEncoder(*conn).Encode(&defaultConfig)
-	if err != nil {
-		log.Errorln(err)
-	}
-
+	CheckError("sendDefaultConfiguration JSON enc", err)
 	log.Warningln("default config has been sent")
-	return nil
 }
