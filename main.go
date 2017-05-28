@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,28 +11,6 @@ import (
 	"github.com/gorilla/mux"
 	"menteslibres.net/gosexy/redis"
 )
-
-var (
-	dbHost   = "127.0.0.1"
-	dbPort   = uint(6379)
-	dbClient *redis.Client
-	//for SS network
-	//connHost = "192.168.104.23"
-	connHost = "192.168.104.76"
-	connPort = "3030"
-	connType = "tcp"
-
-	httpStaticConnPort  = "8100"
-	httpDynamicConnPort = "8101"
-
-	wsConnPort            = "2540"
-	wsDBClient            *redis.Client
-	roomIDForDevWSPublish = "devWS"
-
-	wg    sync.WaitGroup
-	state bool
-)
-
 func main() {
 	wg.Add(4)
 	//db connection
@@ -45,12 +22,13 @@ func main() {
 	//http connection with browser
 
 	go runStaticServer()
+	go runDynamicServer()
 
 	//websocket server
 	go websocketServer()
 
 	//-----TCP-Config
-	go runConfigServer()
+	go runConfigServer(configConnType, configHost, configPort)
 	//-----TCP
 	go runTCPServer()
 	wg.Wait()
@@ -59,7 +37,7 @@ func main() {
 //http web socket connection
 func websocketServer() {
 	go CloseWebsocket()
-	go Subscribe(wsDBClient, roomIDForDevWSPublish)
+	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/devices/{type}/{name}/{mac}", webSocketHandler)
@@ -131,12 +109,12 @@ func runTCPServer() {
 	var i int
 	var reconnect *time.Ticker
 
-	ln, err := net.Listen(connType, connHost+":"+connPort)
+	ln, err := net.Listen(connType, connHost+":"+tcpConnPort)
 
 	for err != nil {
 		reconnect = time.NewTicker(time.Second * 1)
 		for range reconnect.C {
-			ln, _ = net.Listen(connType, connHost+":"+connPort)
+			ln, _ = net.Listen(connType, connHost+":"+tcpConnPort)
 			i++
 			log.Println("2: net.Listen for range", i)
 		}
@@ -151,38 +129,33 @@ func runTCPServer() {
 	}
 }
 
-func runConfigServer() {
-	connType := "tcp"
-	host := "localhost"
-	port := "3000"
+func runConfigServer(connType string, host string, port string) {
+
+	messages := make(chan []string)
+	var dbClient *redis.Client
 	var reconnect *time.Ticker
 	var pool ConectionPool
 	pool.init()
+
+	go func() {
+		dbClient = runDBConnection()
+	}()
+	defer dbClient.Close()
 
 	ln, err := net.Listen(connType, host+":"+port)
 
 	for err != nil {
 		reconnect = time.NewTicker(time.Second * 1)
 		for range reconnect.C {
-			ln, _ = net.Listen(connType, connHost+":"+connPort)
+			ln, _ = net.Listen(connType, connHost+":"+tcpConnPort)
 		}
 		reconnect.Stop()
 	}
-	//connection with DB; listens for PubSubs
-	// go redisPubSubConn() {
-	// for {
-	// take new config from DB and maps it to COnfig structure
-	// run sendNewConfiguration() with this Congif struct as param
-	// if publish {
-	// 	sendNewConfiguration()
-	// }
-	// }
-	// }
+	go configSubscribe(dbClient, "configChan", messages, &pool)
 
 	for {
 		conn, err := ln.Accept()
 		CheckError("TCP config conn Accept", err)
-		//save conn to the map[MAC]net.conn
 		go sendDefaultConfiguration(&conn, &pool)
 	}
 
@@ -201,7 +174,7 @@ func sendNewConfiguration(config Config, pool *ConectionPool) {
 func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
 	// Send Default Configuration to Device
 	var req Request
-	log.Warningln("received default config request")
+
 	err := json.NewDecoder(*conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 	pool.addConn(conn, req.Meta.MAC)

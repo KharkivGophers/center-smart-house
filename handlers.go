@@ -17,26 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var (
-	connChanal = make(chan *websocket.Conn)
-	quit       = make(chan string)
-	quitSub    = make(chan bool)
-	mapConn    = make(map[string]*listConnection)
-
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-
-		//CheckOrigin I think it is bad practice
-		CheckOrigin: func(r *http.Request) bool {
-			if r.Host == connHost+":"+wsConnPort {
-				return true
-			}
-			return false
-		},
-	}
-)
-
+//--------------------TCP-------------------------------------------------------------------------------------
 func tcpDataHandler(conn *net.Conn) {
 	var req Request
 	var res Response
@@ -61,6 +42,9 @@ func tcpDataHandler(conn *net.Conn) {
 
 }
 
+/*
+Checks  type device and call speciall func for send data to DB.
+ */
 func devTypeHandler(req Request) {
 	switch req.Action {
 	case "update":
@@ -85,6 +69,9 @@ func devTypeHandler(req Request) {
 	}
 }
 
+/*
+Save data about fridge in DB. Return struct ServerError
+ */
 func (req *Request) fridgeDataHandler() *ServerError {
 	var devData FridgeData
 	mac := req.Meta.MAC
@@ -109,14 +96,14 @@ func (req *Request) fridgeDataHandler() *ServerError {
 
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
 		CheckError("DB error", err)
 		return &ServerError{Error: err}
 	}
 
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
 		CheckError("DB error", err)
 		return &ServerError{Error: err}
 	}
@@ -129,47 +116,25 @@ func (req *Request) washerDataHandler() *ServerError {
 	return nil
 }
 
-func Float32ToString(num float64) string {
-	return strconv.FormatFloat(num, 'f', -1, 32)
+func configSubscribe(client *redis.Client, roomID string, messages chan []string, pool *ConectionPool) {
+	subscribe(client, roomID, messages)
+	var cnfg Config
+	for msg := range messages {
+		err := json.Unmarshal([]byte(msg[2]), &cnfg)
+		CheckError("configSubscribe", err)
+		sendNewConfiguration(cnfg, pool)
+	}
 }
 
-func Int64ToString(n int64) string {
-	return strconv.FormatInt(int64(n), 10)
-}
+//----------------------HTTP Dynamic Connection----------------------------------------------------------------------------------
 
 func getDevicesHandler(w http.ResponseWriter, r *http.Request) {
-	var device DeviceView
-	var devices []DeviceView
-	devParamsKeys, _ := dbClient.SMembers("devParamsKeys")
-
-	var devParamsKeysTokens = make([][]string, len(devParamsKeys))
-	for i, k := range devParamsKeys {
-		devParamsKeysTokens[i] = strings.Split(k, ":")
-	}
-
-	for index, key := range devParamsKeysTokens {
-		params, _ := dbClient.SMembers(devParamsKeys[index])
-
-		device.Meta.Type = key[1]
-		device.Meta.Name = key[2]
-		device.Meta.MAC = key[3]
-		device.Data = make(map[string][]string)
-
-		values := make([][]string, len(params))
-		for i, p := range params {
-			values[i], _ = dbClient.ZRangeByScore(devParamsKeys[index]+":"+p, "-inf", "inf")
-			device.Data[p] = values[i]
-		}
-
-		devices = append(devices, device)
-	}
-
+	devices := getAllDevices()
 	err := json.NewEncoder(w).Encode(devices)
 	CheckError("getDevicesHandler JSON enc", err)
 }
 
 func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
-	var device DetailedDevData
 	vars := mux.Vars(r)
 	devID := "device:" + vars["id"]
 
@@ -177,18 +142,7 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 	devParamsKeysTokens = strings.Split(devID, ":")
 	devParamsKey := devID + ":" + "params"
 
-	params, _ := dbClient.SMembers(devParamsKey)
-	device.Meta.Type = devParamsKeysTokens[1]
-	device.Meta.Name = devParamsKeysTokens[2]
-	device.Meta.MAC = devParamsKeysTokens[3]
-	device.Data = make(map[string][]string)
-
-	values := make([][]string, len(params))
-	for i, p := range params {
-		values[i], _ = dbClient.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
-		device.Data[p] = values[i]
-	}
-
+	device := getDevice(devParamsKey, devParamsKeysTokens)
 	err := json.NewEncoder(w).Encode(device)
 	CheckError("getDevDataHandler JSON enc", err)
 }
@@ -296,7 +250,7 @@ func validateMAC(mac string, w http.ResponseWriter) {
 	}
 }
 
-//-------------------WEB Socket Handler -----------------------
+//-------------------WEB Socket--------------------------------------------------------------------------------------------
 func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -313,15 +267,6 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
-using with tcp.
-*/
-func publishMessage(req Request, roomID string) {
-	_, err := dbClient.Publish(roomID, req)
-	fmt.Println("This is message in PUBLISH", req)
-	CheckError("Publish", err)
-}
-
-/**
 Delete connections from mapConn
 */
 func CloseWebsocket() {
@@ -333,28 +278,24 @@ func CloseWebsocket() {
 					break
 				}
 			}
-		case <-quit:
+		case <-stopCloseWS:
 			log.Info("CloseWebsocket closed")
 			return
 		}
-
 	}
 }
 
-func Subscribe(client *redis.Client, roomID string) {
-	client = redis.New()
-	err := client.ConnectNonBlock(dbHost, dbPort)
-	CheckError("Subscribe", err)
-
-	messages := make(chan []string)
-	go client.Subscribe(messages, roomID)
-
+/*
+Listens changes in database. If they have, then sent to all websocket which working with them.
+ */
+func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
+	subscribe(client, roomID, channel)
 	for {
 		select {
-		case msg := <-messages:
+		case msg := <-channel:
 			go checkAndSendInfoToWSClient(msg)
-		case <-quitSub:
-			log.Info("Subscribe closed")
+		case <-stopSub:
+			log.Info("WSSubscribe closed")
 			return
 		}
 	}
@@ -364,11 +305,9 @@ func Subscribe(client *redis.Client, roomID string) {
 // If we have mac in the map we will send message to all connections.
 // Else we do nothing
 func checkAndSendInfoToWSClient(msg []string) {
-	fmt.Println(msg)
 	r := new(Request)
 	err := json.Unmarshal([]byte(msg[2]), r)
 	CheckError("checkAndSendInfoToWSClient", err)
-	fmt.Println(r)
 	if _, ok := mapConn[r.Meta.MAC]; ok {
 		sendInfoToWSClient(r.Meta.MAC, msg[2])
 	}
@@ -381,7 +320,7 @@ func sendInfoToWSClient(mac, message string) {
 		fmt.Println(message)
 		err := val.WriteJSON(message)
 		if err != nil {
-			log.Error("connection closed")
+			log.Errorf("Connection %v closed", val.RemoteAddr())
 			go getToChanal(val)
 		}
 	}
@@ -392,10 +331,88 @@ func getToChanal(conn *websocket.Conn) {
 	connChanal <- conn
 }
 
+//-----------------Common funcs-------------------------------------------------------------------------------------------
+
 func CheckError(desc string, err error) error {
 	if err != nil {
 		log.Errorln(desc, err)
 		return err
 	}
 	return nil
+}
+
+func subscribe(client *redis.Client, roomID string, channel chan []string) {
+	client = redis.New()
+	err := client.ConnectNonBlock(dbHost, dbPort)
+	CheckError("Subscribe", err)
+
+	go client.Subscribe(channel, roomID)
+}
+
+func publishMessage(message interface{}, roomID string) {
+	_, err := dbClient.Publish(roomID, message)
+	CheckError("Publish", err)
+}
+
+func float32ToString(num float64) string {
+	return strconv.FormatFloat(num, 'f', -1, 32)
+}
+
+func int64ToString(n int64) string {
+	return strconv.FormatInt(int64(n), 10)
+}
+
+//-------------------Work with data base-------------------------------------------------------------------------------------------
+
+func getAllDevices() []DeviceView {
+	var device DeviceView
+	var devices []DeviceView
+	devParamsKeys, err := dbClient.SMembers("devParamsKeys")
+	if CheckError("Cant read members from devParamsKeys", err) != nil {
+		return nil
+	}
+
+	var devParamsKeysTokens = make([][]string, len(devParamsKeys))
+	for i, k := range devParamsKeys {
+		devParamsKeysTokens[i] = strings.Split(k, ":")
+	}
+
+	for index, key := range devParamsKeysTokens {
+		params, err := dbClient.SMembers(devParamsKeys[index])
+		CheckError("Cant read members from "+devParamsKeys[index], err)
+
+		device.Meta.Type = key[1]
+		device.Meta.Name = key[2]
+		device.Meta.MAC = key[3]
+		device.Data = make(map[string][]string)
+
+		values := make([][]string, len(params))
+		for i, p := range params {
+			values[i], _ = dbClient.ZRangeByScore(devParamsKeys[index]+":"+p, "-inf", "inf")
+			CheckError("Cant use ZRangeByScore for "+devParamsKeys[index], err)
+			device.Data[p] = values[i]
+		}
+
+		devices = append(devices, device)
+	}
+	return devices
+}
+
+func getDevice(devParamsKey string, devParamsKeysTokens []string) DetailedDevData {
+	var device DetailedDevData
+
+	params, err := dbClient.SMembers(devParamsKey)
+	CheckError("Cant read members from devParamsKeys", err)
+	device.Meta.Type = devParamsKeysTokens[1]
+	device.Meta.Name = devParamsKeysTokens[2]
+	device.Meta.MAC = devParamsKeysTokens[3]
+	device.Data = make(map[string][]string)
+
+	values := make([][]string, len(params))
+	for i, p := range params {
+		values[i], err = dbClient.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
+		CheckError("Cant use ZRangeByScore", err)
+		device.Data[p] = values[i]
+	}
+	return device
 }
