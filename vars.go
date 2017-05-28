@@ -1,10 +1,11 @@
 package main
 
 import (
-	"menteslibres.net/gosexy/redis"
-	"sync"
-	"github.com/gorilla/websocket"
 	"net/http"
+	"sync"
+
+	"github.com/gorilla/websocket"
+	"menteslibres.net/gosexy/redis"
 )
 
 //var from main.go
@@ -40,11 +41,9 @@ var (
 
 	wg    sync.WaitGroup
 	state bool
-)
 
-//var from handler.go
-//This var needed to websocket for using
-var (
+	//var from handler.go
+	//This var needed to websocket for using
 	connChanal  = make(chan *websocket.Conn)
 	stopCloseWS = make(chan string)
 	stopSub     = make(chan bool)

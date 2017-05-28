@@ -37,14 +37,14 @@ func tcpDataHandler(conn *net.Conn) {
 			Descr:  "Data have been delivered successfully",
 		}
 		err = json.NewEncoder(*conn).Encode(&res)
-		CheckError("tcpDataHandler JSON enc", err)
+		checkError("tcpDataHandler JSON enc", err)
 	}
 
 }
 
 /*
 Checks  type device and call speciall func for send data to DB.
- */
+*/
 func devTypeHandler(req Request) {
 	switch req.Action {
 	case "update":
@@ -71,7 +71,7 @@ func devTypeHandler(req Request) {
 
 /*
 Save data about fridge in DB. Return struct ServerError
- */
+*/
 func (req *Request) fridgeDataHandler() *ServerError {
 	var devData FridgeData
 	mac := req.Meta.MAC
@@ -83,11 +83,11 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	devParamsKey := devKey + ":" + "params"
 
 	_, err := dbClient.SAdd("devParamsKeys", devParamsKey)
-	CheckError("DB error", err)
+	checkError("DB error", err)
 	_, err = dbClient.HMSet(devKey, "ReqTime", devReqTime)
-	CheckError("DB error", err)
+	checkError("DB error", err)
 	_, err = dbClient.SAdd(devParamsKey, "TempCam1", "TempCam2")
-	CheckError("DB error", err)
+	checkError("DB error", err)
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
@@ -97,14 +97,14 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
 			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		CheckError("DB error", err)
+		checkError("DB error", err)
 		return &ServerError{Error: err}
 	}
 
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
 			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		CheckError("DB error", err)
+		checkError("DB error", err)
 		return &ServerError{Error: err}
 	}
 
@@ -121,7 +121,7 @@ func configSubscribe(client *redis.Client, roomID string, messages chan []string
 	var cnfg Config
 	for msg := range messages {
 		err := json.Unmarshal([]byte(msg[2]), &cnfg)
-		CheckError("configSubscribe", err)
+		checkError("configSubscribe", err)
 		sendNewConfiguration(cnfg, pool)
 	}
 }
@@ -131,7 +131,7 @@ func configSubscribe(client *redis.Client, roomID string, messages chan []string
 func getDevicesHandler(w http.ResponseWriter, r *http.Request) {
 	devices := getAllDevices()
 	err := json.NewEncoder(w).Encode(devices)
-	CheckError("getDevicesHandler JSON enc", err)
+	checkError("getDevicesHandler JSON enc", err)
 }
 
 func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +144,7 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	device := getDevice(devParamsKey, devParamsKeysTokens)
 	err := json.NewEncoder(w).Encode(device)
-	CheckError("getDevDataHandler JSON enc", err)
+	checkError("getDevDataHandler JSON enc", err)
 }
 
 func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
@@ -175,17 +175,17 @@ func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save to DB
 	_, err = dbClient.SAdd("Config", configInfo)
-	CheckError("DB error", err)
+	checkError("DB error", err)
 	_, err = dbClient.HMSet(vars["id"], "ConfigTime", Time)
-	CheckError("DB error", err)
+	checkError("DB error", err)
 	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
-	CheckError("DB error", err)
+	checkError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", config.TurnedOn)
-	CheckError("DB error", err)
+	checkError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", config.CollectFreq)
-	CheckError("DB error", err)
+	checkError("DB error", err)
 	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", config.SendFreq)
-	CheckError("DB error", err)
+	checkError("DB error", err)
 
 	log.Println("Received configuration: ", config, "id: ", id)
 	w.WriteHeader(http.StatusOK)
@@ -287,7 +287,7 @@ func CloseWebsocket() {
 
 /*
 Listens changes in database. If they have, then sent to all websocket which working with them.
- */
+*/
 func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
 	subscribe(client, roomID, channel)
 	for {
@@ -307,7 +307,7 @@ func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
 func checkAndSendInfoToWSClient(msg []string) {
 	r := new(Request)
 	err := json.Unmarshal([]byte(msg[2]), r)
-	CheckError("checkAndSendInfoToWSClient", err)
+	checkError("checkAndSendInfoToWSClient", err)
 	if _, ok := mapConn[r.Meta.MAC]; ok {
 		sendInfoToWSClient(r.Meta.MAC, msg[2])
 	}
@@ -333,7 +333,7 @@ func getToChanal(conn *websocket.Conn) {
 
 //-----------------Common funcs-------------------------------------------------------------------------------------------
 
-func CheckError(desc string, err error) error {
+func checkError(desc string, err error) error {
 	if err != nil {
 		log.Errorln(desc, err)
 		return err
@@ -344,14 +344,14 @@ func CheckError(desc string, err error) error {
 func subscribe(client *redis.Client, roomID string, channel chan []string) {
 	client = redis.New()
 	err := client.ConnectNonBlock(dbHost, dbPort)
-	CheckError("Subscribe", err)
+	checkError("Subscribe", err)
 
 	go client.Subscribe(channel, roomID)
 }
 
 func publishMessage(message interface{}, roomID string) {
 	_, err := dbClient.Publish(roomID, message)
-	CheckError("Publish", err)
+	checkError("Publish", err)
 }
 
 func float32ToString(num float64) string {
@@ -368,7 +368,7 @@ func getAllDevices() []DeviceView {
 	var device DeviceView
 	var devices []DeviceView
 	devParamsKeys, err := dbClient.SMembers("devParamsKeys")
-	if CheckError("Cant read members from devParamsKeys", err) != nil {
+	if checkError("Cant read members from devParamsKeys", err) != nil {
 		return nil
 	}
 
@@ -379,7 +379,7 @@ func getAllDevices() []DeviceView {
 
 	for index, key := range devParamsKeysTokens {
 		params, err := dbClient.SMembers(devParamsKeys[index])
-		CheckError("Cant read members from "+devParamsKeys[index], err)
+		checkError("Cant read members from "+devParamsKeys[index], err)
 
 		device.Meta.Type = key[1]
 		device.Meta.Name = key[2]
@@ -389,7 +389,7 @@ func getAllDevices() []DeviceView {
 		values := make([][]string, len(params))
 		for i, p := range params {
 			values[i], _ = dbClient.ZRangeByScore(devParamsKeys[index]+":"+p, "-inf", "inf")
-			CheckError("Cant use ZRangeByScore for "+devParamsKeys[index], err)
+			checkError("Cant use ZRangeByScore for "+devParamsKeys[index], err)
 			device.Data[p] = values[i]
 		}
 
@@ -402,7 +402,7 @@ func getDevice(devParamsKey string, devParamsKeysTokens []string) DetailedDevDat
 	var device DetailedDevData
 
 	params, err := dbClient.SMembers(devParamsKey)
-	CheckError("Cant read members from devParamsKeys", err)
+	checkError("Cant read members from devParamsKeys", err)
 	device.Meta.Type = devParamsKeysTokens[1]
 	device.Meta.Name = devParamsKeysTokens[2]
 	device.Meta.MAC = devParamsKeysTokens[3]
@@ -411,7 +411,7 @@ func getDevice(devParamsKey string, devParamsKeysTokens []string) DetailedDevDat
 	values := make([][]string, len(params))
 	for i, p := range params {
 		values[i], err = dbClient.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
-		CheckError("Cant use ZRangeByScore", err)
+		checkError("Cant use ZRangeByScore", err)
 		device.Data[p] = values[i]
 	}
 	return device

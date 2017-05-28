@@ -66,6 +66,7 @@ type DetailedDevData struct {
 	Data   map[string][]string `json:"data"`
 }
 
+//Connections pool for configTCPServer
 type ConectionPool struct {
 	sync.Mutex
 	conn map[string]*net.Conn
