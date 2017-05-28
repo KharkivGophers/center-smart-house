@@ -76,7 +76,7 @@ func runDynamicServer() {
 //http static connection with browser
 func runStaticServer() {
 	r := mux.NewRouter()
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./View/")))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./view/")))
 	srv := &http.Server{
 		Handler: r,
 		Addr:    connHost + ":" + httpStaticConnPort,

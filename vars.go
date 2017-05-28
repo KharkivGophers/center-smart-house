@@ -17,7 +17,8 @@ var (
 
 	//General
 	//connHost = "192.168.104.23"
-	connHost = "192.168.104.76"
+	//connHost = "192.168.104.76"
+	connHost = "127.0.0.1"
 
 	//tcp conn with devices
 	connType    = "tcp"
