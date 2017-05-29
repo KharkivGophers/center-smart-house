@@ -327,8 +327,7 @@ func checkAndSendInfoToWSClient(msg []string) {
 func sendInfoToWSClient(mac, message string) {
 	mapConn[mac].Lock()
 	for _, val := range mapConn[mac].connections {
-		fmt.Println(message)
-		err := val.WriteJSON(message)
+		err := val.WriteMessage(1,[]byte(message))
 		if err != nil {
 			log.Errorf("Connection %v closed", val.RemoteAddr())
 			go getToChanal(val)
