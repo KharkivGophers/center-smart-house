@@ -119,12 +119,14 @@ func (req *Request) washerDataHandler() *ServerError {
 func configSubscribe(client *redis.Client, roomID string, messages chan []string, pool *ConectionPool) {
 	subscribe(client, roomID, messages)
 	var cnfg Config
-	for msg := range messages {
-		err := json.Unmarshal([]byte(msg[2]), &cnfg)
-		if checkError("configSubscribe", err) != nil {
-			return
+		for msg := range messages {
+			if msg[0]=="message" {
+			err := json.Unmarshal([]byte(msg[2]), &cnfg)
+			if checkError("configSubscribe", err) != nil {
+				return
+			}
+			sendNewConfiguration(cnfg, pool)
 		}
-		sendNewConfiguration(cnfg, pool)
 	}
 }
 
@@ -295,7 +297,9 @@ func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
 	for {
 		select {
 		case msg := <-channel:
-			go checkAndSendInfoToWSClient(msg)
+			if msg[0] == "message" {
+				go checkAndSendInfoToWSClient(msg)
+			}
 		case <-stopSub:
 			log.Info("WSSubscribe closed")
 			return
@@ -308,7 +312,6 @@ func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
 // Else we do nothing
 func checkAndSendInfoToWSClient(msg []string) {
 	r := new(Request)
-	log.Warningln(msg[2])
 	err := json.Unmarshal([]byte(msg[2]), &r)
 	if checkError("checkAndSendInfoToWSClient", err) != nil {
 		return
@@ -336,8 +339,8 @@ func getToChanal(conn *websocket.Conn) {
 	connChanal <- conn
 }
 
-func publishWS(req Request){
-	pubReq ,err := json.Marshal(req)
+func publishWS(req Request) {
+	pubReq, err := json.Marshal(req)
 	checkError("Marshal for publish.", err)
 	go publishMessage(pubReq, roomIDForDevWSPublish)
 }
