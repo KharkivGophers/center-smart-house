@@ -121,7 +121,9 @@ func configSubscribe(client *redis.Client, roomID string, messages chan []string
 	var cnfg Config
 	for msg := range messages {
 		err := json.Unmarshal([]byte(msg[2]), &cnfg)
-		checkError("configSubscribe", err)
+		if checkError("configSubscribe", err) != nil {
+			return
+		}
 		sendNewConfiguration(cnfg, pool)
 	}
 }
@@ -306,8 +308,11 @@ func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
 // Else we do nothing
 func checkAndSendInfoToWSClient(msg []string) {
 	r := new(Request)
-	err := json.Unmarshal([]byte(msg[2]), r)
-	checkError("checkAndSendInfoToWSClient", err)
+	log.Warningln(msg[2])
+	err := json.Unmarshal([]byte(msg[2]), &r)
+	if checkError("checkAndSendInfoToWSClient", err) != nil {
+		return
+	}
 	if _, ok := mapConn[r.Meta.MAC]; ok {
 		sendInfoToWSClient(r.Meta.MAC, msg[2])
 	}
