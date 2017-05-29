@@ -62,7 +62,7 @@ func devTypeHandler(req Request) {
 			log.Println("Device request: unknown device type")
 			return
 		}
-		go publishMessage(req, roomIDForDevWSPublish)
+		go publishWS(req)
 
 	default:
 		log.Println("Device request: unknown action")
@@ -334,6 +334,12 @@ func sendInfoToWSClient(mac, message string) {
 
 func getToChanal(conn *websocket.Conn) {
 	connChanal <- conn
+}
+
+func publishWS(req Request){
+	pubReq ,err := json.Marshal(req)
+	checkError("Marshal for publish.", err)
+	go publishMessage(pubReq, roomIDForDevWSPublish)
 }
 
 //-----------------Common funcs-------------------------------------------------------------------------------------------

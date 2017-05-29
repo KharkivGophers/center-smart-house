@@ -78,10 +78,11 @@
                     "Cam1Time: " + new Date(parseInt(dateAndValueCam1[0])).toLocaleString() + '<br>' +
                     "Cam1Temp: " + dateAndValueCam1[1] + '<br>' + '<br>' +
                     "Cam2Time: " + new Date(parseInt(dateAndValueCam2[0])).toLocaleString() + '<br>' +
-                    "Cam2Temp: " + dateAndValueCam2[1] + '</p>');
+                    "Cam2Temp: " + dateAndValueCam2[1] +
+                    '</p>');
 
                 // Button get detailed data
-                $("#"+back).append('<button type="button" id="dataBut' + data_length + '">' + 'Detailed data' + '</button>');
+                $("#"+back).append('<button type="button" class="btn btn-basic" id="dataBut' + data_length + '">' + 'Detailed data' + '</button>');
                 $("#"+ "dataBut" + data_length).on('click', function () {
                     var id = this.id.replace( /^\D+/g, '');
                     window.location = "fridge.html?id=" + obj[id - 1]["meta"]["type"] + ":"
