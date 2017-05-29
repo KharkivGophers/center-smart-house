@@ -44,7 +44,7 @@
 <div id="result"></div>
 <script>
     $(document).ready(function () {
-        $.get("/devices", function (data) {
+        $.get("http://192.168.104.76:8101/devices", function (data) {
             var obj = JSON.parse(data);
             var data_length = obj.length;
 

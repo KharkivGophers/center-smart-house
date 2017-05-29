@@ -116,10 +116,21 @@
                 printFridgeChart(obj);
             });
 
+<<<<<<< HEAD
             $.get("/devices/" + urlParams["id"] + "/config", function (data) {
                 var obj = JSON.parse(data);
                 setDevConfigFields(obj);
             });
+=======
+        xhr.send(data);
+    }
+
+    $(document).ready(function () {
+        var urlParams = parseURLParams(window.location.href);
+
+        $.get("http://192.168.104.76:8101/devices/" + urlParams["id"], function (data) {
+            var obj = JSON.parse(data);
+>>>>>>> e025ddb5a14c433082d232538136082493f440c3
 
             document.getElementById("turnedOnBtn").onclick = function () {
                 var value = this.innerHTML;
@@ -150,6 +161,7 @@
                 );
             };
 
+<<<<<<< HEAD
             document.getElementById("streamOnBtn").onclick = function () {
                 var value = this.innerHTML;
 
@@ -168,6 +180,14 @@
                     );
                     this.innerHTML = "On";
                     this.className = "btn btn-success";
+=======
+
+
+            //chart
+            Highcharts.setOptions({
+                global: {
+                    useUTC: false
+>>>>>>> e025ddb5a14c433082d232538136082493f440c3
                 }
             };
 
