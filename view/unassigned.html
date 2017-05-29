@@ -44,7 +44,7 @@
 <div id="result"></div>
 <script>
     $(document).ready(function () {
-        $.get("http://192.168.104.76:8101/devices", function (data) {
+        $.get("http://localhost:8101/devices", function (data) {
             var obj = JSON.parse(data);
             var data_length = obj.length;
 
@@ -94,6 +94,17 @@
             }
         });
     });
+
+    // создать подключение
+    var socket = new WebSocket("ws://localhost:2540/devices/type/name/00-15-E9-2B-99-3C");
+
+    // обработчик входящих сообщений
+    socket.onmessage = function(event) {
+        var incomingMessage = event.data;
+        showMessage(incomingMessage);
+    };
+
+
 
 </script>
 </body>

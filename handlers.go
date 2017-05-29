@@ -97,15 +97,17 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
 			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		checkError("DB error", err)
-		return &ServerError{Error: err}
+		if checkError("DB error", err) != nil {
+			return &ServerError{Error: err}
+		}
 	}
 
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
 			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		checkError("DB error", err)
-		return &ServerError{Error: err}
+		if checkError("DB error", err) != nil {
+			return &ServerError{Error: err}
+		}
 	}
 
 	return nil
@@ -119,8 +121,8 @@ func (req *Request) washerDataHandler() *ServerError {
 func configSubscribe(client *redis.Client, roomID string, messages chan []string, pool *ConectionPool) {
 	subscribe(client, roomID, messages)
 	var cnfg Config
-		for msg := range messages {
-			if msg[0]=="message" {
+	for msg := range messages {
+		if msg[0] == "message" {
 			err := json.Unmarshal([]byte(msg[2]), &cnfg)
 			if checkError("configSubscribe", err) != nil {
 				return
