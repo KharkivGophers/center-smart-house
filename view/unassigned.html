@@ -44,7 +44,8 @@
 <div id="result"></div>
 <script>
     $(document).ready(function () {
-        $.get("http://localhost:8101/devices", function (data) {
+
+        $.get("/devices", function (data) {
             var obj = JSON.parse(data);
             var data_length = obj.length;
 
@@ -70,8 +71,8 @@
                 $("#" + back).append('<p>Name: ' + obj[data_length - 1]["meta"]["name"] + '</p>');
 
                 var device_data = obj[data_length - 1]["data"];
+
                 var dateAndValueCam1 = device_data.TempCam1[device_data.TempCam1.length - 1].split(':');
-                
                 var dateAndValueCam2 = device_data.TempCam2[device_data.TempCam2.length - 1].split(':');
 
                 $("#" + back).append('<p>' +
@@ -82,8 +83,8 @@
                     '</p>');
 
                 // Button get detailed data
-                $("#"+back).append('<button type="button" class="btn btn-basic" id="dataBut' + data_length + '">' + 'Detailed data' + '</button>');
-                $("#"+ "dataBut" + data_length).on('click', function () {
+                $("#"+back).append('<button type="button" class="btn btn-basic" id="dataBtn' + data_length + '">' + 'Detailed data' + '</button>');
+                $("#"+ "dataBtn" + data_length).on('click', function () {
                     var id = this.id.replace( /^\D+/g, '');
                     window.location = "fridge.html?id=" + obj[id - 1]["meta"]["type"] + ":"
                         + obj[id - 1]["meta"]["name"] + ":" +  obj[id - 1]["meta"]["mac"];

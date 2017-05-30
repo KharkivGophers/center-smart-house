@@ -2,14 +2,12 @@ package main
 
 func main() {
 	wg.Add(4)
-	//db connection
 
+	//db connection
 	dbClient = runDBConnection()
 	defer dbClient.Close()
 
 	//http connection with browser
-
-	go runStaticServer()
 	go runDynamicServer()
 
 	//websocket server
@@ -19,5 +17,6 @@ func main() {
 	go runConfigServer(configConnType, configHost, configPort)
 	//-----TCP
 	go runTCPServer()
+
 	wg.Wait()
 }

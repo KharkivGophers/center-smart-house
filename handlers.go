@@ -15,6 +15,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"io/ioutil"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -120,14 +121,14 @@ func (req *Request) washerDataHandler() *ServerError {
 
 func configSubscribe(client *redis.Client, roomID string, messages chan []string, pool *ConectionPool) {
 	subscribe(client, roomID, messages)
-	var cnfg Config
+	var config DevConfig
 	for msg := range messages {
 		if msg[0] == "message" {
-			err := json.Unmarshal([]byte(msg[2]), &cnfg)
+			err := json.Unmarshal([]byte(msg[2]), &config)
 			if checkError("configSubscribe", err) != nil {
 				return
 			}
-			sendNewConfiguration(cnfg, pool)
+			sendNewConfiguration(config, pool)
 		}
 	}
 }
@@ -153,51 +154,41 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 	checkError("getDevDataHandler JSON enc", err)
 }
 
-func postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-	var config Config
+func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
+	//parse json
 	vars := mux.Vars(r)
-
 	id := "device:" + vars["id"]
-	mac := vars["id"]
-	configInfo := vars["if"] + ":" + "data"
 
-	err := json.NewDecoder(r.Body).Decode(&config)
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
 
-	Time := time.Now().UnixNano() / int64(time.Millisecond)
-	log.Println("Received configuration: ", config, "id: ", id)
-	w.WriteHeader(http.StatusOK)
+	var config = make(map[string]interface{})
+	json.Unmarshal(body, &config)
 
-	// Validate MAC
-	validateMAC(mac, w)
-	// Validate State
-	validateState(config, w)
-	// Validate Collect Frequency
-	validateCollectFreq(config, w)
-	// Validate Send Frequency
-	validateSendFreq(config, w)
-
-	// Save to DB
-	_, err = dbClient.SAdd("Config", configInfo)
-	checkError("DB error", err)
-	_, err = dbClient.HMSet(vars["id"], "ConfigTime", Time)
-	checkError("DB error", err)
-	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
-	checkError("DB error", err)
-	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", config.TurnedOn)
-	checkError("DB error", err)
-	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", config.CollectFreq)
-	checkError("DB error", err)
-	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", config.SendFreq)
-	checkError("DB error", err)
+	for k, v := range config {
+		log.Println(k, v)
+	}
 
 	log.Println("Received configuration: ", config, "id: ", id)
+
 	w.WriteHeader(http.StatusOK)
 }
 
-func validateSendFreq(c Config, w http.ResponseWriter) {
+func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
+	var config = DevConfig{
+		TurnedOn: true,
+		StreamOn: true,
+		CollectFreq: 5,
+		SendFreq: 10,
+	}
+
+	json.NewEncoder(w).Encode(config)
+}
+
+
+func validateSendFreq(c DevConfig, w http.ResponseWriter) {
 	switch reflect.TypeOf(c.SendFreq).String() {
 	case "int":
 		switch {
@@ -213,7 +204,7 @@ func validateSendFreq(c Config, w http.ResponseWriter) {
 	}
 }
 
-func validateCollectFreq(c Config, w http.ResponseWriter) {
+func validateCollectFreq(c DevConfig, w http.ResponseWriter) {
 	switch reflect.TypeOf(c.CollectFreq).String() {
 	case "int":
 		switch {
@@ -229,7 +220,7 @@ func validateCollectFreq(c Config, w http.ResponseWriter) {
 	}
 }
 
-func validateState(c Config, w http.ResponseWriter) {
+func validateState(c DevConfig, w http.ResponseWriter) {
 	switch reflect.TypeOf(c.TurnedOn).String() {
 	case "bool":
 		return
@@ -264,12 +255,12 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//http://..../device/type/name/mac
-	uri := strings.Split(r.URL.String(), "/")
+	uri := strings.Split(r.URL.String(), ":")
 
-	if _, ok := mapConn[uri[4]]; !ok {
-		mapConn[uri[4]] = new(listConnection)
+	if _, ok := mapConn[uri[2]]; !ok {
+		mapConn[uri[2]] = new(listConnection)
 	}
-	mapConn[uri[4]].Add(conn)
+	mapConn[uri[2]].Add(conn)
 }
 
 /**
@@ -393,9 +384,9 @@ func int64ToString(n int64) string {
 
 //-------------------Work with data base-------------------------------------------------------------------------------------------
 
-func getAllDevices() []DeviceView {
-	var device DeviceView
-	var devices []DeviceView
+func getAllDevices() []DevData {
+	var device DevData
+	var devices []DevData
 	devParamsKeys, err := dbClient.SMembers("devParamsKeys")
 	if checkError("Cant read members from devParamsKeys", err) != nil {
 		return nil
@@ -427,8 +418,8 @@ func getAllDevices() []DeviceView {
 	return devices
 }
 
-func getDevice(devParamsKey string, devParamsKeysTokens []string) DetailedDevData {
-	var device DetailedDevData
+func getDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
+	var device DevData
 
 	params, err := dbClient.SMembers(devParamsKey)
 	checkError("Cant read members from devParamsKeys", err)

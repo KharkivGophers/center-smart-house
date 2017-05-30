@@ -19,7 +19,7 @@ func websocketServer() {
 	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel)
 
 	r := mux.NewRouter()
-	r.HandleFunc("/devices/{type}/{name}/{mac}", webSocketHandler)
+	r.HandleFunc("/devices/{id}", webSocketHandler)
 	r.HandleFunc("/devWS", webSocketHandler)
 
 	srv := &http.Server{
@@ -35,36 +35,27 @@ func websocketServer() {
 //http dynamic connection with browser
 func runDynamicServer() {
 	r := mux.NewRouter()
-	r.HandleFunc("/devices/{id}/config", postDevConfigHandler).Methods("POST")
-	r.HandleFunc("/devices/{type}/{name}/{mac}", getDevDataHandler).Methods("GET")
-	r.HandleFunc("/devices", getDevicesHandler)
+	r.HandleFunc("/devices", getDevicesHandler).Methods("GET")
+	r.HandleFunc("/devices/{id}/data", getDevDataHandler).Methods("GET")
+	r.HandleFunc("/devices/{id}/config", getDevConfigHandler).Methods("GET")
+
+	r.HandleFunc("/devices/{id}/config", patchDevConfigHandler).Methods("PATCH")
+
+	//provide static html pages
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./view/")))
+
 	srv := &http.Server{
 		Handler: r,
-		Addr:    connHost + ":" + httpDynamicConnPort,
+		Addr:    connHost + ":" + httpConnPort,
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
 	//CORS provides Cross-Origin Resource Sharing middleware
-	http.ListenAndServe(connHost+":"+httpDynamicConnPort, handlers.CORS()(r))
+	http.ListenAndServe(connHost + ":" + httpConnPort, handlers.CORS()(r))
 
 	go log.Fatal(srv.ListenAndServe())
-}
-
-//http static connection with browser
-func runStaticServer() {
-	r := mux.NewRouter()
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./view/")))
-	srv := &http.Server{
-		Handler: r,
-		Addr:    connHost + ":" + httpStaticConnPort,
-		// Good practice: enforce timeouts for servers you create!
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-	go log.Fatal(srv.ListenAndServe())
-
 }
 
 func runDBConnection() *redis.Client {
@@ -155,10 +146,9 @@ func runConfigServer(connType string, host string, port string) {
 		checkError("TCP config conn Accept", err)
 		go sendDefaultConfiguration(&conn, &pool)
 	}
-
 }
 
-func sendNewConfiguration(config Config, pool *ConectionPool) {
+func sendNewConfiguration(config DevConfig, pool *ConectionPool) {
 	var resp Response
 	conn := pool.getConn(config.MAC)
 
@@ -180,7 +170,7 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
 	configInfo := req.Meta.MAC + ":" + "params" // key
 
 	// Save default configuration to DB
-	defaultConfig := Config{
+	defaultConfig := DevConfig{
 		TurnedOn:    true,
 		CollectFreq: 1,
 		SendFreq:    5,
