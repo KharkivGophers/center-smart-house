@@ -3,9 +3,8 @@ package main
 func main() {
 	wg.Add(4)
 	//db connection
-	go func() {
-		dbClient = runDBConnection()
-	}()
+
+	dbClient = runDBConnection()
 	defer dbClient.Close()
 
 	//http connection with browser

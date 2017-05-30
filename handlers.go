@@ -327,7 +327,7 @@ func checkAndSendInfoToWSClient(msg []string) {
 func sendInfoToWSClient(mac, message string) {
 	mapConn[mac].Lock()
 	for _, val := range mapConn[mac].connections {
-		err := val.WriteMessage(1,[]byte(message))
+		err := val.WriteMessage(1, []byte(message))
 		if err != nil {
 			log.Errorf("Connection %v closed", val.RemoteAddr())
 			go getToChanal(val)
@@ -357,10 +357,24 @@ func checkError(desc string, err error) error {
 }
 
 func subscribe(client *redis.Client, roomID string, channel chan []string) {
-	client = redis.New()
-	err := client.ConnectNonBlock(dbHost, dbPort)
-	checkError("Subscribe", err)
+	var reconnect *time.Ticker
 
+	client = redis.New()
+	// err := client.ConnectNonBlock(dbHost, dbPort)
+	// checkError("Subscribe", err)
+	err := client.ConnectNonBlock(dbHost, dbPort)
+	checkError("runDBConnection error: ", err)
+	for err != nil {
+		log.Errorln("Database: ", err)
+		reconnect = time.NewTicker(time.Second * 1)
+		for range reconnect.C {
+			err = dbClient.ConnectNonBlock(dbHost, dbPort)
+			if err == nil {
+				continue
+			}
+			log.Errorln("err not nil")
+		}
+	}
 	go client.Subscribe(channel, roomID)
 }
 

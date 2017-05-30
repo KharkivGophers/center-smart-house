@@ -72,15 +72,27 @@ func runDBConnection() *redis.Client {
 	dbClient = redis.New()
 
 	err := dbClient.Connect(dbHost, dbPort)
+	checkError("runDBConnection error: ", err)
 	for err != nil {
-		log.Errorln("Database: connection has failed: %s\n", err)
+		log.Errorln("1 Database: connection has failed:", err)
 		reconnect = time.NewTicker(time.Second * 1)
 		for range reconnect.C {
-			err := dbClient.Connect(dbHost, dbPort)
-			log.Errorln("Database: connection has failed: %s\n", err)
+			err = dbClient.Connect(dbHost, dbPort)
+			if err == nil {
+				continue
+			}
+			log.Errorln("err not nil")
 		}
-	}
 
+		// for dbClient == err {
+		// 	reconnect = time.NewTicker(time.Second * 1)
+		// 	for range reconnect.C {
+		// 		err := dbClient.Connect(dbHost, dbPort)
+		// 		log.Errorln("Database: connection has failed: %s\n", err)
+		// 	}
+		// }
+		// reconnect.Stop()
+	}
 	return dbClient
 }
 
@@ -114,7 +126,16 @@ func runConfigServer(connType string, host string, port string) {
 	pool.init()
 
 	go func() {
+		var reconnect *time.Ticker
 		dbClient = runDBConnection()
+		for dbClient == nil {
+			reconnect = time.NewTicker(time.Second * 1)
+			for range reconnect.C {
+				err := dbClient.Connect(dbHost, dbPort)
+				log.Errorln("Database: connection has failed: %s\n", err)
+			}
+			return
+		}
 	}()
 	defer dbClient.Close()
 
