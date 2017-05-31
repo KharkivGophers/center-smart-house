@@ -357,24 +357,9 @@ func checkError(desc string, err error) error {
 }
 
 func subscribe(client *redis.Client, roomID string, channel chan []string) {
-	var reconnect *time.Ticker
-
 	client = redis.New()
-	// err := client.ConnectNonBlock(dbHost, dbPort)
-	// checkError("Subscribe", err)
 	err := client.ConnectNonBlock(dbHost, dbPort)
-	checkError("runDBConnection error: ", err)
-	for err != nil {
-		log.Errorln("Database: ", err)
-		reconnect = time.NewTicker(time.Second * 1)
-		for range reconnect.C {
-			err = dbClient.ConnectNonBlock(dbHost, dbPort)
-			if err == nil {
-				continue
-			}
-			log.Errorln("err not nil")
-		}
-	}
+	checkError("Subscribe", err)
 	go client.Subscribe(channel, roomID)
 }
 
