@@ -255,12 +255,13 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//http://..../device/type/name/mac
-	uri := strings.Split(r.URL.String(), ":")
+	uri := strings.Split(r.URL.String(), "/")
 
 	if _, ok := mapConn[uri[2]]; !ok {
 		mapConn[uri[2]] = new(listConnection)
 	}
 	mapConn[uri[2]].Add(conn)
+
 }
 
 /**

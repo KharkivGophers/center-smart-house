@@ -174,14 +174,11 @@
         //сейчас такой формат:   ws://localhost:8100/00-15-E9-2B-99-3C
         //сделай такой, какой тебе нужен
 
-        var socket = new WebSocket("ws://" + url[2] + "/" + String(urlParams["id"]).split(":")[2]);
+        var domen = url[2].split(":")
+        var socket = new WebSocket("ws://" + domen[0]+":2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
 
         // обработчик входящих сообщений
-        socket.onmessage = function(event) {
-            var incomingMessage = event.data;
-            var fridge = JSON.parse(incomingMessage);
-            console.log(fridge.meta.mac)
-        };
+
     </script>
 </div>
 </body>
