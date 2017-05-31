@@ -37,7 +37,7 @@ func runDynamicServer() {
 	r := mux.NewRouter()
 	r.HandleFunc("/devices", getDevicesHandler).Methods("GET")
 	r.HandleFunc("/devices/{id}/data", getDevDataHandler).Methods("GET")
-	r.HandleFunc("/devices/{id}/config", getDevConfigHandler).Methods("GET")
+	r.HandleFunc("/devices/{id}/config", patchDevConfigHandler).Methods("GET")
 
 	r.HandleFunc("/devices/{id}/config", patchDevConfigHandler).Methods("PATCH")
 
@@ -74,16 +74,6 @@ func runDBConnection() *redis.Client {
 			}
 			log.Errorln("err not nil")
 		}
-		//make sleep
-
-		// for dbClient == err {
-		// 	reconnect = time.NewTicker(time.Second * 1)
-		// 	for range reconnect.C {
-		// 		err := dbClient.Connect(dbHost, dbPort)
-		// 		log.Errorln("Database: connection has failed: %s\n", err)
-		// 	}
-		// }
-		// reconnect.Stop()
 	}
 	return dbClient
 }
@@ -153,10 +143,11 @@ func sendNewConfiguration(config DevConfig, pool *ConectionPool) {
 	var resp Response
 	conn := pool.getConn(config.MAC)
 
-	err := json.NewEncoder(*conn).Encode(&config)
+	err := json.NewEncoder(*conn).Encode(config)
 	checkError("sendNewConfiguration JSON Encod", err)
 	err = json.NewDecoder(*conn).Decode(&resp)
 	checkError("sendNewConfiguration JSON Decod", err)
+	log.Println(resp)
 }
 
 func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
@@ -165,6 +156,7 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
 
 	err := json.NewDecoder(*conn).Decode(&req)
 	checkError("sendDefaultConfiguration JSON Decod", err)
+	log.Warningln("new device's MAC", req.Meta.MAC)
 	pool.addConn(conn, req.Meta.MAC)
 
 	Time := time.Now().UnixNano() / int64(time.Millisecond)

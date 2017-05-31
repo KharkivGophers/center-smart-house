@@ -12,8 +12,6 @@ import (
 
 	"menteslibres.net/gosexy/redis"
 
-	"io/ioutil"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -85,11 +83,11 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	devParamsKey := devKey + ":" + "params"
 
 	_, err := dbClient.SAdd("devParamsKeys", devParamsKey)
-	checkError("DB error", err)
+	checkError("DB error11", err)
 	_, err = dbClient.HMSet(devKey, "ReqTime", devReqTime)
-	checkError("DB error", err)
+	checkError("DB error12", err)
 	_, err = dbClient.SAdd(devParamsKey, "TempCam1", "TempCam2")
-	checkError("DB error", err)
+	checkError("DB error13", err)
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
@@ -99,7 +97,7 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
 			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		if checkError("DB error", err) != nil {
+		if checkError("DB error14", err) != nil {
 			return &ServerError{Error: err}
 		}
 	}
@@ -107,7 +105,7 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
 			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		if checkError("DB error", err) != nil {
+		if checkError("DB error15", err) != nil {
 			return &ServerError{Error: err}
 		}
 	}
@@ -124,7 +122,9 @@ func configSubscribe(client *redis.Client, roomID string, messages chan []string
 	subscribe(client, roomID, messages)
 	var config DevConfig
 	for msg := range messages {
+		log.Println(msg)
 		if msg[0] == "message" {
+			log.Warningln("for range from publish chann", msg)
 			err := json.Unmarshal([]byte(msg[2]), &config)
 			if checkError("configSubscribe", err) != nil {
 				return
@@ -157,123 +157,119 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 
 func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	//parse json
-	vars := mux.Vars(r)
-	id := "device:" + vars["id"]
-	mac := vars["id"]
 
-	body, err := ioutil.ReadAll(r.Body)
+	vars := mux.Vars(r)
+	id := vars["id"] // type + mac
+	mac := strings.Split(id, ":")[2]
+	validateMAC(mac)
+
+	configInfo := mac + ":" + "params" // key
+	Time := time.Now().UnixNano() / int64(time.Millisecond)
+	// body, err := ioutil.ReadAll(r.Body)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), 400)
+	// }
+
+	var config DevConfig
+	err := json.NewDecoder(r.Body).Decode(&config)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	}
 
-	var config = make(map[string]interface{})
-	json.Unmarshal(body, &config)
+	config.MAC = mac // add MAC to map
 
-	confStruct := new(DevConfig)
+	// switch config {
+	// case "sendFreq":
+	// 	validateSendFreq(v, w)
+	// _, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, v)
+	// checkError("DB error 1", err)
+	// 	log.Println("Send Frequency was changed")
+	// case "collectFreq":
 
-	for k, v := range config {
-		log.Println(k, v)
-		switch k {
-		case "sendFreq":
-			confStruct.SendFreq = v.(int64)
-		case "collectFreq":
-			confStruct.CollectFreq = v.(int64)
-		case "turnedOn":
-			confStruct.TurnedOn = v.(bool)
-		case "MAC":
-			confStruct.MAC = v.(string)
-		}
-	}
+	// 	validateCollectFreq(v, w)
+	// _, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", Time, v)
+	// checkError("DB error 2", err)
+	// 	log.Println("Collect Frequency was chanJSONconfigged")
+	// case "turnedOn":
+	// 	validateState(v, w)
+	// _, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", Time, v)
+	// checkError("DB error 3", err)
+	// 	log.Println("State was changed")
+	// }
 
-	log.Println("Received configuration: ", config, "id: ", id)
-	log.Println(confStruct)
-	Time := time.Now().UnixNano() / int64(time.Millisecond)
-	w.WriteHeader(http.StatusOK)
-
-	// Validate MAC
-	validateMAC(mac, w)
-	// Validate State
-	validateState(*confStruct, w)
-	// Validate Collect Frequency
-	validateCollectFreq(*confStruct, w)
-	// Validate Send Frequency
-	validateSendFreq(*confStruct, w)
-
-	// Save to DB
-	_, err = dbClient.SAdd("Config", confStruct)
+	_, err = dbClient.SAdd("Config", configInfo)
 	checkError("DB error", err)
 	_, err = dbClient.HMSet(vars["id"], "ConfigTime", Time)
 	checkError("DB error", err)
-	_, err = dbClient.SAdd(confStruct, "TurnedOn", "CollectFreq", "SendFreq")
+	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
 	checkError("DB error", err)
-	_, err = dbClient.ZAdd(confStruct+":"+"TurnedOn", config.TurnedOn)
+	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", Time, config.TurnedOn)
 	checkError("DB error", err)
-	_, err = dbClient.ZAdd(confStruct+":"+"CollectFreq", config.CollectFreq)
+	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", Time, config.CollectFreq)
 	checkError("DB error", err)
-	_, err = dbClient.ZAdd(confStruct+":"+"SendFreq", config.SendFreq)
+	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, config.SendFreq)
 	checkError("DB error", err)
 
-	log.Println("Received configuration: ", config, "id: ", id)
-	w.WriteHeader(http.StatusOK)
-	go publishMessage(confStruct, "configChan")
-	log.Println(confStruct)
-	w.WriteHeader(http.StatusOK)
+	validateState(config)
+	// Validate Collect Frequency
+	validateCollectFreq(config)
+	// Validate Send Frequency
+	validateSendFreq(config)
+
+	log.Println("Received configuration: ", config, "mac: ", mac)
+	// w.WriteHeader(http.StatusOK)
+	JSONconfig, err := json.Marshal(config)
+	checkError("JSONconfig error", err)
+
+	go publishMessage(JSONconfig, "configChan")
+
 }
 
-func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-	var config = DevConfig{
-		TurnedOn:    true,
-		StreamOn:    true,
-		CollectFreq: 5,
-		SendFreq:    10,
-	}
-
-	json.NewEncoder(w).Encode(config)
-}
-
-func validateSendFreq(c DevConfig, w http.ResponseWriter) {
-	switch reflect.TypeOf(c.SendFreq).String() {
-	case "int":
+func validateSendFreq(c interface{}) {
+	log.Println(reflect.TypeOf(c).String())
+	switch reflect.TypeOf(c).String() {
+	case "int64":
 		switch {
-		case c.SendFreq > 0 && c.SendFreq < 100:
+		case c.(int64) > 0 && c.(int64) < 100:
 			return
 		default:
-			http.Error(w, "0 < Send Frequency < 100", 400)
+			log.Println("0 < Send Frequency < 100")
 			break
 		}
 	default:
-		http.Error(w, "Send Frequency should be in integer format", 415)
+		log.Println("Send Frequency should be in integer format")
 		break
 	}
 }
 
-func validateCollectFreq(c DevConfig, w http.ResponseWriter) {
-	switch reflect.TypeOf(c.CollectFreq).String() {
-	case "int":
+func validateCollectFreq(c interface{}) {
+	log.Println(reflect.TypeOf(c).String())
+	switch reflect.TypeOf(c).String() {
+	case "int64":
 		switch {
-		case c.CollectFreq > 0 && c.CollectFreq < 100:
+		case c.(int64) > 0 && c.(int64) < 100:
 			return
 		default:
-			http.Error(w, "0 < Collect Frequency < 100", 400)
+			log.Println("0 < Collect Frequency < 100")
 			break
 		}
 	default:
-		http.Error(w, "Collect Frequency should be in integer format", 415)
+		log.Println("Collect Frequency should be in integer format")
 		break
 	}
 }
 
-func validateState(c DevConfig, w http.ResponseWriter) {
-	switch reflect.TypeOf(c.TurnedOn).String() {
+func validateState(c interface{}) {
+	switch reflect.TypeOf(c).String() {
 	case "bool":
 		return
 	default:
-		http.Error(w, "State should be in byte format", 415)
+		log.Println("State should be in byte format")
 		break
 	}
 }
 
-func validateMAC(mac string, w http.ResponseWriter) {
+func validateMAC(mac string) {
 	switch reflect.TypeOf(mac).String() {
 	case "string":
 		fmt.Println("This is string")
@@ -281,11 +277,11 @@ func validateMAC(mac string, w http.ResponseWriter) {
 		case 17:
 			return
 		default:
-			http.Error(w, "MAC should contain 17 symbols", 400)
+			log.Println("MAC should contain 17 symbols")
 			break
 		}
 	default:
-		http.Error(w, "MAC should be in string format", 415)
+		log.Println("MAC should be in string format")
 		break
 	}
 }
