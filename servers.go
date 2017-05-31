@@ -53,7 +53,7 @@ func runDynamicServer() {
 	}
 
 	//CORS provides Cross-Origin Resource Sharing middleware
-	http.ListenAndServe(connHost + ":" + httpConnPort, handlers.CORS()(r))
+	http.ListenAndServe(connHost+":"+httpConnPort, handlers.CORS()(r))
 
 	go log.Fatal(srv.ListenAndServe())
 }
@@ -74,6 +74,7 @@ func runDBConnection() *redis.Client {
 			}
 			log.Errorln("err not nil")
 		}
+		//make sleep
 
 		// for dbClient == err {
 		// 	reconnect = time.NewTicker(time.Second * 1)

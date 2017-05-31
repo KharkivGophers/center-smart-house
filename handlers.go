@@ -12,10 +12,11 @@ import (
 
 	"menteslibres.net/gosexy/redis"
 
+	"io/ioutil"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"io/ioutil"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -158,6 +159,7 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	//parse json
 	vars := mux.Vars(r)
 	id := "device:" + vars["id"]
+	mac := vars["id"]
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -167,26 +169,67 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var config = make(map[string]interface{})
 	json.Unmarshal(body, &config)
 
+	confStruct := new(DevConfig)
+
 	for k, v := range config {
 		log.Println(k, v)
+		switch k {
+		case "sendFreq":
+			confStruct.SendFreq = v.(int64)
+		case "collectFreq":
+			confStruct.CollectFreq = v.(int64)
+		case "turnedOn":
+			confStruct.TurnedOn = v.(bool)
+		case "MAC":
+			confStruct.MAC = v.(string)
+		}
 	}
 
 	log.Println("Received configuration: ", config, "id: ", id)
+	log.Println(confStruct)
+	Time := time.Now().UnixNano() / int64(time.Millisecond)
+	w.WriteHeader(http.StatusOK)
 
+	// Validate MAC
+	validateMAC(mac, w)
+	// Validate State
+	validateState(*confStruct, w)
+	// Validate Collect Frequency
+	validateCollectFreq(*confStruct, w)
+	// Validate Send Frequency
+	validateSendFreq(*confStruct, w)
+
+	// Save to DB
+	_, err = dbClient.SAdd("Config", confStruct)
+	checkError("DB error", err)
+	_, err = dbClient.HMSet(vars["id"], "ConfigTime", Time)
+	checkError("DB error", err)
+	_, err = dbClient.SAdd(confStruct, "TurnedOn", "CollectFreq", "SendFreq")
+	checkError("DB error", err)
+	_, err = dbClient.ZAdd(confStruct+":"+"TurnedOn", config.TurnedOn)
+	checkError("DB error", err)
+	_, err = dbClient.ZAdd(confStruct+":"+"CollectFreq", config.CollectFreq)
+	checkError("DB error", err)
+	_, err = dbClient.ZAdd(confStruct+":"+"SendFreq", config.SendFreq)
+	checkError("DB error", err)
+
+	log.Println("Received configuration: ", config, "id: ", id)
+	w.WriteHeader(http.StatusOK)
+	go publishMessage(confStruct, "configChan")
+	log.Println(confStruct)
 	w.WriteHeader(http.StatusOK)
 }
 
 func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var config = DevConfig{
-		TurnedOn: true,
-		StreamOn: true,
+		TurnedOn:    true,
+		StreamOn:    true,
 		CollectFreq: 5,
-		SendFreq: 10,
+		SendFreq:    10,
 	}
 
 	json.NewEncoder(w).Encode(config)
 }
-
 
 func validateSendFreq(c DevConfig, w http.ResponseWriter) {
 	switch reflect.TypeOf(c.SendFreq).String() {
@@ -352,11 +395,13 @@ func subscribe(client *redis.Client, roomID string, channel chan []string) {
 	err := client.ConnectNonBlock(dbHost, dbPort)
 	checkError("Subscribe", err)
 	go client.Subscribe(channel, roomID)
+	log.Println("run client.Subscribe")
 }
 
 func publishMessage(message interface{}, roomID string) {
 	_, err := dbClient.Publish(roomID, message)
 	checkError("Publish", err)
+	log.Println("run client.Publish")
 }
 
 func float32ToString(num float64) string {
