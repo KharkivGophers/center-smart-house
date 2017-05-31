@@ -26,8 +26,7 @@ var (
 	tcpConnPort = "3030"
 
 	//http connection
-	httpStaticConnPort  = "8100"
-	httpDynamicConnPort = "8101"
+	httpConnPort  = "8100"
 
 	//for TCP config
 	configConnType = "tcp"

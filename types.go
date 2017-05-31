@@ -20,7 +20,7 @@ type Response struct {
 	Descr  string `json:"descr"`
 }
 
-type Config struct {
+type DevConfig struct {
 	TurnedOn    bool    `json:"turnedOn"`
 	StreamOn    bool    `json:"streamOn"`
 	CollectFreq float64 `json:"collectFreq"`
@@ -28,7 +28,7 @@ type Config struct {
 	MAC         string  `json:"mac"`
 }
 
-type Metadata struct {
+type DevMeta struct {
 	Type string `json:"type"`
 	Name string `json:"name"`
 	MAC  string `json:"mac"`
@@ -38,7 +38,7 @@ type Metadata struct {
 type Request struct {
 	Action string          `json:"action"`
 	Time   int64           `json:"time"`
-	Meta   Metadata        `json:"meta"`
+	Meta   DevMeta        `json:"meta"`
 	Data   json.RawMessage `json:"data"`
 }
 
@@ -53,17 +53,10 @@ type WasherData struct {
 	Temp   map[int64]float32
 }
 
-type DeviceView struct {
-	Site string              `json:"site"`
-	Meta Metadata            `json:"meta"`
-	Data map[string][]string `json:"data"`
-}
-
-type DetailedDevData struct {
-	Site   string              `json:"site"`
-	Meta   Metadata            `json:"meta"`
-	Config Config              `json:"config"`
-	Data   map[string][]string `json:"data"`
+type DevData struct {
+	Site	string			`json:"site"`
+	Meta	DevMeta			`json:"meta"`
+	Data 	map[string][]string	`json:"data"`
 }
 
 //Connections pool for configTCPServer
