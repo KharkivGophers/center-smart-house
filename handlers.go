@@ -326,6 +326,7 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		mapConn[uri[2]] = new(listConnection)
 	}
 	mapConn[uri[2]].Add(conn)
+
 }
 
 /**
