@@ -10,6 +10,8 @@ import (
 	"github.com/gorilla/mux"
 	"menteslibres.net/gosexy/redis"
 
+	"reflect"
+
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -139,15 +141,31 @@ func runConfigServer(connType string, host string, port string) {
 	}
 }
 
-func sendNewConfiguration(config DevConfig, pool *ConectionPool) {
-	var resp Response
-	conn := pool.getConn(config.MAC)
+func sendNewConfiguration(config interface{}, pool *ConectionPool) {
+	// var resp Response
+	log.Warningln(config)
+	var connection *net.Conn
 
-	err := json.NewEncoder(*conn).Encode(config)
-	checkError("sendNewConfiguration JSON Encod", err)
-	err = json.NewDecoder(*conn).Decode(&resp)
-	checkError("sendNewConfiguration JSON Decod", err)
-	log.Println(resp)
+	switch config.(type) {
+	case DevConfigFreqs:
+		freqs := config.(DevConfigFreqs)
+		connection = pool.getConn(freqs.MAC)
+		log.Info(pool.getConn(freqs.MAC))
+		err := json.NewEncoder(*connection).Encode(&freqs)
+		checkError("sendNewConfiguration JSON Encod", err)
+	case DevConfigTurnedOn:
+		turnedOn := config.(DevConfigTurnedOn)
+		connection = pool.getConn(turnedOn.MAC)
+		log.Info(pool.getConn(turnedOn.MAC))
+		err := json.NewEncoder(*connection).Encode(&turnedOn)
+		checkError("sendNewConfiguration JSON Encod", err)
+	default:
+		log.Warningln("switch default", reflect.TypeOf(config))
+	}
+
+	// err := json.NewDecoder(*connection).Decode(&resp)
+	// checkError("sendNewConfiguration JSON Decod", err)
+	// log.Println(resp)
 }
 
 func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
@@ -156,11 +174,10 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
 
 	err := json.NewDecoder(*conn).Decode(&req)
 	checkError("sendDefaultConfiguration JSON Decod", err)
-	log.Warningln("new device's MAC", req.Meta.MAC)
 	pool.addConn(conn, req.Meta.MAC)
 
 	Time := time.Now().UnixNano() / int64(time.Millisecond)
-	configInfo := req.Meta.MAC + ":" + "params" // key
+	configInfo := req.Meta.MAC + ":" + "config" // key
 
 	// Save default configuration to DB
 	defaultConfig := DevConfig{

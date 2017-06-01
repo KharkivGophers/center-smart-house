@@ -41,7 +41,7 @@ function sendDevConfigFreq(id, collectFreq, sendFreq) {
 function sendDevConfigTurnedOn(id, turnedOn) {
     var xhr = new XMLHttpRequest();
     var url = "/devices/" + id + "/config";
-    xhr.open("PATCH", url, tsetIntervalrue);
+    xhr.open("PATCH", url, true);
     xhr.setRequestHeader("Content-type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
