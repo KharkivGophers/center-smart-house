@@ -37,7 +37,7 @@ func runDynamicServer() {
 	r := mux.NewRouter()
 	r.HandleFunc("/devices", getDevicesHandler).Methods("GET")
 	r.HandleFunc("/devices/{id}/data", getDevDataHandler).Methods("GET")
-	r.HandleFunc("/devices/{id}/config", patchDevConfigHandler).Methods("GET")
+	r.HandleFunc("/devices/{id}/config", getDevConfigHandler).Methods("GET")
 
 	r.HandleFunc("/devices/{id}/config", patchDevConfigHandler).Methods("PATCH")
 

@@ -12,6 +12,8 @@ import (
 
 	"menteslibres.net/gosexy/redis"
 
+	"errors"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -155,6 +157,17 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 	checkError("getDevDataHandler JSON enc", err)
 }
 
+func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
+	var config = DevConfig{
+		TurnedOn:    true,
+		StreamOn:    true,
+		CollectFreq: 5,
+		SendFreq:    10,
+	}
+
+	json.NewEncoder(w).Encode(config)
+}
+
 func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	//parse json
 
@@ -165,10 +178,12 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	configInfo := mac + ":" + "params" // key
 	Time := time.Now().UnixNano() / int64(time.Millisecond)
-	// body, err := ioutil.ReadAll(r.Body)
+	// byteBody := r.Body
+	// body, err := ioutil.ReadAll(byteBody)
 	// if err != nil {
 	// 	http.Error(w, err.Error(), 400)
 	// }
+	// log.Println("Pathc Body", body)
 
 	var config DevConfig
 	err := json.NewDecoder(r.Body).Decode(&config)
@@ -210,11 +225,24 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, config.SendFreq)
 	checkError("DB error", err)
 
-	validateState(config)
-	// Validate Collect Frequency
-	validateCollectFreq(config)
-	// Validate Send Frequency
-	validateSendFreq(config)
+	// err = validateState(config)
+	// if err != nil {
+	// 	log.Warningln("validateState", err)
+	// 	return
+	// }
+
+	// // Validate Collect Frequency
+	// err = validateCollectFreq(config)
+	// if err != nil {
+	// 	log.Warningln("validateCollectFreq", err)
+	// 	return
+	// }
+	// // Validate Send Frequency
+	// err = validateSendFreq(config)
+	// if err != nil {
+	// 	log.Warningln("validateSendFreq", err)
+	// 	return
+	// }
 
 	log.Println("Received configuration: ", config, "mac: ", mac)
 	// w.WriteHeader(http.StatusOK)
@@ -225,47 +253,45 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func validateSendFreq(c interface{}) {
-	log.Println(reflect.TypeOf(c).String())
-	switch reflect.TypeOf(c).String() {
+func validateSendFreq(c DevConfig) error {
+	log.Println(reflect.TypeOf(c.SendFreq).String())
+	switch reflect.TypeOf(c.SendFreq).String() {
 	case "int64":
 		switch {
-		case c.(int64) > 0 && c.(int64) < 100:
-			return
+		case c.SendFreq < 0 && c.SendFreq == 0:
+			return errors.New("Failed SendFreq validation")
 		default:
-			log.Println("0 < Send Frequency < 100")
-			break
+			log.Println("validateSendFreq complited sucessfully")
+			return nil
 		}
 	default:
-		log.Println("Send Frequency should be in integer format")
-		break
+		return errors.New("Failed SendFreq validation")
 	}
 }
 
-func validateCollectFreq(c interface{}) {
-	log.Println(reflect.TypeOf(c).String())
-	switch reflect.TypeOf(c).String() {
+func validateCollectFreq(c DevConfig) error {
+	log.Println(reflect.TypeOf(c.CollectFreq).String())
+	switch reflect.TypeOf(c.CollectFreq).String() {
 	case "int64":
 		switch {
-		case c.(int64) > 0 && c.(int64) < 100:
-			return
+		case c.CollectFreq < 0 && c.CollectFreq == 0:
+			return errors.New("Failed CollectFreq validation")
 		default:
-			log.Println("0 < Collect Frequency < 100")
-			break
+			log.Println("validateCollectFreq complited sucessfully")
+			return nil
 		}
 	default:
-		log.Println("Collect Frequency should be in integer format")
-		break
+		return errors.New("Failed CollectFreq validation")
 	}
 }
 
-func validateState(c interface{}) {
-	switch reflect.TypeOf(c).String() {
+func validateState(c DevConfig) error {
+	switch reflect.TypeOf(c.TurnedOn).String() {
 	case "bool":
-		return
+		log.Println("validateState complited sucessfully")
+		return nil
 	default:
-		log.Println("State should be in byte format")
-		break
+		return errors.New("Failed validateState")
 	}
 }
 
@@ -294,7 +320,7 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//http://..../device/type/name/mac
-	uri := strings.Split(r.URL.String(), ":")
+	uri := strings.Split(r.URL.String(), "/")
 
 	if _, ok := mapConn[uri[2]]; !ok {
 		mapConn[uri[2]] = new(listConnection)

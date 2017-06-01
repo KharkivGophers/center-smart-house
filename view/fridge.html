@@ -120,6 +120,7 @@
                 var obj = JSON.parse(data);
                 setDevConfigFields(obj);
             });
+
             document.getElementById("turnedOnBtn").onclick = function () {
                 var value = this.innerHTML;
                 if (value === "On") {
@@ -139,7 +140,7 @@
                 }
             };
 
-            document.getElementById("updateBtn").onclick = function () {
+            document.getElementById("readyupdateBtn").onclick = function () {
                 sendDevConfigFreq(
                     urlParams["id"],
                     parseInt(document.getElementById('collectFreq').value),
@@ -167,14 +168,13 @@
             };
         });
 
-
         var url = window.location.href.split("/");
         var urlParams = parseURLParams(window.location.href);
 
         //сейчас такой формат:   ws://localhost:8100/00-15-E9-2B-99-3C
         //сделай такой, какой тебе нужен
 
-        var socket = new WebSocket("ws://" + url[2] + "/" + String(urlParams["id"]).split(":")[2]);
+        var socket = new WebSocket("ws://" + "localhost:2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
 
         // обработчик входящих сообщений
         socket.onmessage = function(event) {
