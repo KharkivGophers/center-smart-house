@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"reflect"
@@ -11,8 +10,6 @@ import (
 	"time"
 
 	"menteslibres.net/gosexy/redis"
-
-	"errors"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
@@ -122,14 +119,11 @@ func (req *Request) washerDataHandler() *ServerError {
 
 func configSubscribe(client *redis.Client, roomID string, messages chan []string, pool *ConectionPool) {
 	subscribe(client, roomID, messages)
-
-	var temp interface{}
 	var devConfigTurnedOn DevConfigTurnedOn
 	var devConfigFreqs DevConfigFreqs
 
 	for msg := range messages {
 		if msg[0] == "message" {
-			log.Warningln("for range from publish chann", msg)
 			if strings.Contains(msg[2], "turned") {
 				err := json.Unmarshal([]byte(msg[2]), &devConfigTurnedOn)
 				if checkError("configSubscribe", err) != nil {
@@ -142,7 +136,6 @@ func configSubscribe(client *redis.Client, roomID string, messages chan []string
 				return
 			}
 			go sendNewConfiguration(devConfigFreqs, pool)
-			log.Println("subscribe, temp interface: ", temp)
 		}
 	}
 }
@@ -176,20 +169,12 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	configInfo := mac + ":" + "config" // key
 
 	state, _ := dbClient.ZRange(configInfo+":"+"TurnedOn", 0, 0)
-	sendFreq, _ := dbClient.ZRange(configInfo+":"+"CollectFreq", 0, 0)
-	collectFreq, _ := dbClient.ZRange(configInfo+":"+"SendFreq", 0, 0)
-
-	// log.Println(state)
-	// log.Println(sendFreq)
-	// log.Println(collectFreq)
+	sendFreq, _ := dbClient.ZRange(configInfo+":"+"SendFreq", 0, 0)
+	collectFreq, _ := dbClient.ZRange(configInfo+":"+"CollectFreq", 0, 0)
 
 	newState, _ := strconv.ParseBool(state[0])
 	newSendFreq, _ := strconv.ParseInt(sendFreq[0], 10, 64)
 	newCollectFreq, _ := strconv.ParseInt(collectFreq[0], 10, 64)
-
-	// log.Println(reflect.TypeOf(newState))
-	// log.Println(reflect.TypeOf(newSendFreq))
-	// log.Println(reflect.TypeOf(newCollectFreq))
 
 	var config = DevConfig{
 		TurnedOn: newState,
@@ -220,7 +205,7 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&configInterface)
 	if err != nil {
-		// http.Error(w, err.Error(), 400)
+		http.Error(w, err.Error(), 400)
 		log.Errorln("NewDec: ", err)
 	}
 	go publishConfig(chanTurnedOn, chanFreqs)
@@ -242,10 +227,8 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 		switch k {
 		case "sendFreq":
 			configFreqs.SendFreq = int64(v.(float64))
-			log.Println("into switch", int64(v.(float64)))
 		case "collectFreq":
 			configFreqs.CollectFreq = int64(v.(float64))
-			log.Println("into switch", int64(v.(float64)))
 		}
 	}
 
@@ -276,60 +259,58 @@ func publishConfig(turnedOn chan []byte, freqs chan []byte) {
 	for {
 		select {
 		case confTurnedOn := <-turnedOn:
-			log.Warningln("confTurnedOn", confTurnedOn)
 			go publishConfigMessage(confTurnedOn, "configChan")
 		case confFreqs := <-freqs:
-			log.Warningln("confFreqs", confFreqs)
 			go publishConfigMessage(confFreqs, "configChan")
 		}
 	}
 }
-func validateSendFreq(c DevConfig) error {
-	log.Println(reflect.TypeOf(c.SendFreq).String())
-	switch reflect.TypeOf(c.SendFreq).String() {
-	case "int64":
-		switch {
-		case c.SendFreq < 0 && c.SendFreq == 0:
-			return errors.New("Failed SendFreq validation")
-		default:
-			log.Println("validateSendFreq complited sucessfully")
-			return nil
-		}
-	default:
-		return errors.New("Failed SendFreq validation")
-	}
-}
 
-func validateCollectFreq(c DevConfig) error {
-	log.Println(reflect.TypeOf(c.CollectFreq).String())
-	switch reflect.TypeOf(c.CollectFreq).String() {
-	case "int64":
-		switch {
-		case c.CollectFreq < 0 && c.CollectFreq == 0:
-			return errors.New("Failed CollectFreq validation")
-		default:
-			log.Println("validateCollectFreq complited sucessfully")
-			return nil
-		}
-	default:
-		return errors.New("Failed CollectFreq validation")
-	}
-}
+// func validateSendFreq(c DevConfig) error {
+// 	log.Println(reflect.TypeOf(c.SendFreq).String())
+// 	switch reflect.TypeOf(c.SendFreq).String() {
+// 	case "int64":
+// 		switch {
+// 		case c.SendFreq < 0 && c.SendFreq == 0:
+// 			return errors.New("Failed SendFreq validation")
+// 		default:
+// 			log.Println("validateSendFreq complited sucessfully")
+// 			return nil
+// 		}
+// 	default:
+// 		return errors.New("Failed SendFreq validation")
+// 	}
+// }
 
-func validateState(c DevConfig) error {
-	switch reflect.TypeOf(c.TurnedOn).String() {
-	case "bool":
-		log.Println("validateState complited sucessfully")
-		return nil
-	default:
-		return errors.New("Failed validateState")
-	}
-}
+// func validateCollectFreq(c DevConfig) error {
+// 	log.Println(reflect.TypeOf(c.CollectFreq).String())
+// 	switch reflect.TypeOf(c.CollectFreq).String() {
+// 	case "int64":
+// 		switch {
+// 		case c.CollectFreq < 0 && c.CollectFreq == 0:
+// 			return errors.New("Failed CollectFreq validation")
+// 		default:
+// 			log.Println("validateCollectFreq complited sucessfully")
+// 			return nil
+// 		}
+// 	default:
+// 		return errors.New("Failed CollectFreq validation")
+// 	}
+// }
+
+// func validateState(c DevConfig) error {
+// 	switch reflect.TypeOf(c.TurnedOn).String() {
+// 	case "bool":
+// 		log.Println("validateState complited sucessfully")
+// 		return nil
+// 	default:
+// 		return errors.New("Failed validateState")
+// 	}
+// }
 
 func validateMAC(mac string) {
 	switch reflect.TypeOf(mac).String() {
 	case "string":
-		fmt.Println("This is string")
 		switch len(mac) {
 		case 17:
 			return
@@ -373,7 +354,7 @@ func CloseWebsocket() {
 				}
 			}
 		case <-stopCloseWS:
-			log.Info("CloseWebsocket closed")
+			log.Info("CloseWebsocket closgo publishWS(req)ed")
 			return
 		}
 	}

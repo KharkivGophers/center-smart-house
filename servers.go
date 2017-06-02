@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -142,27 +144,46 @@ func runConfigServer(connType string, host string, port string) {
 }
 
 func sendNewConfiguration(config interface{}, pool *ConectionPool) {
-	// var resp Response
-	log.Warningln(config)
 	var connection *net.Conn
+	Time := time.Now().UnixNano() / int64(time.Millisecond)
 
 	switch config.(type) {
 	case DevConfigFreqs:
 		freqs := config.(DevConfigFreqs)
 		connection = pool.getConn(freqs.MAC)
-		log.Info(pool.getConn(freqs.MAC))
 		err := json.NewEncoder(*connection).Encode(&freqs)
 		checkError("sendNewConfiguration JSON Encod", err)
+
+		_, err = dbClient.ZAdd(freqs.MAC+":"+"config"+":"+"CollectFreq", Time, freqs.CollectFreq)
+		checkError("DevConfigFreqs DB error", err)
+		_, err = dbClient.ZAdd(freqs.MAC+":"+"config"+":"+"SendFreq", Time, freqs.SendFreq)
+		checkError("DevConfigFreqs DB error", err)
 	case DevConfigTurnedOn:
 		turnedOn := config.(DevConfigTurnedOn)
 		connection = pool.getConn(turnedOn.MAC)
-		log.Info(pool.getConn(turnedOn.MAC))
 		err := json.NewEncoder(*connection).Encode(&turnedOn)
 		checkError("sendNewConfiguration JSON Encod", err)
+
+		_, err = dbClient.ZAdd(turnedOn.MAC+":"+"config"+":"+"TurnedOn", Time, turnedOn.TurnedOn)
+		checkError("DevConfigTurnedOn DB error ", err)
 	default:
 		log.Warningln("switch default", reflect.TypeOf(config))
 	}
 
+	// Save default configuration to DB
+
+	// dbClient.SAdd("Config", configInfo)
+
+	// _, err = dbClient.HMSet(req.Meta.MAC, "ConfigTime", Time)
+	// checkError("DB error 1", err)
+	// _, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
+	// checkError("DB error 2", err)
+	// _, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", Time)
+	// checkError("DB error 3", err)
+	// _, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", Time, defaultConfig.CollectFreq)
+	// checkError("DB error 4", err)
+	// _, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, defaultConfig.SendFreq)
+	// checkError("DB error 5", err)
 	// err := json.NewDecoder(*connection).Decode(&resp)
 	// checkError("sendNewConfiguration JSON Decod", err)
 	// log.Println(resp)
@@ -171,7 +192,7 @@ func sendNewConfiguration(config interface{}, pool *ConectionPool) {
 func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
 	// Send Default Configuration to Device
 	var req Request
-
+	var defaultConfig DevConfig
 	err := json.NewDecoder(*conn).Decode(&req)
 	checkError("sendDefaultConfiguration JSON Decod", err)
 	pool.addConn(conn, req.Meta.MAC)
@@ -179,28 +200,53 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConectionPool) {
 	Time := time.Now().UnixNano() / int64(time.Millisecond)
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
-	// Save default configuration to DB
-	defaultConfig := DevConfig{
-		TurnedOn:    true,
-		CollectFreq: 1,
-		SendFreq:    5,
+	state, err := dbClient.ZRange(configInfo+":"+"TurnedOn", -1, 1)
+	checkError("get from DB error ", err)
+	sendFreq, _ := dbClient.ZRange(configInfo+":"+"CollectFreq", -1, 1)
+	checkError("get from DB error ", err)
+	collectFreq, _ := dbClient.ZRange(configInfo+":"+"SendFreq", -1, 1)
+	checkError("get from DB error ", err)
+
+	log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
+
+	if strings.Join(state, " ") != "" {
+
+		stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
+		sendFreqInt, _ := strconv.Atoi(strings.Join(sendFreq, " "))
+		collectFreqInt, _ := strconv.Atoi(strings.Join(collectFreq, " "))
+
+		defaultConfig = DevConfig{
+			TurnedOn:    stateBool,
+			CollectFreq: int64(sendFreqInt),
+			SendFreq:    int64(collectFreqInt),
+		}
+
+	} else {
+		defaultConfig = DevConfig{
+			TurnedOn:    true,
+			CollectFreq: 1,
+			SendFreq:    5,
+		}
+		// Save default configuration to DB
+
+		dbClient.SAdd("Config", configInfo)
+
+		_, err = dbClient.HMSet(req.Meta.MAC, "ConfigTime", Time)
+		checkError("DB error 1", err)
+		_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
+		checkError("DB error 2", err)
+		_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", Time, defaultConfig.TurnedOn)
+		checkError("DB error 3", err)
+		_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", Time, defaultConfig.CollectFreq)
+		checkError("DB error 4", err)
+		_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, defaultConfig.SendFreq)
+		checkError("DB error 5", err)
 	}
+	defer func() {
+		// Send to Device
+		err = json.NewEncoder(*conn).Encode(&defaultConfig)
+		checkError("sendDefaultConfiguration JSON enc", err)
+		log.Warningln("Configuration has been sent")
+	}()
 
-	dbClient.SAdd("Config", configInfo)
-
-	_, err = dbClient.HMSet(req.Meta.MAC, "ConfigTime", Time)
-	checkError("DB error 1", err)
-	_, err = dbClient.SAdd(configInfo, "TurnedOn", "CollectFreq", "SendFreq")
-	checkError("DB error 2", err)
-	_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", Time, defaultConfig.TurnedOn)
-	checkError("DB error 3", err)
-	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", Time, defaultConfig.CollectFreq)
-	checkError("DB error 4", err)
-	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, defaultConfig.SendFreq)
-	checkError("DB error 5", err)
-
-	// Send to Device
-	err = json.NewEncoder(*conn).Encode(&defaultConfig)
-	checkError("sendDefaultConfiguration JSON enc", err)
-	log.Warningln("default config has been sent")
 }

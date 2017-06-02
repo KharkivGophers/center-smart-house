@@ -112,28 +112,33 @@ function printFridgeChart(obj) {
 
     // Create the chart
     Highcharts.stockChart('container', {
-        chart: {
+      chart: {
             events: {
                 load: function () {
 
-                    socket.onmessage = function(event) {
+                  var seriesTemCam1 = this.series[0];
+                    var seriesTemCam2 = this.series[1];
+
+                  socket.onmessage = function (event) {
                         var incomingMessage = event.data;
+                        console.dir(incomingMessage)
                         var fridge = JSON.parse(incomingMessage);
-                        console.log(fridge)
-                    };
+
+                      for (key in fridge.data.tempCam1) {
+                            var x = parseInt(key);
+                            var y = parseFloat(fridge.data.tempCam1[key]);
+                            seriesTemCam1.addPoint([x, y], true, true);
+                        }
 
 
+                      for (key in fridge.data.tempCam2) {
+                            var x = parseInt(key);
+                            var y = parseFloat(fridge.data.tempCam2[key]);
+                            seriesTemCam2.addPoint([x, y], true, true);
+                        }
+                    }
 
-                    // set up the updating of the chart each second
-
-                    // var series = this.series[0];
-                    //  setInterval(function () {
-                    //  var x = (new Date()).getTime(), // current time
-                    //  y = Math.round(Math.random() * 100);
-                    //  series.addPoint([x, y], true, true);
-                    //  }, 1000);
-
-                }
+              }
             }
         },
 
