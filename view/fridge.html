@@ -52,7 +52,7 @@
                 <div class="form-group">
                     <label for="turnedOnBtn" class="col-sm-4 control-label">State</label>
                     <div class="col-sm-8">
-                        <button type="button" class="btn" id="turnedOnBtn"></button>
+                        <button type="button" class="btn btn-success" id="turnedOnBtn"></button>
                     </div>
                 </div>
 
@@ -129,14 +129,14 @@
                         false
                     );
                     this.innerHTML = "Off";
-
+                    this.className = "btn btn-danger";
                 } else {
                     sendDevConfigTurnedOn(
                         urlParams["id"],
                         true
                     );
                     this.innerHTML = "On";
-
+                    this.className = "btn btn-success";
                 }
             };
 
@@ -156,14 +156,14 @@
                         false
                     );
                     this.innerHTML = "Off";
-                   // this.className = "btn btn-danger";
+                    this.className = "btn btn-danger";
                 } else {
                     sendDevConfigStreamOn(
                         urlParams["id"],
                         true
                     );
                     this.innerHTML = "On";
-                  //  this.className = "btn btn-success";
+                    this.className = "btn btn-success";
                 }
             };
         });

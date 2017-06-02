@@ -95,10 +95,10 @@ function setDevConfigFields(obj) {
 
     if (obj["streamOn"]) {
         document.getElementById('streamOnBtn').innerHTML = "On";
-        document.getElementById('turnedOnBtn').className = "btn btn-success";
+        document.getElementById('streamOnBtn').className = "btn btn-success";
     } else {
         document.getElementById('streamOnBtn').innerHTML = "Off";
-        document.getElementById('turnedOnBtn').className = "btn btn-danger";
+        document.getElementById('streamOnBtn').className = "btn btn-danger";
     }
 }
 
