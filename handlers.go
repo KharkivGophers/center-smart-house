@@ -338,7 +338,6 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		mapConn[uri[2]] = new(listConnection)
 	}
 	mapConn[uri[2]].Add(conn)
-
 }
 
 /**
@@ -354,7 +353,7 @@ func CloseWebsocket() {
 				}
 			}
 		case <-stopCloseWS:
-			log.Info("CloseWebsocket closgo publishWS(req)ed")
+			log.Info("CloseWebsocket closed")
 			return
 		}
 	}

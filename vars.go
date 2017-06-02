@@ -19,7 +19,8 @@ var (
 	//General
 	//connHost = "192.168.104.23"
 	//connHost = "192.168.104.76"
-	connHost = "10.4.25.73"
+	//connHost = "10.4.25.73"
+	connHost = "192.168.104.60"
 
 	//tcp conn with devices
 	connType    = "tcp"
@@ -30,7 +31,7 @@ var (
 
 	//for TCP config
 	configConnType = "tcp"
-	configHost     = "10.4.25.73"
+	configHost     = "192.168.104.60"
 	configPort     = "3000"
 
 	//Web-socket connections
