@@ -21,11 +21,22 @@ type Response struct {
 }
 
 type DevConfig struct {
-	TurnedOn    bool    `json:"turnedOn"`
-	StreamOn    bool    `json:"streamOn"`
-	CollectFreq float64 `json:"collectFreq"`
-	SendFreq    float64 `json:"sendFreq"`
-	MAC         string  `json:"mac"`
+	TurnedOn bool `json:"turnedOn"`
+	// StreamOn    bool   `json:"streamOn"`
+	CollectFreq int64  `json:"collectFreq"`
+	SendFreq    int64  `json:"sendFreq"`
+	MAC         string `json:"mac"`
+}
+
+type DevConfigFreqs struct {
+	CollectFreq int64  `json:"collectFreq"`
+	SendFreq    int64  `json:"sendFreq"`
+	MAC         string `json:"mac"`
+}
+
+type DevConfigTurnedOn struct {
+	TurnedOn bool   `json:"turnedOn"`
+	MAC      string `json:"mac"`
 }
 
 type DevMeta struct {
@@ -38,7 +49,7 @@ type DevMeta struct {
 type Request struct {
 	Action string          `json:"action"`
 	Time   int64           `json:"time"`
-	Meta   DevMeta        `json:"meta"`
+	Meta   DevMeta         `json:"meta"`
 	Data   json.RawMessage `json:"data"`
 }
 
@@ -54,9 +65,9 @@ type WasherData struct {
 }
 
 type DevData struct {
-	Site	string			`json:"site"`
-	Meta	DevMeta			`json:"meta"`
-	Data 	map[string][]string	`json:"data"`
+	Site string              `json:"site"`
+	Meta DevMeta             `json:"meta"`
+	Data map[string][]string `json:"data"`
 }
 
 //Connections pool for configTCPServer
