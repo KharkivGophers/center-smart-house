@@ -169,10 +169,10 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConnectionPool) {
 
 		if strings.Join(state, " ") != "" {
 			log.Warningln("New Config")
-			sendFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
-			checkError("Get from DB error2: CollectFreq ", err)
-			collectFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
-			checkError("Get from DB error3: SendFreq ", err)
+			sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
+			checkError("Get from DB error2: SendFreq ", err)
+			collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
+			checkError("Get from DB error3: CollectFreq ", err)
 			streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
 			checkError("Get from DB error4: StreamOn ", err)
 

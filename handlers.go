@@ -168,9 +168,9 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	state, err := dbClient.HMGet(configInfo, "TurnedOn")
 	checkError("Get from DB error1: TurnedOn ", err)
 	sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
-	checkError("Get from DB error2: CollectFreq ", err)
+	checkError("Get from DB error2: SendFreq ", err)
 	collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
-	checkError("Get from DB error3: SendFreq ", err)
+	checkError("Get from DB error3: CollectFreq ", err)
 	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
 	checkError("Get from DB error4: StreamOn ", err)
 
@@ -202,10 +202,10 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	state, err := dbClient.HMGet(configInfo, "TurnedOn")
 	checkError("Get from DB error1: TurnedOn ", err)
 
-	sendFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
-	checkError("Get from DB error2: CollectFreq ", err)
-	collectFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
-	checkError("Get from DB error3: SendFreq ", err)
+	sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
+	checkError("Get from DB error2: SendFreq ", err)
+	collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
+	checkError("Get from DB error3: CollectFreq ", err)
 	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
 	checkError("Get from DB error4: StreamOn ", err)
 
