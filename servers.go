@@ -195,7 +195,7 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConnectionPool) {
 				TurnedOn:    true,
 				StreamOn:    true,
 				CollectFreq: 1000,
-				SendFreq:    3000,
+				SendFreq:    5000,
 			}
 
 			// Save default configuration to DB
