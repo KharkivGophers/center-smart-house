@@ -167,9 +167,9 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	state, err := dbClient.HMGet(configInfo, "TurnedOn")
 	checkError("Get from DB error1: TurnedOn ", err)
-	sendFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
+	sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
 	checkError("Get from DB error2: CollectFreq ", err)
-	collectFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
+	collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
 	checkError("Get from DB error3: SendFreq ", err)
 	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
 	checkError("Get from DB error4: StreamOn ", err)
