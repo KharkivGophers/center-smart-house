@@ -7,15 +7,11 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
-
 	"menteslibres.net/gosexy/redis"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
-
 //--------------------TCP-------------------------------------------------------------------------------------
 func tcpDataHandler(conn *net.Conn) {
 	var req Request
@@ -42,7 +38,7 @@ func tcpDataHandler(conn *net.Conn) {
 }
 
 /*
-Checks  type device and call speciall func for send data to DB.
+Checks  type device and call special func for send data to DB.
 */
 func devTypeHandler(req Request) {
 	switch req.Action {
@@ -72,6 +68,8 @@ func devTypeHandler(req Request) {
 Save data about fridge in DB. Return struct ServerError
 */
 func (req *Request) fridgeDataHandler() *ServerError {
+	dbClient, _ := runDBConnection()
+
 	var devData FridgeData
 	mac := req.Meta.MAC
 	devReqTime := req.Time
@@ -90,6 +88,7 @@ func (req *Request) fridgeDataHandler() *ServerError {
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
+		log.Error("Error in fridgedatahandler")
 		return &ServerError{Error: err}
 	}
 
@@ -117,25 +116,19 @@ func (req *Request) washerDataHandler() *ServerError {
 	return nil
 }
 
-func configSubscribe(client *redis.Client, roomID string, messages chan []string, pool *ConectionPool) {
-	subscribe(client, roomID, messages)
-	var devConfigTurnedOn DevConfigTurnedOn
-	var devConfigFreqs DevConfigFreqs
-
-	for msg := range messages {
-		if msg[0] == "message" {
-			if strings.Contains(msg[2], "turned") {
-				err := json.Unmarshal([]byte(msg[2]), &devConfigTurnedOn)
-				if checkError("configSubscribe", err) != nil {
-					return
-				}
-				go sendNewConfiguration(devConfigTurnedOn, pool)
+func configSubscribe(client *redis.Client, roomID string, message chan []string, pool *ConnectionPool) {
+	subscribe(client, roomID, message)
+	for {
+		var config DevConfig
+		select {
+		case msg := <-message:
+			log.Println("message", msg)
+			if msg[0] == "message" {
+				log.Println("message[0]", msg[0])
+				err:= json.Unmarshal([]byte(msg[2]), &config)
+				checkError("configSubscribe: unmarshal", err)
+				go sendNewConfiguration(config, pool)
 			}
-			err := json.Unmarshal([]byte(msg[2]), &devConfigFreqs)
-			if checkError("configSubscribe", err) != nil {
-				return
-			}
-			go sendNewConfiguration(devConfigFreqs, pool)
 		}
 	}
 }
@@ -143,7 +136,8 @@ func configSubscribe(client *redis.Client, roomID string, messages chan []string
 //----------------------HTTP Dynamic Connection----------------------------------------------------------------------------------
 
 func getDevicesHandler(w http.ResponseWriter, r *http.Request) {
-	devices := getAllDevices()
+	client, _ := runDBConnection()
+	devices := getAllDevices(client)
 	err := json.NewEncoder(w).Encode(devices)
 	checkError("getDevicesHandler JSON enc", err)
 }
@@ -166,105 +160,97 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"] // type + mac
 	mac := strings.Split(id, ":")[2]
 
+	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
 
-	state, _ := dbClient.ZRange(configInfo+":"+"TurnedOn", 0, 0)
-	sendFreq, _ := dbClient.ZRange(configInfo+":"+"SendFreq", 0, 0)
-	collectFreq, _ := dbClient.ZRange(configInfo+":"+"CollectFreq", 0, 0)
+	log.Println(configInfo)
+
+	state, err := dbClient.HMGet(configInfo, "TurnedOn")
+	checkError("Get from DB error1: TurnedOn ", err)
+	sendFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
+	checkError("Get from DB error2: CollectFreq ", err)
+	collectFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
+	checkError("Get from DB error3: SendFreq ", err)
+	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
+	checkError("Get from DB error4: StreamOn ", err)
 
 	newState, _ := strconv.ParseBool(state[0])
+	newStreamOn, _ := strconv.ParseBool(streamOn[0])
 	newSendFreq, _ := strconv.ParseInt(sendFreq[0], 10, 64)
 	newCollectFreq, _ := strconv.ParseInt(collectFreq[0], 10, 64)
 
 	var config = DevConfig{
 		TurnedOn: newState,
-		// StreamOn:    true,
 		CollectFreq: newCollectFreq,
 		SendFreq:    newSendFreq,
+		StreamOn: newStreamOn,
 	}
 
 	json.NewEncoder(w).Encode(config)
-
 }
 
 func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-	var configTurnedOn DevConfigTurnedOn
-	var configFreqs DevConfigFreqs
-	var configInterface map[string]interface{}
-	var chanTurnedOn = make(chan []byte)
-	var chanFreqs = make(chan []byte)
-	// var configFreqsconfig DevConfig
-
+	var config DevConfig
 	vars := mux.Vars(r)
 	id := vars["id"] // type + mac
 	mac := strings.Split(id, ":")[2]
 	go validateMAC(mac)
 
+	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
-	Time := time.Now().UnixNano() / int64(time.Millisecond)
 
-	err := json.NewDecoder(r.Body).Decode(&configInterface)
+	state, err := dbClient.HMGet(configInfo, "TurnedOn")
+	checkError("Get from DB error1: TurnedOn ", err)
+
+	sendFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
+	checkError("Get from DB error2: CollectFreq ", err)
+	collectFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
+	checkError("Get from DB error3: SendFreq ", err)
+	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
+	checkError("Get from DB error4: StreamOn ", err)
+
+	newState, _ := strconv.ParseBool(state[0])
+	newSendFreq, _ := strconv.ParseInt(sendFreq[0], 10, 64)
+	newCollectFreq, _ := strconv.ParseInt(collectFreq[0], 10, 64)
+	newStreamOn, _ := strconv.ParseBool(streamOn[0])
+
+	config = DevConfig{
+		TurnedOn: newState,
+		CollectFreq: newCollectFreq,
+		SendFreq:    newSendFreq,
+		 MAC: mac,
+		StreamOn: newStreamOn,
+	}
+
+	log.Warnln("config before", config)
+
+	err = json.NewDecoder(r.Body).Decode(&config)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		log.Errorln("NewDec: ", err)
 	}
-	go publishConfig(chanTurnedOn, chanFreqs)
 
-	for k, v := range configInterface {
-		if k == "turnedOn" {
-			configTurnedOn.TurnedOn = v.(bool)
-			configTurnedOn.MAC = mac
+	checkError("Encode error", err)
 
-			j, err := json.Marshal(configTurnedOn)
-			checkError("JSONconfig error", err)
-			chanTurnedOn <- j
-
-			_, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", Time, configTurnedOn.TurnedOn)
-			checkError("DB error01", err)
-			return
-		}
-
-		switch k {
-		case "sendFreq":
-			configFreqs.SendFreq = int64(v.(float64))
-		case "collectFreq":
-			configFreqs.CollectFreq = int64(v.(float64))
-		}
-	}
-
-	configFreqs.MAC = mac
-
-	j, err := json.Marshal(configFreqs)
-	checkError("JSONconfig error", err)
-	chanFreqs <- j
-
-	_, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", Time, configFreqs.CollectFreq)
-	checkError("DB error02", err)
-	_, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, configFreqs.SendFreq)
-	checkError("DB error03", err)
-	// add MAC to map
+	log.Warnln("config after", config)
 
 	// Save New Configuration to DB
-	// _, err = dbClient.ZAdd(configInfo+":"+"TurnedOn", Time, config.TurnedOn)
-	// checkError("DB error", err)
-	// _, err = dbClient.ZAdd(configInfo+":"+"CollectFreq", Time, config.CollectFreq)
-	// checkError("DB error", err)
-	// _, err = dbClient.ZAdd(configInfo+":"+"SendFreq", Time, config.SendFreq)
-	// checkError("DB error", err)
-	// w.WriteHeader(http.StatusOK)
+	_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+	checkError("DB error1: TurnedOn", err)
+	_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+	checkError("DB error2: CollectFreq", err)
+	_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
+	checkError("DB error3: SendFreq", err)
+	_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
+	checkError("DB error4: StreamOn", err)
 
-}
+	log.Println("New Config was added to DB")
 
-func publishConfig(turnedOn chan []byte, freqs chan []byte) {
-	for {
-		select {
-		case confTurnedOn := <-turnedOn:
-			go publishConfigMessage(confTurnedOn, "configChan")
-		case confFreqs := <-freqs:
-			go publishConfigMessage(confFreqs, "configChan")
-		}
-	}
+	JSONconfig, err := json.Marshal(config)
+
+	go publishConfigMessage(JSONconfig, "configChan")
 }
+// Collector: 1, DataGenerator: 2, 3
 
 // func validateSendFreq(c DevConfig) error {
 // 	log.Println(reflect.TypeOf(c.SendFreq).String())
@@ -425,17 +411,18 @@ func checkError(desc string, err error) error {
 }
 
 func subscribe(client *redis.Client, roomID string, channel chan []string) {
-	client = redis.New()
-	err := client.ConnectNonBlock(dbHost, dbPort)
+	err := client.Connect(dbHost, dbPort)
 	checkError("Subscribe", err)
 	go client.Subscribe(channel, roomID)
 }
-
 func publishMessage(message interface{}, roomID string) {
+	dbClient, _ := runDBConnection()
+
 	_, err := dbClient.Publish(roomID, message)
 	checkError("Publish", err)
 }
 func publishConfigMessage(message []byte, roomID string) {
+	dbClient, _ := runDBConnection()
 	_, err := dbClient.Publish(roomID, message)
 	checkError("Publish", err)
 }
@@ -450,9 +437,10 @@ func int64ToString(n int64) string {
 
 //-------------------Work with data base-------------------------------------------------------------------------------------------
 
-func getAllDevices() []DevData {
+func getAllDevices(dbClient *redis.Client) []DevData {
 	var device DevData
 	var devices []DevData
+
 	devParamsKeys, err := dbClient.SMembers("devParamsKeys")
 	if checkError("Cant read members from devParamsKeys", err) != nil {
 		return nil
@@ -486,6 +474,7 @@ func getAllDevices() []DevData {
 
 func getDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
 	var device DevData
+	dbClient, _ := runDBConnection()
 
 	params, err := dbClient.SMembers(devParamsKey)
 	checkError("Cant read members from devParamsKeys", err)
