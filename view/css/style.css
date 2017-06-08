@@ -28,6 +28,7 @@ BODY {
 	-webkit-transform-style: preserve-3d;
 	-webkit-backface-visibility: hidden;
 	border: 1px solid black;
+    overflow: auto;
 }
 
 .front {
@@ -45,6 +46,7 @@ BODY {
 	height: 270px;
 	-webkit-transform: rotateY(-180deg);
 	text-align: center;
+	overflow: auto;
 }
 
 .info-card:hover .back {
