@@ -4,19 +4,20 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"menteslibres.net/gosexy/redis"
-	log "github.com/Sirupsen/logrus"
-	"strings"
-	"strconv"
 )
 
 //http web socket connection
 func websocketServer() {
 
-	wsDBClient, _= runDBConnection()
+	wsDBClient, _ = runDBConnection()
 	//checkError("webSocket: runDBConnection")
 	go CloseWebsocket()
 	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel)
@@ -66,14 +67,14 @@ func runDBConnection() (*redis.Client, error) {
 	err := client.Connect(dbHost, dbPort)
 	checkError("runDBConnection error: ", err)
 	for err != nil {
-			log.Errorln("1 Database: connection has failed:", err)
+		log.Errorln("1 Database: connection has failed:", err)
 		time.Sleep(time.Second)
-			err = client.Connect(dbHost, dbPort)
-			if err == nil {
-				continue
-			}
-			log.Errorln("err not nil")
+		err = client.Connect(dbHost, dbPort)
+		if err == nil {
+			continue
 		}
+		log.Errorln("err not nil")
+	}
 
 	return client, err
 }
@@ -144,7 +145,7 @@ func sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 	connection := pool.getConn(config.MAC)
 	log.Println("mac in pool sendNewCOnfig", config.MAC)
 
-	err:= json.NewEncoder(*connection).Encode(&config)
+	err := json.NewEncoder(*connection).Encode(&config)
 	checkError("sendNewConfig", err)
 }
 
@@ -183,34 +184,34 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConnectionPool) {
 
 			config = DevConfig{
 				TurnedOn:    stateBool,
-				CollectFreq: int64(sendFreqInt),
-				SendFreq:    int64(collectFreqInt),
-				StreamOn: streamOnBool,
+				CollectFreq: int64(collectFreqInt),
+				SendFreq:    int64(sendFreqInt),
+				StreamOn:    streamOnBool,
 			}
 			log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
 		}
-	}else {
-			log.Warningln("Default Config")
-			config = DevConfig{
-				TurnedOn:    true,
-				StreamOn:    true,
-				CollectFreq: 1000,
-				SendFreq:    5000,
-			}
-
-			// Save default configuration to DB
-			_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
-			checkError("DB error1: TurnedOn", err)
-			_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
-			checkError("DB error2: CollectFreq", err)
-			_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
-			checkError("DB error3: SendFreq", err)
-			_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
-			checkError("DB error4: StreamOn", err)
+	} else {
+		log.Warningln("Default Config")
+		config = DevConfig{
+			TurnedOn:    true,
+			StreamOn:    true,
+			CollectFreq: 1000,
+			SendFreq:    5000,
 		}
 
-		err = json.NewEncoder(*conn).Encode(&config)
-		checkError("sendDefaultConfiguration JSON enc", err)
-		log.Warningln("Configuration has been sent")
-		log.Println("the end")
+		// Save default configuration to DB
+		_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+		checkError("DB error1: TurnedOn", err)
+		_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+		checkError("DB error2: CollectFreq", err)
+		_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
+		checkError("DB error3: SendFreq", err)
+		_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
+		checkError("DB error4: StreamOn", err)
 	}
+
+	err = json.NewEncoder(*conn).Encode(&config)
+	checkError("sendDefaultConfiguration JSON enc", err)
+	log.Warningln("Configuration has been sent")
+	log.Println("the end")
+}
