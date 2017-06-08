@@ -22,6 +22,7 @@ func tcpDataHandler(conn *net.Conn) {
 			log.Errorln("requestHandler JSON Decod", err)
 			return
 		}
+		//fmt.Println(req)
 		//sends resp struct from  devTypeHandler by channel;
 		go devTypeHandler(req)
 
@@ -40,7 +41,7 @@ func tcpDataHandler(conn *net.Conn) {
 /*
 Checks  type device and call special func for send data to DB.
 */
-func devTypeHandler(req Request) {
+func devTypeHandler(req Request) string {
 	switch req.Action {
 	case "update":
 		switch req.Meta.Type {
@@ -55,13 +56,16 @@ func devTypeHandler(req Request) {
 
 		default:
 			log.Println("Device request: unknown device type")
-			return
+			return string("Device request: unknown device type")
 		}
 		go publishWS(req)
 
 	default:
 		log.Println("Device request: unknown action")
+		return string("Device request: unknown action")
+
 	}
+	return string("Device request correct")
 }
 
 /*
