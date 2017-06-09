@@ -17,10 +17,9 @@ var (
 	wsDBClient *redis.Client
 	//General
 	//connHost = "192.168.104.23"
-	connHost = "192.168.104.76"
+	connHost = "localhost"
 	//connHost = "10.4.25.73"
 	//connHost = "192.168.104.60"
-
 
 	//tcp conn with devices
 	connType    = "tcp"
@@ -31,10 +30,9 @@ var (
 
 	//for TCP config
 	configConnType = "tcp"
-	configHost     = "192.168.104.76"
-
+	configHost     = "localhost"
 	configPort     = "3000"
-	configSubChan = make(chan []string)
+	configSubChan  = make(chan []string)
 
 	//Web-socket connections
 	wsConnPort            = "2540"
