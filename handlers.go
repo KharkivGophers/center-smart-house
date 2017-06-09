@@ -7,11 +7,13 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"menteslibres.net/gosexy/redis"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"menteslibres.net/gosexy/redis"
 )
+
 //--------------------TCP-------------------------------------------------------------------------------------
 func tcpDataHandler(conn *net.Conn) {
 	var req Request
@@ -30,7 +32,7 @@ func tcpDataHandler(conn *net.Conn) {
 
 		res = Response{
 			Status: http.StatusOK,
-			Descr:  "Data have been delivered successfully",
+			Descr:  "Data has been delivered successfully",
 		}
 		err = json.NewEncoder(*conn).Encode(&res)
 		checkError("tcpDataHandler JSON enc", err)
@@ -129,7 +131,7 @@ func configSubscribe(client *redis.Client, roomID string, message chan []string,
 			log.Println("message", msg)
 			if msg[0] == "message" {
 				log.Println("message[0]", msg[0])
-				err:= json.Unmarshal([]byte(msg[2]), &config)
+				err := json.Unmarshal([]byte(msg[2]), &config)
 				checkError("configSubscribe: unmarshal", err)
 				go sendNewConfiguration(config, pool)
 			}
@@ -184,10 +186,10 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	newCollectFreq, _ := strconv.ParseInt(collectFreq[0], 10, 64)
 
 	var config = DevConfig{
-		TurnedOn: newState,
+		TurnedOn:    newState,
 		CollectFreq: newCollectFreq,
 		SendFreq:    newSendFreq,
-		StreamOn: newStreamOn,
+		StreamOn:    newStreamOn,
 	}
 
 	json.NewEncoder(w).Encode(config)
@@ -196,7 +198,7 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var config DevConfig
 	vars := mux.Vars(r)
-	id := vars["id"] // type + mac
+	id := vars["id"] // warning!! type : name : mac
 	mac := strings.Split(id, ":")[2]
 	go validateMAC(mac)
 
@@ -219,11 +221,11 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	newStreamOn, _ := strconv.ParseBool(streamOn[0])
 
 	config = DevConfig{
-		TurnedOn: newState,
+		TurnedOn:    newState,
 		CollectFreq: newCollectFreq,
 		SendFreq:    newSendFreq,
-		 MAC: mac,
-		StreamOn: newStreamOn,
+		MAC:         mac,
+		StreamOn:    newStreamOn,
 	}
 
 	log.Warnln("config before", config)
@@ -250,10 +252,11 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("New Config was added to DB")
 
-	JSONconfig, err := json.Marshal(config)
+	JSONСonfig, err := json.Marshal(config)
 
-	go publishConfigMessage(JSONconfig, "configChan")
+	go publishConfigMessage(JSONСonfig, "configChan")
 }
+
 // Collector: 1, DataGenerator: 2, 3
 
 // func validateSendFreq(c DevConfig) error {
