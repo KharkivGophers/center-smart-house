@@ -75,6 +75,7 @@ func runDBConnection() (*redis.Client, error) {
 		}
 		log.Errorln("err not nil")
 	}
+
 	return client, err
 }
 
