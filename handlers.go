@@ -7,12 +7,11 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-
 	log "github.com/Sirupsen/logrus"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
-	"dao"
+	"github.com/gorilla/mux"
+	"github.com/IhorBondartsov/Smart_Home/server-smart-house/center-smart-house/dao"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -445,8 +444,8 @@ func int64ToString(n int64) string {
 }
 
 //-------------------Work with data base-------------------------------------------------------------------------------------------
-func deleteAllInRedis(dbClient dao.DbWorker){
-	err :=dbClient.FlushAll()
+func deleteAllInBase(dbClient dao.DbWorker){
+	err := dbClient.FlushAll()
 	checkError("Some error with FlushAll()", err)
 }
 

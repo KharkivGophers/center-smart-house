@@ -1,5 +1,5 @@
 package dao
 
-type dbWorker interface {
+type DbWorker interface {
 	FlushAll() (error)
 }
