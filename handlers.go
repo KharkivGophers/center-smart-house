@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
+	"dao"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -60,6 +61,7 @@ func devTypeHandler(req Request) string {
 			log.Println("Device request: unknown device type")
 			return string("Device request: unknown device type")
 		}
+
 		go publishWS(req)
 
 	default:
@@ -443,6 +445,10 @@ func int64ToString(n int64) string {
 }
 
 //-------------------Work with data base-------------------------------------------------------------------------------------------
+func deleteAllInRedis(dbClient dao.DbWorker){
+	err :=dbClient.FlushAll()
+	checkError("Some error with FlushAll()", err)
+}
 
 func getAllDevices(dbClient *redis.Client) []DevData {
 	var device DevData

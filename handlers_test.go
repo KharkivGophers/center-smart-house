@@ -9,6 +9,7 @@ import (
 	"strings"
 	"net/http"
 	"io/ioutil"
+	"menteslibres.net/gosexy/redis"
 )
 
 func TestDevTypeHandler(t *testing.T) {
@@ -217,11 +218,24 @@ func TestCheckJSONToServer(t *testing.T) {
 		So(response, ShouldContainSubstring, res)
 	})
 }
+func TestRedisConection(t *testing.T){
+	client := redis.New()
+
+
+	Convey("Check redis client connection"+dbHost+":"+string(dbPort)+". Should be without error ", t, func() {
+		err := client.Connect(dbHost, dbPort)
+		So(err, ShouldBeNil)
+	})
+}
 
 func TestWorkingServerAfterSendingJSON(t *testing.T){
 	conn, _ := net.Dial("tcp", connHost+":"+tcpConnPort)
 	defer conn.Close()
 	var httpClient = &http.Client{}
+	client := redis.New()
+	client.Connect(dbHost, dbPort)
+
+
 
 	Convey("Check http://"+connHost+":"+httpConnPort+"/devices. Should be without error ", t, func() {
 		res, err := httpClient.Get("http://"+connHost+":"+httpConnPort+"/devices")
