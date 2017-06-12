@@ -494,14 +494,4 @@ func TestWSConnection(t *testing.T) {
 		So(bytes.NewBuffer(message).String(), ShouldEqual, mustBe)
 	})
 }
-//
-//	for {
-//		_, message, err := conn.ReadMessage()
-//		if err != nil {
-//			fmt.Println("read:", err)
-//			return
-//		}
-//		publishWS(req)
-//		fmt.Printf("received: %s\n", message)
-//	}
 
