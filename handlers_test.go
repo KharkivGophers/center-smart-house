@@ -104,6 +104,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	defer myRedis.Client.Close()
 	//--------------------------------------------------------------------------------
 
+
 	Convey("Send Correct JSON to server", t, func() {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
@@ -536,7 +537,6 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		httpClient.Do(r)
 		So(bodyString, ShouldContainSubstring, mustHave)
 	})
-
 }
 
 func TestWSConnection(t *testing.T) {
