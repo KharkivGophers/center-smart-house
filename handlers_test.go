@@ -74,7 +74,7 @@ func TestSendJSONToServer(t *testing.T) {
 	conn, _ := net.Dial("tcp", connHost+":"+tcpConnPort)
 	defer conn.Close()
 
-	res := "{\"status\":200,\"descr\":\"Data has been delivered successfully\"}"
+	res := "\"status\":200,\"descr\":\"Data have been delivered successfully\""
 	req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 	message, _ := json.Marshal(req)
 	conn.Write(message)
@@ -87,7 +87,7 @@ func TestSendJSONToServer(t *testing.T) {
 	response := bytes.NewBuffer(buffer).String()
 
 	if !strings.Contains(response, res) {
-		t.Error("Bad JSON")
+		t.Error("Bad JSON", response, res)
 	}
 }
 
@@ -95,7 +95,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	conn, _ := net.Dial("tcp", connHost+":"+tcpConnPort)
 	defer conn.Close()
 
-	res := "{\"status\":200,\"descr\":\"Data has been delivered successfully\"}"
+	res := "\"status\":200,\"descr\":\"Data have been delivered successfully\""
 
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.MyRedis = dao.MyRedis{}
@@ -451,23 +451,92 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		deleteAllInBase(myRedis)
 
 	})
-	//Convey("Send correct JSON. Patch device data: turned on as true ", t, func() {
-	//	reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
-	//		",\"mac\":\"Test1\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
-	//		"1500\":15.5}}}"
-	//
-	//	mustHave :="\"turnedOn\":true"
-	//	conn.Write([]byte(reqMessage))
-	//	url_patch := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
-	//	url_get := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
-	//
-	//	http.NewRequest("PATCH", url_patch, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
-	//
-	//	res, _ := httpClient.Get(url_get)
-	//	bodyBytes, _ := ioutil.ReadAll(res.Body)
-	//	bodyString := string(bodyBytes)
-	//	So(bodyString, ShouldContainSubstring, mustHave)
-	//})
+	Convey("Send correct JSON. Patch device data: turned on as true ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"Test1\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"turnedOn\":true"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":false}")))
+		httpClient.Do(r)
+		So(bodyString, ShouldContainSubstring, mustHave)
+	})
+	Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"Test1\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"collectFreq\":5"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":5}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":0}")))
+		httpClient.Do(r)
+		So(bodyString, ShouldContainSubstring, mustHave)
+	})
+	Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"Test1\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"collectFreq\":5"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":5}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":0}")))
+		httpClient.Do(r)
+		So(bodyString, ShouldContainSubstring, mustHave)
+	})
+	Convey("Send correct JSON. Patch device data: SendFreq as 15 ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"Test1\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"sendFreq\":15"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"sendFreq\":15}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"sendFreq\":0}")))
+		httpClient.Do(r)
+		So(bodyString, ShouldContainSubstring, mustHave)
+	})
+	Convey("Send correct JSON. Patch device data: stream on as true ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"Test1\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"streamOn\":true"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":true}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":false}")))
+		httpClient.Do(r)
+		So(bodyString, ShouldContainSubstring, mustHave)
+	})
+
 }
 
 func TestWSConnection(t *testing.T) {
