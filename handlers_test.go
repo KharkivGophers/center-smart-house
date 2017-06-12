@@ -468,6 +468,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":false}")))
 		httpClient.Do(r)
 		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
 	})
 	Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
 		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
@@ -485,6 +486,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":0}")))
 		httpClient.Do(r)
 		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
 	})
 	Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
 		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
@@ -502,6 +504,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":0}")))
 		httpClient.Do(r)
 		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
 	})
 	Convey("Send correct JSON. Patch device data: SendFreq as 15 ", t, func() {
 		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
@@ -519,6 +522,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"sendFreq\":0}")))
 		httpClient.Do(r)
 		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
 	})
 	Convey("Send correct JSON. Patch device data: stream on as true ", t, func() {
 		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
@@ -536,6 +540,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":false}")))
 		httpClient.Do(r)
 		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
 	})
 }
 
