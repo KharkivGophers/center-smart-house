@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"menteslibres.net/gosexy/redis"
 
-	"github.com/IhorBondartsov/Smart_Home/server-smart-house/center-smart-house/dao"
+	"github.com/center-smart-house/dao"
 	"github.com/gorilla/websocket"
 )
 

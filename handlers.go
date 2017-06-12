@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
 	"github.com/gorilla/mux"
-	"github.com/IhorBondartsov/Smart_Home/server-smart-house/center-smart-house/dao"
+	"github.com/center-smart-house/dao"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
