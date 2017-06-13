@@ -96,7 +96,7 @@ func runTCPServer() {
 		conn, err := ln.Accept()
 		checkError("TCP conn Accept", err)
 
-		go tcpDataHandler(&conn)
+		go tcpDataHandler(conn)
 	}
 }
 
@@ -136,7 +136,7 @@ func runConfigServer(connType string, host string, port string) {
 	for {
 		conn, err := ln.Accept()
 		checkError("TCP config conn Accept", err)
-		go sendDefaultConfiguration(&conn, &pool)
+		go sendDefaultConfiguration(conn, &pool)
 	}
 }
 
@@ -145,17 +145,17 @@ func sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 	connection := pool.getConn(config.MAC)
 	log.Println("mac in pool sendNewCOnfig", config.MAC)
 
-	err := json.NewEncoder(*connection).Encode(&config)
+	err := json.NewEncoder(connection).Encode(&config)
 	checkError("sendNewConfig", err)
 }
 
-func sendDefaultConfiguration(conn *net.Conn, pool *ConnectionPool) {
+func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 	// Send Default Configuration to Device
 
 	dbClient, _ := runDBConnection()
 	var req Request
 	var config DevConfig
-	err := json.NewDecoder(*conn).Decode(&req)
+	err := json.NewDecoder(conn).Decode(&req)
 	checkError("sendDefaultConfiguration JSON Decod", err)
 	log.Println(req)
 
@@ -210,7 +210,7 @@ func sendDefaultConfiguration(conn *net.Conn, pool *ConnectionPool) {
 		checkError("DB error4: StreamOn", err)
 	}
 
-	err = json.NewEncoder(*conn).Encode(&config)
+	err = json.NewEncoder(conn).Encode(&config)
 	checkError("sendDefaultConfiguration JSON enc", err)
 	log.Warningln("Configuration has been sent")
 	log.Println("the end")

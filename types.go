@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"sync"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
 )
@@ -20,7 +21,7 @@ type Response struct {
 }
 
 type DevConfig struct {
-	TurnedOn bool `json:"turnedOn"`
+	TurnedOn    bool   `json:"turnedOn"`
 	StreamOn    bool   `json:"streamOn"`
 	CollectFreq int64  `json:"collectFreq"`
 	SendFreq    int64  `json:"sendFreq"`
@@ -72,16 +73,16 @@ type DevData struct {
 //Connections pool for configTCPServer
 type ConnectionPool struct {
 	sync.Mutex
-	conn map[string]*net.Conn
+	conn map[string]net.Conn
 }
 
-func (pool *ConnectionPool) addConn(conn *net.Conn, key string) {
+func (pool *ConnectionPool) addConn(conn net.Conn, key string) {
 	pool.Lock()
 	pool.conn[key] = conn
 	defer pool.Unlock()
 }
 
-func (pool *ConnectionPool) getConn(key string) *net.Conn {
+func (pool *ConnectionPool) getConn(key string) net.Conn {
 	pool.Lock()
 	defer pool.Unlock()
 	return pool.conn[key]
@@ -90,7 +91,7 @@ func (pool *ConnectionPool) init() {
 	pool.Lock()
 	defer pool.Unlock()
 
-	pool.conn = make(map[string]*net.Conn)
+	pool.conn = make(map[string]net.Conn)
 }
 
 //For work with web socket

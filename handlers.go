@@ -7,19 +7,20 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
 	log "github.com/Sirupsen/logrus"
+	"github.com/center-smart-house/dao"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
-	"github.com/gorilla/mux"
-	"github.com/center-smart-house/dao"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
-func tcpDataHandler(conn *net.Conn) {
+func tcpDataHandler(conn net.Conn) {
 	var req Request
 	var res Response
 	for {
-		err := json.NewDecoder(*conn).Decode(&req)
+		err := json.NewDecoder(conn).Decode(&req)
 		if err != nil {
 			log.Errorln("requestHandler JSON Decod", err)
 			return
@@ -34,7 +35,7 @@ func tcpDataHandler(conn *net.Conn) {
 			Status: http.StatusOK,
 			Descr:  "Data has been delivered successfully",
 		}
-		err = json.NewEncoder(*conn).Encode(&res)
+		err = json.NewEncoder(conn).Encode(&res)
 		checkError("tcpDataHandler JSON enc", err)
 	}
 
@@ -444,7 +445,7 @@ func int64ToString(n int64) string {
 }
 
 //-------------------Work with data base-------------------------------------------------------------------------------------------
-func deleteAllInBase(dbClient dao.DbWorker){
+func deleteAllInBase(dbClient dao.DbWorker) {
 	err := dbClient.FlushAll()
 	checkError("Some error with FlushAll()", err)
 }
