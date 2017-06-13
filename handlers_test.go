@@ -399,7 +399,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
 
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:Test1/config")
+		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -414,7 +414,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"collectFreq\":0"
 		conn.Write([]byte(reqMessage))
 
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:Test1/config")
+		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -429,7 +429,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"sendFreq\":0"
 		conn.Write([]byte(reqMessage))
 
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:Test1/config")
+		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -444,7 +444,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
 
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:Test1/config")
+		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -477,7 +477,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave :="\"collectFreq\":5"
 		conn.Write([]byte(reqMessage))
-		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:Test1/config"
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":5}")))
 		httpClient.Do(r)
 		res, _ := httpClient.Get(url)
