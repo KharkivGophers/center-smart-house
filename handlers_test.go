@@ -255,7 +255,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		deleteAllInBase(myRedis)
 	})
 }
-func TestRedisConection(t *testing.T) {
+func TestRedisConnection(t *testing.T) {
 	client := redis.New()
 	Convey("Check redis client connection"+dbHost+":"+string(dbPort)+". Should be without error ", t, func() {
 		err := client.Connect(dbHost, dbPort)
@@ -465,8 +465,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		res, _ := httpClient.Get(url)
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
-		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":false}")))
-		httpClient.Do(r)
+
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(myRedis)
 	})
@@ -483,8 +482,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		res, _ := httpClient.Get(url)
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
-		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":0}")))
-		httpClient.Do(r)
+
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(myRedis)
 	})
@@ -519,8 +517,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		res, _ := httpClient.Get(url)
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
-		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"sendFreq\":0}")))
-		httpClient.Do(r)
+
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(myRedis)
 	})
@@ -537,8 +534,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		res, _ := httpClient.Get(url)
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
-		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":false}")))
-		httpClient.Do(r)
+
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(myRedis)
 	})
