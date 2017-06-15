@@ -112,33 +112,48 @@ function printFridgeChart(obj) {
 
     // Create the chart
     Highcharts.stockChart('container', {
-      chart: {
+        chart: {
             events: {
                 load: function () {
 
-                  var seriesTemCam1 = this.series[0];
+                    var seriesTemCam1 = this.series[0];
                     var seriesTemCam2 = this.series[1];
+                    var fridges = []
 
-                  socket.onmessage = function (event) {
-                        var incomingMessage = event.data;
-                        console.dir(incomingMessage)
-                        var fridge = JSON.parse(incomingMessage);
-
-                      for (key in fridge.data.tempCam1) {
-                            var x = parseInt(key);
-                            var y = parseFloat(fridge.data.tempCam1[key]);
-                            seriesTemCam1.addPoint([x, y], true, true);
-                        }
-
-
-                      for (key in fridge.data.tempCam2) {
+                    var repaint = function (fridge) {
+                        for (key in fridge.data.tempCam2) {
                             var x = parseInt(key);
                             var y = parseFloat(fridge.data.tempCam2[key]);
                             seriesTemCam2.addPoint([x, y], true, true);
                         }
+
+                        for (key in fridge.data.tempCam1) {
+                            var x = parseInt(key);
+                            var y = parseFloat(fridge.data.tempCam1[key]);
+                            seriesTemCam1.addPoint([x, y], true, true);
+                        }
                     }
 
-              }
+                    socket.onmessage = function (event) {
+                        var incomingMessage = event.data;
+                        var fridge = JSON.parse(incomingMessage);
+
+                        if (showDataFromWS === true) {
+
+                            if(fridges.length!==0){
+                                var lengthFridge = fridges.length;
+                                for (index = 0; index < lengthFridge; ++index) {
+                                    repaint(fridges.shift())
+                                }
+                            }
+
+                        repaint(fridge)
+
+                        }else{
+                        fridges.push(fridge)
+                        }
+                    }
+                }
             }
         },
 
