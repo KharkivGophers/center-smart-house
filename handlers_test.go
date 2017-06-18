@@ -11,9 +11,9 @@ import (
 
 	"menteslibres.net/gosexy/redis"
 
-	"github.com/center-smart-house/dao"
+	"github.com/KharkivGophers/center-smart-house/dao"
 	"github.com/gorilla/websocket"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/smartystreets/goconvey/convey"
 )
 
 func TestDevTypeHandler(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/center-smart-house/dao"
+	"github.com/KharkivGophers/center-smart-house/dao"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
