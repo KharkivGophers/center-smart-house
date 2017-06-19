@@ -253,11 +253,11 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	} else if !validateCollectFreq(config.CollectFreq) {
 		log.Error("Invalid Collect Frequency Value")
-		http.Error(w, "Collect Frequency should be more than 50!", 400)
+		http.Error(w, "Collect Frequency should be more than 150!", 400)
 
 	} else if !validateSendFreq(config.SendFreq) {
 		log.Error("Invalid Send Frequency Value")
-		http.Error(w, "Send Frequency should be more than 50!", 400)
+		http.Error(w, "Send Frequency should be more than 150!", 400)
 
 	} else {
 		// Save New Configuration to DB
@@ -301,10 +301,10 @@ func validateSendFreq(sendFreq interface{}) bool {
 	switch v := sendFreq.(type) {
 	case int64:
 		switch {
-		case v > 50:
+		case v > 150:
 			return true
 		default:
-			log.Error("Send Frequency should be more than 50!")
+			log.Error("Send Frequency should be more than 150!")
 			return false
 		}
 	default:
@@ -318,11 +318,11 @@ func validateCollectFreq(collectFreq interface{}) bool {
 	switch v := collectFreq.(type) {
 	case int64:
 		switch {
-		case v > 50:
+		case v > 150:
 
 			return true
 		default:
-			log.Error("Collect Frequency should be more than 50!")
+			log.Error("Collect Frequency should be more than 150!")
 			return false
 		}
 	default:
@@ -443,7 +443,7 @@ func publishWS(req Request) {
 	go publishMessage(pubReq, roomIDForDevWSPublish)
 }
 
-//-----------------Common funcs-------------------------------------------------------------------------------------------
+//-----------------Common functions-------------------------------------------------------------------------------------------
 
 func checkError(desc string, err error) error {
 	if err != nil {

@@ -6,11 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="img/home.png">
-    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
-    <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
     <script src="https://code.highcharts.com/stock/highstock.js"></script>
     <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
     <script src="js/fridge.js"></script>
@@ -106,89 +103,6 @@
 </div>
 
 <div id="container" style="height: 400px; min-width: 310px">
-    <script>
-
-
-        var url = window.location.href.split("/");
-        var urlParams = parseURLParams(window.location.href);
-        var domen = url[2].split(":");
-        var showDataFromWS = true;
-        var fridges = [];
-
-        var socket = new WebSocket("ws://" + domen[0] + ":2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
-        socket.onmessage = function (event) {
-            var incomingMessage = event.data;
-            var fridge = JSON.parse(incomingMessage);
-            fridges.push(fridge);
-        };
-
-        $(document).ready(function () {
-            var urlParams = parseURLParams(window.location.href);
-
-            $.get("/devices/" + urlParams["id"] + "/data", function (data) {
-                var obj = JSON.parse(data);
-                setDevDataFields(obj);
-                printFridgeChart(obj);
-            });
-
-            $.get("/devices/" + urlParams["id"] + "/config", function (data) {
-                var obj = JSON.parse(data);
-                setDevConfigFields(obj);
-            });
-
-            document.getElementById("turnedOnBtn").onclick = function () {
-                var value = this.innerHTML;
-                if (value === "On") {
-                    sendDevConfigTurnedOn(
-                        urlParams["id"],
-                        false
-                    );
-                    this.innerHTML = "Off";
-                    this.className = "btn btn-danger";
-                } else {
-                    sendDevConfigTurnedOn(
-                        urlParams["id"],
-                        true
-                    );
-                    this.innerHTML = "On";
-                    this.className = "btn btn-success";
-                }
-            };
-
-            document.getElementById("updateBtn").onclick = function () {
-                sendDevConfigFreq(
-                    urlParams["id"],
-                    parseInt(document.getElementById('collectFreq').value),
-                    parseInt(document.getElementById('sendFreq').value)
-                );
-            };
-
-            document.getElementById("streamOnBtn").onclick = function () {
-                var value = this.innerHTML;
-
-                if (value === "On") {
-//                    sendDevConfigStreamOn(
-//                        urlParams["id"],
-//                        false
-//                    );
-                    this.innerHTML = "Off";
-                    this.className = "btn btn-danger";
-                    showDataFromWS = false
-
-
-                } else {
-//                    sendDevConfigStreamOn(
-//                        urlParams["id"],
-//                        true
-//                    );
-                    showDataFromWS = true
-                    this.innerHTML = "On";
-                    this.className = "btn btn-success";
-                }
-            };
-        });
-
-    </script>
 </div>
 </body>
 </html>

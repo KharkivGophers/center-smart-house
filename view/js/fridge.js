@@ -18,8 +18,7 @@ function parseURLParams(url) {
     return parms;
 }
 
-function sendDevConfigFreq(id, collectFreq, sendFreq) {
-    var xhr = new XMLHttpRequest();
+function requestHandler(id, xhr) {
     var url = "/devices/" + id + "/config";
     xhr.open("PATCH", url, true);
     xhr.setRequestHeader("Content-type", "application/json");
@@ -31,6 +30,11 @@ function sendDevConfigFreq(id, collectFreq, sendFreq) {
             alert(xhr.responseText);
         }
     };
+}
+
+function sendDevConfigFreq(id, collectFreq, sendFreq) {
+    var xhr = new XMLHttpRequest();
+    requestHandler(id, xhr);
 
     var config = JSON.stringify(
         {
@@ -43,37 +47,11 @@ function sendDevConfigFreq(id, collectFreq, sendFreq) {
 
 function sendDevConfigTurnedOn(id, turnedOn) {
     var xhr = new XMLHttpRequest();
-    var url = "/devices/" + id + "/config";
-    xhr.open("PATCH", url, true);
-    xhr.setRequestHeader("Content-type", "application/json");
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            alert("Data have been delivered successfully!");
-        }
-    };
+    requestHandler(id, xhr);
 
     var config = JSON.stringify(
         {
             "turnedOn": turnedOn
-        });
-
-    xhr.send(config);
-}
-
-function sendDevConfigStreamOn(id, streamOn) {
-    var xhr = new XMLHttpRequest();
-    var url = "/devices/" + id + "/config";
-    xhr.open("PATCH", url, true);
-    xhr.setRequestHeader("Content-type", "application/json");
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            alert("Data have been delivered!");
-        }
-    };
-
-    var config = JSON.stringify(
-        {
-            "streamOn": streamOn
         });
 
     xhr.send(config);
@@ -194,4 +172,74 @@ function printFridgeChart(obj) {
             }]
         })
 }
+
+var url = window.location.href.split("/");
+var urlParams = parseURLParams(window.location.href);
+var domen = url[2].split(":");
+var showDataFromWS = true;
+var fridges = [];
+
+var socket = new WebSocket("ws://" + domen[0] + ":2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
+socket.onmessage = function (event) {
+    var incomingMessage = event.data;
+    var fridge = JSON.parse(incomingMessage);
+    fridges.push(fridge);
+};
+
+$(document).ready(function () {
+    var urlParams = parseURLParams(window.location.href);
+
+    $.get("/devices/" + urlParams["id"] + "/data", function (data) {
+        var obj = JSON.parse(data);
+        setDevDataFields(obj);
+        printFridgeChart(obj);
+    });
+
+    $.get("/devices/" + urlParams["id"] + "/config", function (data) {
+        var obj = JSON.parse(data);
+        setDevConfigFields(obj);
+    });
+
+    document.getElementById("turnedOnBtn").onclick = function () {
+        var value = this.innerHTML;
+        if (value === "On") {
+            sendDevConfigTurnedOn(
+                urlParams["id"],
+                false
+            );
+            this.innerHTML = "Off";
+            this.className = "btn btn-danger";
+        } else {
+            sendDevConfigTurnedOn(
+                urlParams["id"],
+                true
+            );
+            this.innerHTML = "On";
+            this.className = "btn btn-success";
+        }
+    };
+
+    document.getElementById("updateBtn").onclick = function () {
+        sendDevConfigFreq(
+            urlParams["id"],
+            parseInt(document.getElementById('collectFreq').value),
+            parseInt(document.getElementById('sendFreq').value)
+        );
+    };
+
+    document.getElementById("streamOnBtn").onclick = function () {
+        var value = this.innerHTML;
+        if (value === "On") {
+            this.innerHTML = "Off";
+            this.className = "btn btn-danger";
+            showDataFromWS = false
+
+        } else {
+            showDataFromWS = true;
+            this.innerHTML = "On";
+            this.className = "btn btn-success";
+        }
+    };
+});
+
 
