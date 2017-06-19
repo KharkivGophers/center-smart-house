@@ -144,11 +144,11 @@ func sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 
 	connection := pool.getConn(config.MAC)
 	if connection == nil{
-		log.Error("Has not connection in connectionPool")
+		log.Error("There's no connection in connectionPool")
 		return
 	}
 
-	log.Println("mac in pool sendNewCOnfig", config.MAC)
+	log.Println("mac in pool sendNewConfig", config.MAC)
 	err := json.NewEncoder(connection).Encode(&config)
 	checkError("sendNewConfig", err)
 }
