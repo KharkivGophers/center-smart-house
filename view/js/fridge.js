@@ -112,97 +112,83 @@ function printFridgeChart(obj) {
 
     // Create the chart
     Highcharts.stockChart('container', {
-        chart: {
-            events: {
-                load: function () {
+            chart: {
+                events: {
+                    load: function () {
+                        var seriesTemCam1 = this.series[0];
+                        var seriesTemCam2 = this.series[1];
+                        var timerForRepaint =  50;
+                        var repaint = function (fridge) {
+                            for (key in fridge.data.tempCam2) {
+                                var x = parseInt(key);
+                                var y = parseFloat(fridge.data.tempCam2[key]);
+                                seriesTemCam2.addPoint([x, y], true, true);
+                            }
+                            for (key in fridge.data.tempCam1) {
+                                var x = parseInt(key);
+                                var y = parseFloat(fridge.data.tempCam1[key]);
+                                seriesTemCam1.addPoint([x, y], true, true);
+                            }
+                        };
 
-                    var seriesTemCam1 = this.series[0];
-                    var seriesTemCam2 = this.series[1];
-                    var fridges = []
-
-                    var repaint = function (fridge) {
-                        for (key in fridge.data.tempCam2) {
-                            var x = parseInt(key);
-                            var y = parseFloat(fridge.data.tempCam2[key]);
-                            seriesTemCam2.addPoint([x, y], true, true);
-                        }
-
-                        for (key in fridge.data.tempCam1) {
-                            var x = parseInt(key);
-                            var y = parseFloat(fridge.data.tempCam1[key]);
-                            seriesTemCam1.addPoint([x, y], true, true);
-                        }
-                    }
-
-                    socket.onmessage = function (event) {
-                        var incomingMessage = event.data;
-                        var fridge = JSON.parse(incomingMessage);
-
-                        if (showDataFromWS === true) {
-
-                            if(fridges.length!==0){
-                                var lengthFridge = fridges.length;
-                                for (index = 0; index < lengthFridge; ++index) {
-                                    repaint(fridges.shift())
+                        var timerId = setInterval(function () {
+                            if (showDataFromWS === true) {
+                                var fridge = fridges.shift()
+                                if (fridges !== undefined) {
+                                    repaint(fridge)
                                 }
                             }
-
-                        repaint(fridge)
-
-                        }else{
-                        fridges.push(fridge)
-                        }
+                        }, timerForRepaint)
                     }
                 }
-            }
-        },
+            },
 
-        rangeSelector: {
-            buttons: [{
-                count: 1,
-                type: 'minute',
-                text: '1M'
+            rangeSelector: {
+                buttons: [{
+                    count: 1,
+                    type: 'minute',
+                    text: '1M'
+                }, {
+                    count: 5,
+                    type: 'minute',
+                    text: '5M'
+                }, {
+                    type: 'all',
+                    text: 'All'
+                }],
+                inputEnabled: false,
+                selected: 0
+            },
+
+            exporting: {
+                enabled: false
+            },
+
+            series: [{
+                name: 'TempCam1',
+                data: (function () {
+                    var data = [];
+                    for (var i = 0; i < obj["data"]["TempCam1"].length; ++i) {
+                        data.push({
+                            x: parseInt(obj["data"]["TempCam1"][i].split(':')[0]),
+                            y: parseFloat(obj["data"]["TempCam1"][i].split(':')[1])
+                        });
+                    }
+                    return data;
+                }())
             }, {
-                count: 5,
-                type: 'minute',
-                text: '5M'
-            }, {
-                type: 'all',
-                text: 'All'
-            }],
-            inputEnabled: false,
-            selected: 0
-        },
-
-        exporting: {
-            enabled: false
-        },
-
-        series: [{
-            name: 'TempCam1',
-            data: (function () {
-                var data = [];
-                for (var i = 0; i < obj["data"]["TempCam1"].length; ++i) {
-                    data.push({
-                        x: parseInt(obj["data"]["TempCam1"][i].split(':')[0]),
-                        y: parseFloat(obj["data"]["TempCam1"][i].split(':')[1])
-                    });
-                }
-                return data;
-            }())
-        }, {
-            name: 'TempCam2',
-            data: (function () {
-                var data = [];
-                for (var i = 0; i < obj["data"]["TempCam2"].length; ++i) {
-                    data.push({
-                        x: parseInt(obj["data"]["TempCam2"][i].split(':')[0]),
-                        y: parseFloat(obj["data"]["TempCam2"][i].split(':')[1])
-                    });
-                }
-                return data;
-            }())
-        }]
-    })
+                name: 'TempCam2',
+                data: (function () {
+                    var data = [];
+                    for (var i = 0; i < obj["data"]["TempCam2"].length; ++i) {
+                        data.push({
+                            x: parseInt(obj["data"]["TempCam2"][i].split(':')[0]),
+                            y: parseFloat(obj["data"]["TempCam2"][i].split(':')[1])
+                        });
+                    }
+                    return data;
+                }())
+            }]
+        })
 }
 

@@ -107,12 +107,21 @@
 
 <div id="container" style="height: 400px; min-width: 310px">
     <script>
+
+
         var url = window.location.href.split("/");
         var urlParams = parseURLParams(window.location.href);
-        var domen = url[2].split(":")
-        var showDataFromWS = true
+        var domen = url[2].split(":");
+        var showDataFromWS = true;
+        var fridges = [];
 
-        var socket = new WebSocket("ws://" + domen[0]+":2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
+        var socket = new WebSocket("ws://" + domen[0] + ":2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
+        socket.onmessage = function (event) {
+            var incomingMessage = event.data;
+            var fridge = JSON.parse(incomingMessage);
+            fridges.push(fridge);
+        };
+
         $(document).ready(function () {
             var urlParams = parseURLParams(window.location.href);
 
