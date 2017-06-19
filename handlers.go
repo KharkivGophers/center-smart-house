@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -129,9 +128,9 @@ func configSubscribe(client *redis.Client, roomID string, message chan []string,
 		var config DevConfig
 		select {
 		case msg := <-message:
-			log.Println("message", msg)
+			// log.Println("message", msg)
 			if msg[0] == "message" {
-				log.Println("message[0]", msg[0])
+				// log.Println("message[0]", msg[0])
 				err := json.Unmarshal([]byte(msg[2]), &config)
 				checkError("configSubscribe: unmarshal", err)
 				go sendNewConfiguration(config, pool)
@@ -170,7 +169,7 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
 
-	log.Println(configInfo)
+	// log.Println(configInfo)
 
 	state, err := dbClient.HMGet(configInfo, "TurnedOn")
 	checkError("Get from DB error1: TurnedOn ", err)
@@ -201,7 +200,6 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"] // warning!! type : name : mac
 	mac := strings.Split(id, ":")[2]
-	go validateMAC(mac)
 
 	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
@@ -229,7 +227,7 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 		StreamOn:    newStreamOn,
 	}
 
-	log.Warnln("config before", config)
+	// log.Warnln("Config Before", config)
 
 	err = json.NewDecoder(r.Body).Decode(&config)
 	if err != nil {
@@ -239,82 +237,119 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	checkError("Encode error", err)
 
-	log.Warnln("config after", config)
+	// log.Warnln("Config After: ", config)
 
-	// Save New Configuration to DB
-	_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
-	checkError("DB error1: TurnedOn", err)
-	_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
-	checkError("DB error2: CollectFreq", err)
-	_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
-	checkError("DB error3: SendFreq", err)
-	_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
-	checkError("DB error4: StreamOn", err)
+	if !validateMAC(config.MAC) {
+		log.Error("Invalid MAC")
+		http.Error(w, "Invalid MAC", 400)
 
-	log.Println("New Config was added to DB")
+	} else if !validateStreamOn(config.StreamOn) {
+		log.Error("Invalid Stream Value")
+		http.Error(w, "Invalid Stream Value", 400)
 
-	JSONСonfig, err := json.Marshal(config)
+	} else if !validateTurnedOn(config.TurnedOn) {
+		log.Error("Invalid Turned Value")
+		http.Error(w, "Invalid Turned Value", 400)
 
-	go publishConfigMessage(JSONСonfig, "configChan")
+	} else if !validateCollectFreq(config.CollectFreq) {
+		log.Error("Invalid Collect Frequency Value")
+		http.Error(w, "Collect Frequency should be more than 50!", 400)
+
+	} else if !validateSendFreq(config.SendFreq) {
+		log.Error("Invalid Send Frequency Value")
+		http.Error(w, "Send Frequency should be more than 50!", 400)
+
+	} else {
+		// Save New Configuration to DB
+		_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+		checkError("DB error1: TurnedOn", err)
+		_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+		checkError("DB error2: CollectFreq", err)
+		_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
+		checkError("DB error3: SendFreq", err)
+		_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
+		checkError("DB error4: StreamOn", err)
+
+		log.Println("New Config was added to DB: ", config)
+
+		JSONСonfig, _ := json.Marshal(config)
+
+		go publishConfigMessage(JSONСonfig, "configChan")
+	}
+
 }
 
-// Collector: 1, DataGenerator: 2, 3
-
-// func validateSendFreq(c DevConfig) error {
-// 	log.Println(reflect.TypeOf(c.SendFreq).String())
-// 	switch reflect.TypeOf(c.SendFreq).String() {
-// 	case "int64":
-// 		switch {
-// 		case c.SendFreq < 0 && c.SendFreq == 0:
-// 			return errors.New("Failed SendFreq validation")
-// 		default:
-// 			log.Println("validateSendFreq complited sucessfully")
-// 			return nil
-// 		}
-// 	default:
-// 		return errors.New("Failed SendFreq validation")
-// 	}
-// }
-
-// func validateCollectFreq(c DevConfig) error {
-// 	log.Println(reflect.TypeOf(c.CollectFreq).String())
-// 	switch reflect.TypeOf(c.CollectFreq).String() {
-// 	case "int64":
-// 		switch {
-// 		case c.CollectFreq < 0 && c.CollectFreq == 0:
-// 			return errors.New("Failed CollectFreq validation")
-// 		default:
-// 			log.Println("validateCollectFreq complited sucessfully")
-// 			return nil
-// 		}
-// 	default:
-// 		return errors.New("Failed CollectFreq validation")
-// 	}
-// }
-
-// func validateState(c DevConfig) error {
-// 	switch reflect.TypeOf(c.TurnedOn).String() {
-// 	case "bool":
-// 		log.Println("validateState complited sucessfully")
-// 		return nil
-// 	default:
-// 		return errors.New("Failed validateState")
-// 	}
-// }
-
-func validateMAC(mac string) {
-	switch reflect.TypeOf(mac).String() {
-	case "string":
-		switch len(mac) {
+// Validate MAC got from User
+func validateMAC(mac interface{}) bool {
+	switch v := mac.(type) {
+	case string:
+		switch len(v) {
 		case 17:
-			return
+			return true
 		default:
-			log.Println("MAC should contain 17 symbols")
-			break
+			log.Error("MAC should contain 17 symbols")
+			return false
 		}
 	default:
-		log.Println("MAC should be in string format")
-		break
+		log.Error("MAC should be in string format")
+		return false
+	}
+}
+
+// Validate Send Frequency Value got from User
+func validateSendFreq(sendFreq interface{}) bool {
+	switch v := sendFreq.(type) {
+	case int64:
+		switch {
+		case v > 50:
+			return true
+		default:
+			log.Error("Send Frequency should be more than 50!")
+			return false
+		}
+	default:
+		log.Error("Send Frequency should be in int64 format")
+		return false
+	}
+}
+
+// Validate Collect Frequency got from User
+func validateCollectFreq(collectFreq interface{}) bool {
+	switch v := collectFreq.(type) {
+	case int64:
+		switch {
+		case v > 50:
+
+			return true
+		default:
+			log.Error("Collect Frequency should be more than 50!")
+			return false
+		}
+	default:
+		log.Error("Collect Frequency should be in int64 format")
+		return false
+	}
+}
+
+// Validate TurnedOn Value got from User
+func validateTurnedOn(turnedOn interface{}) bool {
+	switch turnedOn.(type) {
+	case bool:
+		return true
+	default:
+		log.Error("TurnedOn should be in bool format!")
+		return false
+	}
+}
+
+// Validate StreamOn Value got from User
+func validateStreamOn(streamOn interface{}) bool {
+	switch streamOn.(type) {
+	case bool:
+		return true
+	default:
+		log.Error("StreamOn should be in bool format!")
+		return false
 	}
 }
 

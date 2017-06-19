@@ -26,6 +26,9 @@ function sendDevConfigFreq(id, collectFreq, sendFreq) {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             alert("Data have been delivered!");
+            console.log(typeof xhr.responseText)
+        } else if (xhr.readyState === 4 && xhr.status === 400) {
+            alert(xhr.responseText);
         }
     };
 
@@ -45,7 +48,7 @@ function sendDevConfigTurnedOn(id, turnedOn) {
     xhr.setRequestHeader("Content-type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
-            alert("Data have been delivered!");
+            alert("Data have been delivered successfully!");
         }
     };
 

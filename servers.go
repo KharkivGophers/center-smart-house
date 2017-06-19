@@ -143,21 +143,12 @@ func runConfigServer(connType string, host string, port string) {
 func sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 
 	connection := pool.getConn(config.MAC)
-	//if !config.TurnedOn{
-	//	defer connection.Close()
-	//
-	//	log.Println("mac in pool sendNewCOnfig", config.MAC)
-	//	err := json.NewEncoder(connection).Encode(&config)
-	//	checkError("sendNewConfig", err)
-	//	return
-	//}
 	if connection == nil{
-
 		log.Error("Has not connection with mac:config.MAC  in connectionPool")
 		return
 	}
 
-	log.Println("mac in pool sendNewConfig", config.MAC)
+	// log.Println("mac in pool sendNewConfig", config.MAC)
 	err := json.NewEncoder(connection).Encode(&config)
 
 	if err != nil {
@@ -177,7 +168,7 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 	log.Println(req)
 
 	pool.addConn(conn, req.Meta.MAC)
-	log.Println("MAC in pool", req.Meta.MAC)
+	// log.Println("MAC in pool", req.Meta.MAC)
 
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
@@ -186,7 +177,7 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 		checkError("Get from DB error1: TurnedOn ", err)
 
 		if strings.Join(state, " ") != "" {
-			log.Warningln("New Config")
+			// log.Warningln("New Config")
 			sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
 			checkError("Get from DB error2: SendFreq ", err)
 			collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
@@ -205,10 +196,12 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 				SendFreq:    int64(sendFreqInt),
 				StreamOn:    streamOnBool,
 			}
+			log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 			log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
 		}
 	} else {
-		log.Warningln("Default Config")
+		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
+		log.Warningln("Default Config will be sent.")
 		config = DevConfig{
 			TurnedOn:    true,
 			StreamOn:    true,
@@ -229,6 +222,5 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 
 	err = json.NewEncoder(conn).Encode(&config)
 	checkError("sendDefaultConfiguration JSON enc", err)
-	log.Warningln("Configuration has been sent")
-	log.Println("the end")
+	log.Warningln("Configuration has been successfully sent")
 }
