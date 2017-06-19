@@ -6,7 +6,7 @@ WORKDIR /go/src/github.com/KharkivGophers/center-smart-house
 
 RUN go get ./
 RUN go build
-RUN center-smart-house
+CMD center-smart-house
 
 #redis conn
 EXPOSE 6379
