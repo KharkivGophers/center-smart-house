@@ -143,13 +143,25 @@ func runConfigServer(connType string, host string, port string) {
 func sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 
 	connection := pool.getConn(config.MAC)
+	//if !config.TurnedOn{
+	//	defer connection.Close()
+	//
+	//	log.Println("mac in pool sendNewCOnfig", config.MAC)
+	//	err := json.NewEncoder(connection).Encode(&config)
+	//	checkError("sendNewConfig", err)
+	//	return
+	//}
 	if connection == nil{
-		log.Error("Has not connection in connectionPool")
+		log.Error("Has not connection with mac:config.MAC  in connectionPool")
 		return
 	}
 
 	log.Println("mac in pool sendNewCOnfig", config.MAC)
 	err := json.NewEncoder(connection).Encode(&config)
+
+	if err != nil {
+		pool.removeConn(config.MAC)
+	}
 	checkError("sendNewConfig", err)
 }
 

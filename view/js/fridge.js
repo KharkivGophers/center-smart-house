@@ -134,7 +134,7 @@ function printFridgeChart(obj) {
                         var timerId = setInterval(function () {
                             if (showDataFromWS === true) {
                                 var fridge = fridges.shift()
-                                if (fridges !== undefined) {
+                                if (fridge !== undefined) {
                                     repaint(fridge)
                                 }
                             }
