@@ -469,75 +469,75 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		deleteAllInBase(myRedis)
 
 	})
-	//Convey("Send correct JSON. Patch device data: turned on as true ", t, func() {
-	//	reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
-	//		",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
-	//		"1500\":15.5}}}"
-	//
-	//	mustHave :="\"turnedOn\":true"
-	//	conn.Write([]byte(reqMessage))
-	//	url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
-	//	r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
-	//	httpClient.Do(r)
-	//	res, _ := httpClient.Get(url)
-	//	bodyBytes, _ := ioutil.ReadAll(res.Body)
-	//	bodyString := string(bodyBytes)
-	//
-	//	So(bodyString, ShouldContainSubstring, mustHave)
-	//	deleteAllInBase(myRedis)
-	//})
-	//Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
-	//	reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
-	//		",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
-	//		"1500\":15.5}}}"
-	//
-	//	mustHave :="\"collectFreq\":5"
-	//	conn.Write([]byte(reqMessage))
-	//	url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
-	//	r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":5}")))
-	//	httpClient.Do(r)
-	//	res, _ := httpClient.Get(url)
-	//	bodyBytes, _ := ioutil.ReadAll(res.Body)
-	//	bodyString := string(bodyBytes)
-	//
-	//	So(bodyString, ShouldContainSubstring, mustHave)
-	//	deleteAllInBase(myRedis)
-	//})
-	//Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
-	//	reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
-	//		",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
-	//		"1500\":15.5}}}"
-	//
-	//	mustHave :="\"collectFreq\":5"
-	//	conn.Write([]byte(reqMessage))
-	//	url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
-	//	r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":5}")))
-	//	httpClient.Do(r)
-	//	res, _ := httpClient.Get(url)
-	//	bodyBytes, _ := ioutil.ReadAll(res.Body)
-	//	bodyString := string(bodyBytes)
-	//	r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":0}")))
-	//	httpClient.Do(r)
-	//	So(bodyString, ShouldContainSubstring, mustHave)
-	//	deleteAllInBase(myRedis)
-	//})
-	//Convey("Send correct JSON. Patch device data: SendFreq as 15 ", t, func() {
-	//	reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
-	//		",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
-	//		"1500\":15.5}}}"
-	//
-	//	mustHave :="\"sendFreq\":15"
-	//	conn.Write([]byte(reqMessage))
-	//	url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
-	//	r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"sendFreq\":15}")))
-	//	httpClient.Do(r)
-	//	res, _ := httpClient.Get(url)
-	//	bodyBytes, _ := ioutil.ReadAll(res.Body)
-	//	bodyString := string(bodyBytes)
-	//
-	//	So(bodyString, ShouldContainSubstring, mustHave)
-	//	deleteAllInBase(myRedis)
-	//})
+	Convey("Send correct JSON. Patch device data: turned on as true ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"turnedOn\":true"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+
+		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
+	})
+	Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"collectFreq\":5"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":5}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+
+		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
+	})
+	Convey("Send correct JSON. Patch device data: CollectFreq as 5 ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"collectFreq\":5"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":5}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+		r, _ = http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"collectFreq\":0}")))
+		httpClient.Do(r)
+		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
+	})
+	Convey("Send correct JSON. Patch device data: SendFreq as 15 ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"sendFreq\":15"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"sendFreq\":15}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+
+		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
+	})
 	Convey("Send correct JSON. Patch device data: stream on as true ", t, func() {
 		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
