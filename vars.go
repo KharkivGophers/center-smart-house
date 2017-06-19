@@ -18,10 +18,7 @@ var (
 	wsDBClient *redis.Client
 
 	//General
-	//connHost = "192.168.104.23"
-	connHost = "localhost"
-	//connHost = "10.4.25.73"
-	//connHost = "192.168.104.60"
+	connHost = "0.0.0.0"
 
 	//tcp conn with devices
 	connType    = "tcp"
