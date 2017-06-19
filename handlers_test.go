@@ -13,8 +13,16 @@ import (
 
 	"github.com/KharkivGophers/center-smart-house/dao"
 	"github.com/gorilla/websocket"
-	"github.com/smartystreets/goconvey/convey"
+	. "github.com/smartystreets/goconvey/convey"
+	"time"
 )
+
+var timeForSleep time.Duration = 1000 * time.Millisecond
+
+func deleteAllInBase(dbClient dao.DbWorker) {
+	err := dbClient.FlushAll()
+	checkError("Some error with FlushAll()", err)
+}
 
 func TestDevTypeHandler(t *testing.T) {
 
@@ -86,7 +94,7 @@ func TestSendJSONToServer(t *testing.T) {
 	req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 	message, _ := json.Marshal(req)
 	conn.Write(message)
-
+	time.Sleep(timeForSleep)
 	buffer := make([]byte, 1024)
 
 	for i := 0; i == 0; {
@@ -118,7 +126,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -133,7 +141,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -148,7 +156,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -163,7 +171,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "nil", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -178,7 +186,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "washer", Name: "bosh0e31", MAC: "00-15-E9-2B-99-3B"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -193,7 +201,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "nil", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -208,7 +216,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: ""}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -223,7 +231,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -238,7 +246,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -253,7 +261,7 @@ func TestCheckJSONToServer(t *testing.T) {
 		req := Request{Action: "update", Time: 0, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		conn.Write(message)
-
+		time.Sleep(timeForSleep)
 		buffer := make([]byte, 1024)
 		for i := 0; i == 0; {
 			i, _ = conn.Read(buffer)
@@ -311,7 +319,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 			"\"ip\":\"\"},\"data\":{\"TempCam1\":[\"10:10.5\"],\"TempCam2\":[\"10:10.5\"]}}]"
 
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
@@ -327,7 +335,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustNotHave := "testName2"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
@@ -343,7 +351,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustNotHave := "testName3"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -359,7 +367,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustNotHave := "TestMACFridge3"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -374,7 +382,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustNotHave := "fridge4"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -390,7 +398,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustNotHave := "fridge5"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -407,7 +415,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave := "\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
@@ -422,7 +430,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave := "\"collectFreq\":0"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
@@ -437,7 +445,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave := "\"sendFreq\":0"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
@@ -452,7 +460,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave := "\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
-
+		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
@@ -530,23 +538,23 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 	//	So(bodyString, ShouldContainSubstring, mustHave)
 	//	deleteAllInBase(myRedis)
 	//})
-	//Convey("Send correct JSON. Patch device data: stream on as true ", t, func() {
-	//	reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
-	//		",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
-	//		"1500\":15.5}}}"
-	//
-	//	mustHave :="\"streamOn\":true"
-	//	conn.Write([]byte(reqMessage))
-	//	url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
-	//	r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":true}")))
-	//	httpClient.Do(r)
-	//	res, _ := httpClient.Get(url)
-	//	bodyBytes, _ := ioutil.ReadAll(res.Body)
-	//	bodyString := string(bodyBytes)
-	//
-	//	So(bodyString, ShouldContainSubstring, mustHave)
-	//	deleteAllInBase(myRedis)
-	//})
+	Convey("Send correct JSON. Patch device data: stream on as true ", t, func() {
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
+			"1500\":15.5}}}"
+
+		mustHave :="\"streamOn\":true"
+		conn.Write([]byte(reqMessage))
+		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":true}")))
+		httpClient.Do(r)
+		res, _ := httpClient.Get(url)
+		bodyBytes, _ := ioutil.ReadAll(res.Body)
+		bodyString := string(bodyBytes)
+
+		So(bodyString, ShouldContainSubstring, mustHave)
+		deleteAllInBase(myRedis)
+	})
 }
 
 func TestWSConnection(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/KharkivGophers/center-smart-house/dao"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
@@ -445,10 +444,7 @@ func int64ToString(n int64) string {
 }
 
 //-------------------Work with data base-------------------------------------------------------------------------------------------
-func deleteAllInBase(dbClient dao.DbWorker) {
-	err := dbClient.FlushAll()
-	checkError("Some error with FlushAll()", err)
-}
+
 
 func getAllDevices(dbClient *redis.Client) []DevData {
 	var device DevData
