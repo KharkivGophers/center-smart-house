@@ -533,7 +533,9 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		conn.Write([]byte(reqMessage))
 		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":true}")))
+		time.Sleep(timeForSleep)
 		httpClient.Do(r)
+
 		res, _ := httpClient.Get(url)
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)

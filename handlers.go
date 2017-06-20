@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
+	"bytes"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -201,18 +202,57 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"] // warning!! type : name : mac
 	mac := strings.Split(id, ":")[2]
 
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r.Body)
+
 	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
 
-	state, err := dbClient.HMGet(configInfo, "TurnedOn")
-	checkError("Get from DB error1: TurnedOn ", err)
+	// a map container to decode the JSON structure into
+	container := make(map[string]interface{})
+	// unmarshal JSON
+	err := json.Unmarshal(buf.Bytes(), &container)
+	// panic on error
+	if err != nil {
+		panic(err)
+	}
 
-	sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
-	checkError("Get from DB error2: SendFreq ", err)
-	collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
-	checkError("Get from DB error3: CollectFreq ", err)
-	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
-	checkError("Get from DB error4: StreamOn ", err)
+	var state []string
+	if val, ok := container["turnedOn"]; ok {
+		st, _ := val.(bool)
+		state = []string{strconv.FormatBool(st)}
+	} else {
+		state, err = dbClient.HMGet(configInfo, "TurnedOn")
+		checkError("Get from DB error1: TurnedOn ", err)
+	}
+
+
+	var sendFreq []string
+	if _, ok := container["sendFreq"]; ok {
+		st, _ := container["sendFreq"].(float64)
+		sendFreq = []string{strconv.FormatFloat(st, 'E', -1, 32)}
+	} else {
+		sendFreq, err = dbClient.HMGet(configInfo, "SendFreq")
+		checkError("Get from DB error2: SendFreq ", err)
+	}
+
+	var collectFreq []string
+	if val, ok := container["collectFreq"]; ok {
+		st, _ := val.(float64)
+		collectFreq = []string{strconv.FormatFloat(st, 'E', -1, 32)}
+	} else {
+		collectFreq, err = dbClient.HMGet(configInfo, "CollectFreq")
+		checkError("Get from DB error3: CollectFreq ", err)
+	}
+
+	var streamOn []string
+	if val, ok := container["streamOn"]; ok {
+		st, _ := val.(bool)
+		streamOn = []string{strconv.FormatBool(st)}
+	} else {
+		streamOn, err = dbClient.HMGet(configInfo, "StreamOn")
+		checkError("Get from DB error4: StreamOn ", err)
+	}
 
 	newState, _ := strconv.ParseBool(state[0])
 	newSendFreq, _ := strconv.ParseInt(sendFreq[0], 10, 64)
@@ -243,32 +283,39 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("Invalid MAC")
 		http.Error(w, "Invalid MAC", 400)
 
-	} else if !validateStreamOn(config.StreamOn) {
-		log.Error("Invalid Stream Value")
-		http.Error(w, "Invalid Stream Value", 400)
-
-	} else if !validateTurnedOn(config.TurnedOn) {
-		log.Error("Invalid Turned Value")
-		http.Error(w, "Invalid Turned Value", 400)
-
-	} else if !validateCollectFreq(config.CollectFreq) {
-		log.Error("Invalid Collect Frequency Value")
-		http.Error(w, "Collect Frequency should be more than 150!", 400)
-
-	} else if !validateSendFreq(config.SendFreq) {
-		log.Error("Invalid Send Frequency Value")
-		http.Error(w, "Send Frequency should be more than 150!", 400)
-
 	} else {
-		// Save New Configuration to DB
-		_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
-		checkError("DB error1: TurnedOn", err)
-		_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
-		checkError("DB error2: CollectFreq", err)
-		_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
-		checkError("DB error3: SendFreq", err)
-		_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
-		checkError("DB error4: StreamOn", err)
+		if !validateStreamOn(config.StreamOn) {
+			log.Error("Invalid Stream Value")
+			http.Error(w, "Invalid Stream Value", 400)
+
+		} else {
+			_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
+			checkError("DB error4: StreamOn", err)
+		}
+
+		if !validateTurnedOn(config.TurnedOn) {
+			log.Error("Invalid Turned Value")
+			http.Error(w, "Invalid Turned Value", 400)
+		} else {
+			_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+			checkError("DB error1: TurnedOn", err)
+		}
+		if !validateCollectFreq(config.CollectFreq) {
+			log.Error("Invalid Collect Frequency Value")
+			http.Error(w, "Collect Frequency should be more than 150!", 400)
+		} else {
+			_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+			checkError("DB error2: CollectFreq", err)
+		}
+
+		if !validateSendFreq(config.SendFreq) {
+			log.Error("Invalid Send Frequency Value")
+			http.Error(w, "Send Frequency should be more than 150!", 400)
+
+		} else {
+			_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
+			checkError("DB error3: SendFreq", err)
+		}
 
 		log.Println("New Config was added to DB: ", config)
 
@@ -276,7 +323,6 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 		go publishConfigMessage(JSONСonfig, "configChan")
 	}
-
 }
 
 // Validate MAC got from User
