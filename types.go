@@ -90,7 +90,7 @@ func (pool *ConnectionPool) getConn(key string) net.Conn {
 func (pool *ConnectionPool) removeConn(key string)  {
 	pool.Lock()
 	defer pool.Unlock()
-	delete(pool.conn, key)
+	 delete(pool.conn, key)
 }
 func (pool *ConnectionPool) init() {
 	pool.Lock()

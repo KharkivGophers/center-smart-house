@@ -300,7 +300,7 @@ func TestHTTPConnection(t *testing.T) {
 }
 
 func TestWorkingServerAfterSendingJSON(t *testing.T) {
-	conn, _ := net.Dial("tcp", connHost+":"+configPort)
+	conn, _ := net.Dial("tcp", connHost+":"+tcpConnPort)
 	defer conn.Close()
 	var httpClient = &http.Client{}
 
@@ -333,7 +333,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"TempCam1\":[\"10:10.5\"]," +
 			"\"TempCam2\":[\"1500:15.5\"]}}"
 
-		mustNotHave := "00-15-E9-2B-99-3C"
+		mustNotHave := "testName2"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
@@ -349,7 +349,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
 
-		mustNotHave := "00-15-E9-2B-99-3C"
+		mustNotHave := "testName3"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
@@ -365,7 +365,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
 
-		mustNotHave := "00-15-E9-2B-99-3C"
+		mustNotHave := "TestMACFridge3"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
@@ -396,7 +396,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"qwe\":qwe},\"tempCam2\":{\"" +
 			"qwe\":qwe}}}"
 
-		mustNotHave := "00-15-E9-2B-99-3C"
+		mustNotHave := "fridge5"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
@@ -476,7 +476,6 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave :="\"turnedOn\":true"
 		conn.Write([]byte(reqMessage))
-
 		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
 		httpClient.Do(r)
@@ -525,7 +524,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 	//	deleteAllInBase(myRedis)
 	//})
 	Convey("Send correct JSON. Patch device data: stream on as true ", t, func() {
-		reqMessage :="{\"action\":\"config\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+		reqMessage :="{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
 
