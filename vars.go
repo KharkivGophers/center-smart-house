@@ -29,7 +29,7 @@ var (
 
 	//for TCP config
 	configConnType = "tcp"
-	configHost     = "localhost"
+	configHost     = "0.0.0.0"
 	configPort     = "3000"
 	configSubChan  = make(chan []string)
 
