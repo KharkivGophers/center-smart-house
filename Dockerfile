@@ -15,4 +15,4 @@ RUN go build
 
 CMD rm -r !(center-smart-house)
 USER center
-//CMD center-smart-house
+#CMD center-smart-house
