@@ -304,6 +304,9 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 	defer conn.Close()
 	var httpClient = &http.Client{}
 
+	connForDAta, _ := net.Dial("tcp", connHost+":"+tcpConnPort)
+	defer conn.Close()
+
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.MyRedis = dao.MyRedis{}
 	myRedis.Client = redis.New()
@@ -314,17 +317,16 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 	Convey("Send correct JSON. Should be return all ok ", t, func() {
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"10\":10.5}}}"
-
+		reqConfig := "{\"action\":\"config\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
+			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"10\":10.5}}}"
 		mustHave := "[{\"site\":\"\",\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\",\"mac\":\"00-15-E9-2B-99-3C\"," +
 			"\"ip\":\"\"},\"data\":{\"TempCam1\":[\"10:10.5\"],\"TempCam2\":[\"10:10.5\"]}}]"
-
-		conn.Write([]byte(reqMessage))
+		conn.Write([]byte(reqConfig))
+		connForDAta.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
-
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
-
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(myRedis)
 	})
@@ -376,7 +378,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		deleteAllInBase(myRedis)
 	})
 	Convey("Send JSON without mac. Should not to return data about our fridge", t, func() {
-		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"fridge4\"" +
+		reqMessage := "{\"action\":\"config\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"fridge4\"" +
 			",\"mac\":\"\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
 
