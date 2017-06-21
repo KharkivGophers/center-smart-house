@@ -200,92 +200,60 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"] // warning!! type : name : mac
 	mac := strings.Split(id, ":")[2]
-
 	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
-
-
-
-
 	state, err := dbClient.HMGet(configInfo, "TurnedOn")
 	checkError("Get from DB error1: TurnedOn ", err)
-
-	sendFreq, err := dbClient.HMGet(configInfo, "SendFreq")
+	sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
 	checkError("Get from DB error2: SendFreq ", err)
-
-	collectFreq, err := dbClient.HMGet(configInfo, "CollectFreq")
+	collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
 	checkError("Get from DB error3: CollectFreq ", err)
-
-	streamOn, err := dbClient.HMGet(configInfo, "StreamOn")
+	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
 	checkError("Get from DB error4: StreamOn ", err)
-
 	newState, _ := strconv.ParseBool(state[0])
 	newSendFreq, _ := strconv.ParseInt(sendFreq[0], 10, 64)
 	newCollectFreq, _ := strconv.ParseInt(collectFreq[0], 10, 64)
 	newStreamOn, _ := strconv.ParseBool(streamOn[0])
-
 	config = DevConfig{
 		TurnedOn:    newState,
 		CollectFreq: newCollectFreq,
 		SendFreq:    newSendFreq,
 		MAC:         mac,
 		StreamOn:    newStreamOn,
-	}
-
-	// log.Warnln("Config Before", config)
-
+	} // log.Warnln("Config Before", config)
 	err = json.NewDecoder(r.Body).Decode(&config)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		log.Errorln("NewDec: ", err)
 	}
-
-	checkError("Encode error", err)
-
-	// log.Warnln("Config After: ", config)
-
+	checkError("Encode error", err) // log.Warnln("Config After: ", config)
 	if !validateMAC(config.MAC) {
 		log.Error("Invalid MAC")
 		http.Error(w, "Invalid MAC", 400)
-
+	} else if !validateStreamOn(config.StreamOn) {
+		log.Error("Invalid Stream Value")
+		http.Error(w, "Invalid Stream Value", 400)
+	} else if !validateTurnedOn(config.TurnedOn) {
+		log.Error("Invalid Turned Value")
+		http.Error(w, "Invalid Turned Value", 400)
+	} else if !validateCollectFreq(config.CollectFreq) {
+		log.Error("Invalid Collect Frequency Value")
+		http.Error(w, "Collect Frequency should be more than 150!", 400)
+	} else if !validateSendFreq(config.SendFreq) {
+		log.Error("Invalid Send Frequency Value")
+		http.Error(w, "Send Frequency should be more than 150!", 400)
 	} else {
-		if !validateStreamOn(config.StreamOn) {
-			log.Error("Invalid Stream Value")
-			http.Error(w, "Invalid Stream Value", 400)
-
-		} else {
-			_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
-			checkError("DB error4: StreamOn", err)
-		}
-
-		if !validateTurnedOn(config.TurnedOn) {
-			log.Error("Invalid Turned Value")
-			http.Error(w, "Invalid Turned Value", 400)
-		} else {
-			_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
-			checkError("DB error1: TurnedOn", err)
-		}
-		if !validateCollectFreq(config.CollectFreq) {
-			log.Error("Invalid Collect Frequency Value")
-			http.Error(w, "Collect Frequency should be more than 150!", 400)
-		} else {
-			_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
-			checkError("DB error2: CollectFreq", err)
-		}
-
-		if !validateSendFreq(config.SendFreq) {
-			log.Error("Invalid Send Frequency Value")
-			http.Error(w, "Send Frequency should be more than 150!", 400)
-
-		} else {
-			_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
-			checkError("DB error3: SendFreq", err)
-		}
-
+		// Save New Configuration to DB
+		_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+		checkError("DB error1: TurnedOn", err)
+		_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+		checkError("DB error2: CollectFreq", err)
+		_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
+		checkError("DB error3: SendFreq", err)
+		_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
+		checkError("DB error4: StreamOn", err)
 		log.Println("New Config was added to DB: ", config)
-
 		JSONСonfig, _ := json.Marshal(config)
-
 		go publishConfigMessage(JSONСonfig, "configChan")
 	}
 }
@@ -490,7 +458,6 @@ func int64ToString(n int64) string {
 }
 
 //-------------------Work with data base-------------------------------------------------------------------------------------------
-
 
 func getAllDevices(dbClient *redis.Client) []DevData {
 	var device DevData
