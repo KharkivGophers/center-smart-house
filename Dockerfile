@@ -3,7 +3,7 @@ MAINTAINER Kharkiv Gophers (kostyamol@gmail.com)
 
 EXPOSE 6379 3030 3000 8100 2540
 
-RUN useradd -c 'center-smart-house user' -m /home/center -s /bin/bash center
+RUN useradd -c 'center-smart-house user' -m -d /home/center -s /bin/bash center
 USER center
 ENV HOME /home/center
 
