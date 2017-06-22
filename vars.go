@@ -43,9 +43,7 @@ var (
 
 	//var from handler.go
 	//This var needed to websocket for using
-	connChanal  = make(chan *websocket.Conn)
-	stopCloseWS = make(chan string)
-	stopSub     = make(chan bool)
+
 	mapConn     = make(map[string]*listConnection)
 
 	upgrader = websocket.Upgrader{

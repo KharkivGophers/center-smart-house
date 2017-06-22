@@ -351,7 +351,7 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 /**
 Delete connections from mapConn
 */
-func CloseWebsocket() {
+func CloseWebsocket(connChanal chan *websocket.Conn, stopCloseWS chan string) {
 	for {
 		select {
 		case connAddres := <-connChanal:
@@ -370,13 +370,13 @@ func CloseWebsocket() {
 /*
 Listens changes in database. If they have, then sent to all websocket which working with them.
 */
-func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
+func WSSubscribe(client *redis.Client, roomID string, channel chan []string, connChan chan *websocket.Conn, stopSub chan string) {
 	subscribe(client, roomID, channel)
 	for {
 		select {
 		case msg := <-channel:
 			if msg[0] == "message" {
-				go checkAndSendInfoToWSClient(msg)
+				go checkAndSendInfoToWSClient(msg,connChan)
 			}
 		case <-stopSub:
 			log.Info("WSSubscribe closed")
@@ -388,32 +388,32 @@ func WSSubscribe(client *redis.Client, roomID string, channel chan []string) {
 //We are check mac in our mapConnections.
 // If we have mac in the map we will send message to all connections.
 // Else we do nothing
-func checkAndSendInfoToWSClient(msg []string) {
+func checkAndSendInfoToWSClient(msg []string, connChan chan *websocket.Conn) {
 	r := new(Request)
 	err := json.Unmarshal([]byte(msg[2]), &r)
 	if checkError("checkAndSendInfoToWSClient", err) != nil {
 		return
 	}
 	if _, ok := mapConn[r.Meta.MAC]; ok {
-		sendInfoToWSClient(r.Meta.MAC, msg[2])
+		sendInfoToWSClient(r.Meta.MAC, msg[2],connChan)
 	}
 }
 
 //Send message to all connections which we have in map, and which pertain to mac
-func sendInfoToWSClient(mac, message string) {
+func sendInfoToWSClient(mac, message string, connChan chan *websocket.Conn) {
 	mapConn[mac].Lock()
 	for _, val := range mapConn[mac].connections {
 		err := val.WriteMessage(1, []byte(message))
 		if err != nil {
 			log.Errorf("Connection %v closed", val.RemoteAddr())
-			go getToChanal(val)
+			go getToChanal(val,connChan)
 		}
 	}
 	mapConn[mac].Unlock()
 }
 
-func getToChanal(conn *websocket.Conn) {
-	connChanal <- conn
+func getToChanal(conn *websocket.Conn, connChan chan *websocket.Conn) {
+	connChan <- conn
 }
 
 func publishWS(req Request) {

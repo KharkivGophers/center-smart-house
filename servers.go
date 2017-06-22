@@ -12,15 +12,20 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"menteslibres.net/gosexy/redis"
+	"github.com/gorilla/websocket"
 )
 
 //http web socket connection
 func websocketServer() {
 
+	var connChanal  = make(chan *websocket.Conn)
+	var stopCloseWS = make(chan string)
+	var stopSub     = make(chan bool)
+
 	wsDBClient, _ = runDBConnection()
 	//checkError("webSocket: runDBConnection")
-	go CloseWebsocket()
-	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel)
+	go CloseWebsocket(connChanal,stopCloseWS)
+	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel, connChanal, stopSub)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/devices/{id}", webSocketHandler)
