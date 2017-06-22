@@ -370,7 +370,7 @@ func CloseWebsocket(connChanal chan *websocket.Conn, stopCloseWS chan string) {
 /*
 Listens changes in database. If they have, then sent to all websocket which working with them.
 */
-func WSSubscribe(client *redis.Client, roomID string, channel chan []string, connChan chan *websocket.Conn, stopSub chan string) {
+func WSSubscribe(client *redis.Client, roomID string, channel chan []string, connChan chan *websocket.Conn, stopSub chan bool) {
 	subscribe(client, roomID, channel)
 	for {
 		select {
