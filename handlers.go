@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
+	"fmt"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -23,7 +24,6 @@ func tcpDataHandler(conn net.Conn) {
 			log.Errorln("requestHandler JSON Decod", err)
 			return
 		}
-		//fmt.Println(req)
 		//sends resp struct from  devTypeHandler by channel;
 		go devTypeHandler(req)
 
@@ -376,7 +376,7 @@ func WSSubscribe(client *redis.Client, roomID string, chanForTheSub chan []strin
 		select {
 		case msg := <-chanForTheSub:
 			if msg[0] == "message" {
-				go checkAndSendInfoToWSClient(msg,connChan)
+				go checkAndSendInfoToWSClient(msg, connChan)
 			}
 		case <-stopWSSub:
 			log.Info("WSSubscribe closed")
@@ -395,7 +395,7 @@ func checkAndSendInfoToWSClient(msg []string, connChan chan *websocket.Conn) {
 		return
 	}
 	if _, ok := mapConn[r.Meta.MAC]; ok {
-		sendInfoToWSClient(r.Meta.MAC, msg[2],connChan)
+		sendInfoToWSClient(r.Meta.MAC, msg[2], connChan)
 		return
 	}
 	log.Infof("mapConn dont have this MAC: %v", r.Meta.MAC)
@@ -408,7 +408,7 @@ func sendInfoToWSClient(mac, message string, connChan chan *websocket.Conn) {
 		err := val.WriteMessage(1, []byte(message))
 		if err != nil {
 			log.Errorf("Connection %v closed", val.RemoteAddr())
-			go getToChanal(val,connChan)
+			go getToChanal(val, connChan)
 		}
 	}
 	mapConn[mac].Unlock()

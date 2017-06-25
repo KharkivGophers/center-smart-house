@@ -17,24 +17,25 @@ import (
 
 //http web socket connection
 func websocketServer() {
-
-
-	var connChanal  = make(chan *websocket.Conn)
-	var stopCloseWS = make(chan string)
-	var stopSub     = make(chan bool)
+	var (
+		connChanal   = make(chan *websocket.Conn)
+		stopCloseWS  = make(chan string)
+		stopSub      = make(chan bool)
+		subWSChannel = make(chan []string)
+	)
 
 	wsDBClient, err := runDBConnection()
 	checkError("webSocket: runDBConnection", err)
 
-	go CloseWebsocket(connChanal,stopCloseWS)
+	go CloseWebsocket(connChanal, stopCloseWS)
 	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel, connChanal, stopSub)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/devices/{id}", webSocketHandler)
 
 	srv := &http.Server{
-		Handler: r,
-		Addr:    connHost + ":" + wsConnPort,
+		Handler:      r,
+		Addr:         connHost + ":" + wsConnPort,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
@@ -99,9 +100,9 @@ func runTCPServer() {
 
 	for {
 		conn, err := ln.Accept()
-		checkError("TCP conn Accept", err)
-
-		go tcpDataHandler(conn)
+		if checkError("TCP conn Accept", err) == nil {
+			go tcpDataHandler(conn)
+		}
 	}
 }
 
@@ -148,7 +149,7 @@ func runConfigServer(connType string, host string, port string) {
 func sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 
 	connection := pool.getConn(config.MAC)
-	if connection == nil{
+	if connection == nil {
 		log.Error("Has not connection with mac:config.MAC  in connectionPool")
 		return
 	}
