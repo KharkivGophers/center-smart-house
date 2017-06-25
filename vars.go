@@ -39,13 +39,12 @@ var (
 	subWSChannel          = make(chan []string)
 
 	wg    sync.WaitGroup
-	state bool
+		state bool
 
 	//var from handler.go
 	//This var needed to websocket for using
-
+	//mapConn this map
 	mapConn     = make(map[string]*listConnection)
-
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,

@@ -349,12 +349,12 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
-Delete connections from mapConn
+Delete connections in mapConn
 */
-func CloseWebsocket(connChanal chan *websocket.Conn, stopCloseWS chan string) {
+func CloseWebsocket(connChan chan *websocket.Conn, stopCloseWS chan string) {
 	for {
 		select {
-		case connAddres := <-connChanal:
+		case connAddres := <-connChan:
 			for _, val := range mapConn {
 				if ok := val.Remove(connAddres); ok {
 					break
@@ -368,17 +368,17 @@ func CloseWebsocket(connChanal chan *websocket.Conn, stopCloseWS chan string) {
 }
 
 /*
-Listens changes in database. If they have, then sent to all websocket which working with them.
+Listens changes in database. If they have, we will send to all websocket which working with them.
 */
-func WSSubscribe(client *redis.Client, roomID string, channel chan []string, connChan chan *websocket.Conn, stopSub chan bool) {
-	subscribe(client, roomID, channel)
+func WSSubscribe(client *redis.Client, roomID string, chanForTheSub chan []string, connChan chan *websocket.Conn, stopWSSub chan bool) {
+	subscribe(client, roomID, chanForTheSub)
 	for {
 		select {
-		case msg := <-channel:
+		case msg := <-chanForTheSub:
 			if msg[0] == "message" {
 				go checkAndSendInfoToWSClient(msg,connChan)
 			}
-		case <-stopSub:
+		case <-stopWSSub:
 			log.Info("WSSubscribe closed")
 			return
 		}
@@ -396,7 +396,9 @@ func checkAndSendInfoToWSClient(msg []string, connChan chan *websocket.Conn) {
 	}
 	if _, ok := mapConn[r.Meta.MAC]; ok {
 		sendInfoToWSClient(r.Meta.MAC, msg[2],connChan)
+		return
 	}
+	log.Infof("mapConn dont have this MAC: %v", r.Meta.MAC)
 }
 
 //Send message to all connections which we have in map, and which pertain to mac

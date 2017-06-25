@@ -18,23 +18,23 @@ import (
 //http web socket connection
 func websocketServer() {
 
+
 	var connChanal  = make(chan *websocket.Conn)
 	var stopCloseWS = make(chan string)
 	var stopSub     = make(chan bool)
 
-	wsDBClient, _ = runDBConnection()
-	//checkError("webSocket: runDBConnection")
+	wsDBClient, err := runDBConnection()
+	checkError("webSocket: runDBConnection", err)
+
 	go CloseWebsocket(connChanal,stopCloseWS)
 	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel, connChanal, stopSub)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/devices/{id}", webSocketHandler)
-	r.HandleFunc("/devWS", webSocketHandler)
 
 	srv := &http.Server{
 		Handler: r,
 		Addr:    connHost + ":" + wsConnPort,
-		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
