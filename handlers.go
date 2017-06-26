@@ -11,6 +11,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
+
+	"errors"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -397,7 +399,7 @@ func checkAndSendInfoToWSClient(msg []string, connChan chan *websocket.Conn) {
 		sendInfoToWSClient(r.Meta.MAC, msg[2], connChan)
 		return
 	}
-	log.Infof("mapConn dont have this MAC: %v", r.Meta.MAC)
+	log.Infof("mapConn dont have this MAC: %v. Len map is %v", r.Meta.MAC, len(mapConn))
 }
 
 //Send message to all connections which we have in map, and which pertain to mac
@@ -513,4 +515,52 @@ func getDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
 		device.Data[p] = values[i]
 	}
 	return device
+}
+
+func SetDeviceConfigFridge(dbClient *redis.Client, configInfo string, config *DevConfig){
+	// Save default configuration to DB
+	_, err := dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+	checkError("DB error1: TurnedOn", err)
+	_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+	checkError("DB error2: CollectFreq", err)
+	_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
+	checkError("DB error3: SendFreq", err)
+	_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
+	checkError("DB error4: StreamOn", err)
+}
+
+func GetDeviceConfigFridge(dbClient *redis.Client, configInfo, mac string)(*DevConfig, error){
+	var  config DevConfig
+	state, err := dbClient.HMGet(configInfo, "TurnedOn")
+	checkError("Get from DB error1: TurnedOn ", err)
+
+	if strings.Join(state, " ") != "" {
+		// log.Warningln("New Config")
+		sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
+		checkError("Get from DB error2: SendFreq ", err)
+		collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
+		checkError("Get from DB error3: CollectFreq ", err)
+		streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
+		checkError("Get from DB error4: StreamOn ", err)
+
+		stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
+		sendFreqInt, _ := strconv.Atoi(strings.Join(sendFreq, " "))
+		collectFreqInt, _ := strconv.Atoi(strings.Join(collectFreq, " "))
+		streamOnBool, _ := strconv.ParseBool(strings.Join(streamOn, " "))
+
+		config = DevConfig{
+			TurnedOn:    stateBool,
+			CollectFreq: int64(collectFreqInt),
+			SendFreq:    int64(sendFreqInt),
+			StreamOn:    streamOnBool,
+		}
+
+		log.Println("Old Device with MAC: ",mac, "detected.")
+		log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
+		return  &config, nil
+	}else{
+		err =errors.New("Nothing in " + configInfo)
+	}
+	return  nil, err
+
 }

@@ -27,10 +27,9 @@ func deleteAllInBase(dbClient dao.DbWorker) {
 func TestDevTypeHandler(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.MyRedis = dao.MyRedis{}
-	myRedis.Client = redis.New()
-	myRedis.Client.Connect(dbHost, dbPort)
-	defer myRedis.Client.Close()
+	var myRedis dao.DbWorker = &dao.MyRedis{}
+	myRedis.Connect(dbHost, dbPort)
+	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
 	Convey("Message handles correct", t, func() {
@@ -84,10 +83,9 @@ func TestSendJSONToServer(t *testing.T) {
 	defer conn.Close()
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.MyRedis = dao.MyRedis{}
-	myRedis.Client = redis.New()
-	myRedis.Client.Connect(dbHost, dbPort)
-	defer myRedis.Client.Close()
+	var myRedis dao.DbWorker = &dao.MyRedis{}
+	myRedis.Connect(dbHost, dbPort)
+	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
 	res := "\"status\":200,\"descr\":\"Data has been delivered successfully\""
@@ -115,10 +113,9 @@ func TestCheckJSONToServer(t *testing.T) {
 	res := "\"status\":200,\"descr\":\"Data has been delivered successfully\""
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.MyRedis = dao.MyRedis{}
-	myRedis.Client = redis.New()
-	myRedis.Client.Connect(dbHost, dbPort)
-	defer myRedis.Client.Close()
+	var myRedis dao.DbWorker = &dao.MyRedis{}
+	myRedis.Connect(dbHost, dbPort)
+	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
 
@@ -282,12 +279,13 @@ func TestRedisConnection(t *testing.T) {
 }
 func TestHTTPConnection(t *testing.T) {
 	var httpClient = &http.Client{}
+
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.MyRedis = dao.MyRedis{}
-	myRedis.Client = redis.New()
-	myRedis.Client.Connect(dbHost, dbPort)
-	defer myRedis.Client.Close()
+	var myRedis dao.DbWorker = &dao.MyRedis{}
+	myRedis.Connect(dbHost, dbPort)
+	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
+
 	Convey("Check http://"+connHost+":"+httpConnPort+"/devices/{id}/data. Should be without error ", t, func() {
 		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "//devices/fridge:hladik0e31:00-15-E9-2B-99-3C/data")
 		So(res, ShouldNotBeNil)
@@ -308,10 +306,9 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 	defer conn.Close()
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.MyRedis = dao.MyRedis{}
-	myRedis.Client = redis.New()
-	myRedis.Client.Connect(dbHost, dbPort)
-	defer myRedis.Client.Close()
+	var myRedis dao.DbWorker = &dao.MyRedis{}
+	myRedis.Connect(dbHost, dbPort)
+	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
 	Convey("Send correct JSON. Should be return all ok ", t, func() {
@@ -518,11 +515,11 @@ func TestWSConnection(t *testing.T) {
 		 "mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":null}"
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.MyRedis = dao.MyRedis{}
-	myRedis.Client = redis.New()
-	myRedis.Client.Connect(dbHost, dbPort)
-	defer myRedis.Client.Close()
+	var myRedis dao.DbWorker = &dao.MyRedis{}
+	myRedis.Connect(dbHost, dbPort)
+	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
+
 	Convey("Checking how to work ws connection. Should be true", t, func() {
 		//Create Web Socket connection from the client side--------------------------------
 		url := "ws://" + connHost + ":" + wsConnPort + "/devices/00-15-E9-2B-99-3C"
