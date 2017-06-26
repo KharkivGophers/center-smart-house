@@ -11,8 +11,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"menteslibres.net/gosexy/redis"
-
-	"errors"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -170,63 +168,32 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
 
-	// log.Println(configInfo)
+	var config = GetDeviceConfigFridge(dbClient, configInfo, mac)
 
-	state, err := dbClient.HMGet(configInfo, "TurnedOn")
-	checkError("Get from DB error1: TurnedOn ", err)
-	sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
-	checkError("Get from DB error2: SendFreq ", err)
-	collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
-	checkError("Get from DB error3: CollectFreq ", err)
-	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
-	checkError("Get from DB error4: StreamOn ", err)
-
-	newState, _ := strconv.ParseBool(state[0])
-	newStreamOn, _ := strconv.ParseBool(streamOn[0])
-	newSendFreq, _ := strconv.ParseInt(sendFreq[0], 10, 64)
-	newCollectFreq, _ := strconv.ParseInt(collectFreq[0], 10, 64)
-
-	var config = DevConfig{
-		TurnedOn:    newState,
-		CollectFreq: newCollectFreq,
-		SendFreq:    newSendFreq,
-		StreamOn:    newStreamOn,
-	}
 
 	json.NewEncoder(w).Encode(config)
 }
 
 func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-	var config DevConfig
+
+	var config *DevConfig
 	vars := mux.Vars(r)
 	id := vars["id"] // warning!! type : name : mac
 	mac := strings.Split(id, ":")[2]
 	dbClient, _ := runDBConnection()
 	configInfo := mac + ":" + "config" // key
-	state, err := dbClient.HMGet(configInfo, "TurnedOn")
-	checkError("Get from DB error1: TurnedOn ", err)
-	sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
-	checkError("Get from DB error2: SendFreq ", err)
-	collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
-	checkError("Get from DB error3: CollectFreq ", err)
-	streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
-	checkError("Get from DB error4: StreamOn ", err)
-	newState, _ := strconv.ParseBool(state[0])
-	newSendFreq, _ := strconv.ParseInt(sendFreq[0], 10, 64)
-	newCollectFreq, _ := strconv.ParseInt(collectFreq[0], 10, 64)
-	newStreamOn, _ := strconv.ParseBool(streamOn[0])
-	config = DevConfig{
-		TurnedOn:    newState,
-		CollectFreq: newCollectFreq,
-		SendFreq:    newSendFreq,
-		MAC:         mac,
-		StreamOn:    newStreamOn,
-	} // log.Warnln("Config Before", config)
-	err = json.NewDecoder(r.Body).Decode(&config)
+
+	config = GetDeviceConfigFridge(dbClient, configInfo, mac)
+
+	// log.Warnln("Config Before", config)
+	err := json.NewDecoder(r.Body).Decode(&config)
+
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		log.Errorln("NewDec: ", err)
 	}
+
+	log.Info(config)
 	checkError("Encode error", err) // log.Warnln("Config After: ", config)
 	if !validateMAC(config.MAC) {
 		log.Error("Invalid MAC")
@@ -245,14 +212,7 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Send Frequency should be more than 150!", 400)
 	} else {
 		// Save New Configuration to DB
-		_, err = dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
-		checkError("DB error1: TurnedOn", err)
-		_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
-		checkError("DB error2: CollectFreq", err)
-		_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
-		checkError("DB error3: SendFreq", err)
-		_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
-		checkError("DB error4: StreamOn", err)
+		SetDeviceConfigFridge(dbClient,configInfo,config)
 		log.Println("New Config was added to DB: ", config)
 		JSONСonfig, _ := json.Marshal(config)
 		go publishConfigMessage(JSONСonfig, "configChan")
@@ -517,7 +477,7 @@ func getDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
 	return device
 }
 
-func SetDeviceConfigFridge(dbClient *redis.Client, configInfo string, config *DevConfig){
+func SetDeviceConfigFridge(dbClient *redis.Client, configInfo string, config *DevConfig) {
 	// Save default configuration to DB
 	_, err := dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
 	checkError("DB error1: TurnedOn", err)
@@ -529,38 +489,32 @@ func SetDeviceConfigFridge(dbClient *redis.Client, configInfo string, config *De
 	checkError("DB error4: StreamOn", err)
 }
 
-func GetDeviceConfigFridge(dbClient *redis.Client, configInfo, mac string)(*DevConfig, error){
-	var  config DevConfig
+func GetDeviceConfigFridge(dbClient *redis.Client, configInfo, mac string) (*DevConfig) {
+	var config DevConfig
+
 	state, err := dbClient.HMGet(configInfo, "TurnedOn")
 	checkError("Get from DB error1: TurnedOn ", err)
+	sendFreq, err := dbClient.HMGet(configInfo, "SendFreq")
+	checkError("Get from DB error2: SendFreq ", err)
+	collectFreq, err := dbClient.HMGet(configInfo, "CollectFreq")
+	checkError("Get from DB error3: CollectFreq ", err)
+	streamOn, err := dbClient.HMGet(configInfo, "StreamOn")
+	checkError("Get from DB error4: StreamOn ", err)
 
-	if strings.Join(state, " ") != "" {
-		// log.Warningln("New Config")
-		sendFreq, _ := dbClient.HMGet(configInfo, "SendFreq")
-		checkError("Get from DB error2: SendFreq ", err)
-		collectFreq, _ := dbClient.HMGet(configInfo, "CollectFreq")
-		checkError("Get from DB error3: CollectFreq ", err)
-		streamOn, _ := dbClient.HMGet(configInfo, "StreamOn")
-		checkError("Get from DB error4: StreamOn ", err)
+	stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
+	sendFreqInt, _ := strconv.Atoi(strings.Join(sendFreq, " "))
+	collectFreqInt, _ := strconv.Atoi(strings.Join(collectFreq, " "))
+	streamOnBool, _ := strconv.ParseBool(strings.Join(streamOn, " "))
 
-		stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
-		sendFreqInt, _ := strconv.Atoi(strings.Join(sendFreq, " "))
-		collectFreqInt, _ := strconv.Atoi(strings.Join(collectFreq, " "))
-		streamOnBool, _ := strconv.ParseBool(strings.Join(streamOn, " "))
-
-		config = DevConfig{
-			TurnedOn:    stateBool,
-			CollectFreq: int64(collectFreqInt),
-			SendFreq:    int64(sendFreqInt),
-			StreamOn:    streamOnBool,
-		}
-
-		log.Println("Old Device with MAC: ",mac, "detected.")
-		log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
-		return  &config, nil
-	}else{
-		err =errors.New("Nothing in " + configInfo)
+	config = DevConfig{
+		MAC: mac,
+		TurnedOn:    stateBool,
+		CollectFreq: int64(collectFreqInt),
+		SendFreq:    int64(sendFreqInt),
+		StreamOn:    streamOnBool,
 	}
-	return  nil, err
 
+	log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
+
+	return &config
 }

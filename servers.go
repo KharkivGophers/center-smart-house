@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"menteslibres.net/gosexy/redis"
 	"github.com/gorilla/websocket"
+	"strings"
 )
 
 //http web socket connection
@@ -121,7 +122,7 @@ func runConfigServer(connType string, host string, port string) {
 		dbClient  *redis.Client
 		reconnect *time.Ticker
 		pool      ConnectionPool
-		messages = make(chan []string)
+		messages  = make(chan []string)
 	)
 
 	pool.init()
@@ -183,7 +184,15 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
 	if ok, _ := dbClient.Exists(configInfo); ok {
-		GetDeviceConfigFridge(dbClient, configInfo, req.Meta.MAC)
+
+		state, err := dbClient.HMGet(configInfo, "TurnedOn")
+		checkError("Get from DB error1: TurnedOn ", err)
+
+		if  strings.Join(state, " ")!= "" {
+			config = GetDeviceConfigFridge(dbClient, configInfo,req.Meta.MAC)
+			log.Println("Old Device with MAC: ",req.Meta.MAC, "detected.")
+		}
+
 	} else {
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
@@ -196,7 +205,7 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 	log.Warningln("Configuration has been successfully sent")
 }
 
-func CreateDefaultConfigToFridge() *DevConfig{
+func CreateDefaultConfigToFridge() *DevConfig {
 	return &DevConfig{
 		TurnedOn:    true,
 		StreamOn:    true,
