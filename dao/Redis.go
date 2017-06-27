@@ -2,18 +2,20 @@ package dao
 
 import (
 	"menteslibres.net/gosexy/redis"
-	"github.com/KharkivGophers/center-smart-house/server/common"
+	. "github.com/KharkivGophers/center-smart-house/server/common"
+	"github.com/KharkivGophers/center-smart-house/server/common/models"
 	log "github.com/Sirupsen/logrus"
 
 
 	"time"
 	"errors"
+	"encoding/json"
 )
 
 type MyRedis struct {
 	Client *redis.Client
-	host string
-	port uint
+	Host   string
+	Port   uint
 }
 
 func (myRedis *MyRedis) FlushAll() error {
@@ -25,11 +27,11 @@ func (myRedis *MyRedis)Publish(channel string, message interface{}) (int64, erro
 }
 
 func (myRedis *MyRedis)Connect()(error) {
-	if myRedis.host == "" || myRedis.port == 0{
-		return errors.New("Empty value. Check host or port.")
+	if myRedis.Host == "" || myRedis.Port == 0{
+		return errors.New("Empty value. Check Host or Port.")
 	}
 	myRedis.Client = redis.New()
-	err := myRedis.Client.Connect(myRedis.host, myRedis.port)
+	err := myRedis.Client.Connect(myRedis.Host, myRedis.Port)
 	return  err
 }
 
@@ -42,9 +44,9 @@ func (myRedis *MyRedis) Close() error{
 }
 
 
-func (myRedis *MyRedis)RunDBConnection() (*MyRedis, error) {
+func (myRedis MyRedis)RunDBConnection() (*MyRedis, error) {
 	err := myRedis.Connect()
-	common.CheckError("RunDBConnection error: ", err)
+	CheckError("RunDBConnection error: ", err)
 	for err != nil {
 		log.Errorln("1 Database: connection has failed:", err)
 		time.Sleep(time.Second)
@@ -55,8 +57,21 @@ func (myRedis *MyRedis)RunDBConnection() (*MyRedis, error) {
 		log.Errorln("err not nil")
 	}
 
-	return  myRedis, err
+	return  &myRedis, err
 }
 
+
+func  PublishWS(req models.Request, roomID, host string, port uint ) {
+	pubReq, err := json.Marshal(req)
+	CheckError("Marshal for publish.", err)
+
+	dbClient, _ := MyRedis{Host:host, Port:port}.RunDBConnection()
+	defer dbClient.Close()
+
+	_, err = dbClient.Publish(roomID, pubReq)
+	CheckError("Publish", err)
+
+
+}
 
 

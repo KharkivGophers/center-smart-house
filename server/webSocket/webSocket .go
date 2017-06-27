@@ -5,18 +5,22 @@ import (
 	"net/http"
 	"encoding/json"
 
+
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/gorilla/mux"
-	"menteslibres.net/gosexy/redis"
 	"github.com/gorilla/websocket"
 	"strings"
 	"github.com/KharkivGophers/center-smart-house/dao"
+	. "github.com/KharkivGophers/center-smart-house/server/common"
+
+	"github.com/KharkivGophers/device-smart-house/models"
 )
 
 type WebSocketServer struct {
 	host string
 	port            string
+	dbPort uint
 	roomIDForDevWSPublish string
 	connChanal   chan *websocket.Conn
 	stopCloseWS  chan string
@@ -26,7 +30,7 @@ type WebSocketServer struct {
 	upgrader     websocket.Upgrader
 }
 
-func NewWebSocketServer(host, port string) *WebSocketServer {
+func NewWebSocketServer(host, port string, dbPort uint) *WebSocketServer {
 	var (
 		roomIDForDevWSPublish = "devWS"
 		connChanal   = make(chan *websocket.Conn)
@@ -45,23 +49,22 @@ func NewWebSocketServer(host, port string) *WebSocketServer {
 			},
 		}
 	)
-	return &WebSocketServer{host, port, roomIDForDevWSPublish ,
+	return &WebSocketServer{host, port, dbPort, roomIDForDevWSPublish ,
 		connChanal, stopCloseWS, stopSub,
 		subWSChannel, mapConn, upgrader}
 }
 
 //http web socket connection
-func (server *WebSocketServer) websocketServer() {
+func (server *WebSocketServer) StartWebsocketServer() {
 
-	var dbWorker dao.DbWorker
-	myRedis, err := dao.MyRedis{}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host:server.host, Port:server.dbPort}.RunDBConnection()
 	CheckError("webSocket: runDBConnection", err)
 
-	go CloseWebsocket(server.connChanal, server.stopCloseWS)
-	go WSSubscribe(myRedis, server.roomIDForDevWSPublish, server.subWSChannel, server.connChanal, server.stopSub)
+	go server.CloseWebsocket()
+	go server.WSSubscribe(myRedis)
 
 	r := mux.NewRouter()
-	r.HandleFunc("/devices/{id}", webSocketHandler)
+	r.HandleFunc("/devices/{id}", server.WebSocketHandler)
 
 	srv := &http.Server{
 		Handler:      r,
@@ -73,9 +76,9 @@ func (server *WebSocketServer) websocketServer() {
 }
 
 //-------------------WEB Socket--------------------------------------------------------------------------------------------
-func webSocketHandler(w http.ResponseWriter, r *http.Request) {
+func (server *WebSocketServer)WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := server.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Error(err)
 		return
@@ -83,25 +86,25 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	//http://..../device/type/name/mac
 	uri := strings.Split(r.URL.String(), "/")
 
-	if _, ok := mapConn[uri[2]]; !ok {
-		mapConn[uri[2]] = new(listConnection)
+	if _, ok := server.mapConn[uri[2]]; !ok {
+		server.mapConn[uri[2]] = new(listConnection)
 	}
-	mapConn[uri[2]].Add(conn)
+	server.mapConn[uri[2]].Add(conn)
 }
 
 /**
 Delete connections in mapConn
 */
-func CloseWebsocket(connChan chan *websocket.Conn, stopCloseWS chan string) {
+func (server *WebSocketServer)CloseWebsocket() {
 	for {
 		select {
-		case connAddres := <-connChan:
-			for _, val := range mapConn {
+		case connAddres := <-server.connChanal:
+			for _, val := range server.mapConn {
 				if ok := val.Remove(connAddres); ok {
 					break
 				}
 			}
-		case <-stopCloseWS:
+		case <-server.stopCloseWS:
 			log.Info("CloseWebsocket closed")
 			return
 		}
@@ -111,15 +114,15 @@ func CloseWebsocket(connChan chan *websocket.Conn, stopCloseWS chan string) {
 /*
 Listens changes in database. If they have, we will send to all websocket which working with them.
 */
-func WSSubscribe(client *redis.Client, roomID string, chanForTheSub chan []string, connChan chan *websocket.Conn, stopWSSub chan bool) {
-	subscribe(client, roomID, chanForTheSub)
+func  (server *WebSocketServer) WSSubscribe(dbWorker dao.DbWorker) {
+	dbWorker.Subscribe(server.subWSChannel,server.roomIDForDevWSPublish)
 	for {
 		select {
-		case msg := <-chanForTheSub:
+		case msg := <-server.subWSChannel:
 			if msg[0] == "message" {
-				go checkAndSendInfoToWSClient(msg, connChan)
+				go server.checkAndSendInfoToWSClient(msg)
 			}
-		case <-stopWSSub:
+		case <-server.stopSub:
 			log.Info("WSSubscribe closed")
 			return
 		}
@@ -129,38 +132,34 @@ func WSSubscribe(client *redis.Client, roomID string, chanForTheSub chan []strin
 //We are check mac in our mapConnections.
 // If we have mac in the map we will send message to all connections.
 // Else we do nothing
-func checkAndSendInfoToWSClient(msg []string, connChan chan *websocket.Conn) {
-	r := new(Request)
+func (server *WebSocketServer) checkAndSendInfoToWSClient(msg []string) {
+	r := new(models.Request)
 	err := json.Unmarshal([]byte(msg[2]), &r)
-	if checkError("checkAndSendInfoToWSClient", err) != nil {
+	if CheckError("checkAndSendInfoToWSClient", err) != nil {
 		return
 	}
-	if _, ok := mapConn[r.Meta.MAC]; ok {
-		sendInfoToWSClient(r.Meta.MAC, msg[2], connChan)
+	if _, ok := server.mapConn[r.Meta.MAC]; ok {
+		server.sendInfoToWSClient(r.Meta.MAC, msg[2])
 		return
 	}
-	log.Infof("mapConn dont have this MAC: %v. Len map is %v", r.Meta.MAC, len(mapConn))
+	log.Infof("mapConn dont have this MAC: %v. Len map is %v", r.Meta.MAC, len(server.mapConn))
 }
 
 //Send message to all connections which we have in map, and which pertain to mac
-func sendInfoToWSClient(mac, message string, connChan chan *websocket.Conn) {
-	mapConn[mac].Lock()
-	for _, val := range mapConn[mac].connections {
+func  (server *WebSocketServer) sendInfoToWSClient(mac, message string) {
+	server.mapConn[mac].Lock()
+	for _, val := range server.mapConn[mac].connections {
 		err := val.WriteMessage(1, []byte(message))
 		if err != nil {
 			log.Errorf("Connection %v closed", val.RemoteAddr())
-			go getToChanal(val, connChan)
+			go getToChanal(val, server.connChanal)
 		}
 	}
-	mapConn[mac].Unlock()
+	server.mapConn[mac].Unlock()
 }
 
 func getToChanal(conn *websocket.Conn, connChan chan *websocket.Conn) {
 	connChan <- conn
 }
 
-func publishWS(req Request) {
-	pubReq, err := json.Marshal(req)
-	checkError("Marshal for publish.", err)
-	go publishMessage(pubReq, roomIDForDevWSPublish)
-}
+

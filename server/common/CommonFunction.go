@@ -1,10 +1,8 @@
 package common
 
 import (
-	"menteslibres.net/gosexy/redis"
+	log "github.com/Sirupsen/logrus"
 	"strconv"
-	"log"
-	"time"
 )
 
 //-----------------Common functions-------------------------------------------------------------------------------------------

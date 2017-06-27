@@ -10,36 +10,12 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"menteslibres.net/gosexy/redis"
-	"github.com/gorilla/websocket"
+
 	"strings"
 )
 
 //http web socket connection
-func websocketServer() {
-	var (
-		connChanal   = make(chan *websocket.Conn)
-		stopCloseWS  = make(chan string)
-		stopSub      = make(chan bool)
-		subWSChannel = make(chan []string)
-	)
 
-	wsDBClient, err := RunDBConnection()
-	CheckError("webSocket: RunDBConnection", err)
-
-	go CloseWebsocket(connChanal, stopCloseWS)
-	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel, connChanal, stopSub)
-
-	r := mux.NewRouter()
-	r.HandleFunc("/devices/{id}", webSocketHandler)
-
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         connHost + ":" + wsConnPort,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-	go log.Fatal(srv.ListenAndServe())
-}
 
 //http dynamic connection with browser
 func runDynamicServer() {

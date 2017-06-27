@@ -9,13 +9,15 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
+
 	"menteslibres.net/gosexy/redis"
+	"github.com/KharkivGophers/center-smart-house/server/common/models"
+	"github.com/KharkivGophers/center-smart-house/dao"
 )
 
 //--------------------TCP-------------------------------------------------------------------------------------
 func tcpDataHandler(conn net.Conn) {
-	var req Request
+	var req models.Request
 	var res Response
 	for {
 		err := json.NewDecoder(conn).Decode(&req)
@@ -41,25 +43,25 @@ func tcpDataHandler(conn net.Conn) {
 /*
 Checks  type device and call special func for send data to DB.
 */
-func devTypeHandler(req Request) string {
+func devTypeHandler(req models.Request) string {
 	switch req.Action {
 	case "update":
 		switch req.Meta.Type {
 		case "fridge":
-			if err := req.fridgeDataHandler(); err != nil {
+			if err := fridgeDataHandler(&req); err != nil {
 				log.Errorf("%v", err.Error)
 			}
 		case "washer":
-			if err := req.washerDataHandler(); err != nil {
-				log.Errorf("%v", err.Error)
-			}
+			//if err := req.washerDataHandler(); err != nil {
+			//	log.Errorf("%v", err.Error)
+			//}
 
 		default:
 			log.Println("Device request: unknown device type")
 			return string("Device request: unknown device type")
 		}
-
-		go publishWS(req)
+		go dao.PublishWS(req,"devWS","0.0.0.0", 6379)
+		//go publishWS(req)
 
 	default:
 		log.Println("Device request: unknown action")
@@ -72,7 +74,7 @@ func devTypeHandler(req Request) string {
 /*
 Save data about fridge in DB. Return struct ServerError
 */
-func (req *Request) fridgeDataHandler() *ServerError {
+func  fridgeDataHandler(req *models.Request) *ServerError {
 	dbClient, _ := RunDBConnection()
 
 	var devData FridgeData
@@ -292,98 +294,6 @@ func validateStreamOn(streamOn interface{}) bool {
 		log.Error("StreamOn should be in bool format!")
 		return false
 	}
-}
-
-//-------------------WEB Socket--------------------------------------------------------------------------------------------
-func webSocketHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	//http://..../device/type/name/mac
-	uri := strings.Split(r.URL.String(), "/")
-
-	if _, ok := mapConn[uri[2]]; !ok {
-		mapConn[uri[2]] = new(listConnection)
-	}
-	mapConn[uri[2]].Add(conn)
-}
-
-/**
-Delete connections in mapConn
-*/
-func CloseWebsocket(connChan chan *websocket.Conn, stopCloseWS chan string) {
-	for {
-		select {
-		case connAddres := <-connChan:
-			for _, val := range mapConn {
-				if ok := val.Remove(connAddres); ok {
-					break
-				}
-			}
-		case <-stopCloseWS:
-			log.Info("CloseWebsocket closed")
-			return
-		}
-	}
-}
-
-/*
-Listens changes in database. If they have, we will send to all websocket which working with them.
-*/
-func WSSubscribe(client *redis.Client, roomID string, chanForTheSub chan []string, connChan chan *websocket.Conn, stopWSSub chan bool) {
-	Subscribe(client, roomID, chanForTheSub)
-	for {
-		select {
-		case msg := <-chanForTheSub:
-			if msg[0] == "message" {
-				go checkAndSendInfoToWSClient(msg, connChan)
-			}
-		case <-stopWSSub:
-			log.Info("WSSubscribe closed")
-			return
-		}
-	}
-}
-
-//We are check mac in our mapConnections.
-// If we have mac in the map we will send message to all connections.
-// Else we do nothing
-func checkAndSendInfoToWSClient(msg []string, connChan chan *websocket.Conn) {
-	r := new(Request)
-	err := json.Unmarshal([]byte(msg[2]), &r)
-	if CheckError("checkAndSendInfoToWSClient", err) != nil {
-		return
-	}
-	if _, ok := mapConn[r.Meta.MAC]; ok {
-		sendInfoToWSClient(r.Meta.MAC, msg[2], connChan)
-		return
-	}
-	log.Infof("mapConn dont have this MAC: %v. Len map is %v", r.Meta.MAC, len(mapConn))
-}
-
-//Send message to all connections which we have in map, and which pertain to mac
-func sendInfoToWSClient(mac, message string, connChan chan *websocket.Conn) {
-	mapConn[mac].Lock()
-	for _, val := range mapConn[mac].connections {
-		err := val.WriteMessage(1, []byte(message))
-		if err != nil {
-			log.Errorf("Connection %v closed", val.RemoteAddr())
-			go getToChanal(val, connChan)
-		}
-	}
-	mapConn[mac].Unlock()
-}
-
-func getToChanal(conn *websocket.Conn, connChan chan *websocket.Conn) {
-	connChan <- conn
-}
-
-func publishWS(req Request) {
-	pubReq, err := json.Marshal(req)
-	CheckError("Marshal for publish.", err)
-	go PublishMessage(pubReq, roomIDForDevWSPublish)
 }
 
 //-----------------Common functions-------------------------------------------------------------------------------------------
