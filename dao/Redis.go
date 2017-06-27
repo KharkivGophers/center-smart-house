@@ -61,11 +61,11 @@ func (myRedis MyRedis)RunDBConnection() (*MyRedis, error) {
 }
 
 
-func  PublishWS(req models.Request, roomID, host string, port uint ) {
+func  PublishWS(req models.Request, roomID string, worker DbWorker ) {
 	pubReq, err := json.Marshal(req)
 	CheckError("Marshal for publish.", err)
 
-	dbClient, _ := MyRedis{Host:host, Port:port}.RunDBConnection()
+	dbClient, _ := worker.RunDBConnection()
 	defer dbClient.Close()
 
 	_, err = dbClient.Publish(roomID, pubReq)

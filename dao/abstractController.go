@@ -6,4 +6,5 @@ type DbWorker interface {
 	Connect()(error)
 	Subscribe(cn chan []string, channel ...string) error
 	Close() (error)
+	RunDBConnection() (*MyRedis, error)
 }

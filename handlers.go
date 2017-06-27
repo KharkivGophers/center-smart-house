@@ -60,7 +60,7 @@ func devTypeHandler(req models.Request) string {
 			log.Println("Device request: unknown device type")
 			return string("Device request: unknown device type")
 		}
-		go dao.PublishWS(req,"devWS","0.0.0.0", 6379)
+		go dao.PublishWS(req, "devWS",dao.MyRedis{Host:"0.0.0.0", Port:6379} )
 		//go publishWS(req)
 
 	default:
