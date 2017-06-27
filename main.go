@@ -1,68 +1,25 @@
 package main
 
-import (
-	"net"
-	log "github.com/logrus"
-	"menteslibres.net/gosexy/redis"
-	"github.com/gorilla/mux"
-	"net/http"
-	"time"
-)
 
-var (
-	dbHost   = "127.0.0.1"
-	dbPort   = uint(6379)
-	dbClient *redis.Client
-	//for SS network
-	connHost = "192.168.104.23"
-	//connHost = "127.0.0.1"
-	devConnPort = "3030"
-	devConnType = "tcp"
-
-	httpConnPort = "8100"
-)
 
 func main() {
-	//db connection
-	dbClient = redis.New()
-	if err := dbClient.Connect(dbHost, dbPort); err != nil {
-		log.Fatalf("Database: connection has failed: %s\n", err.Error())
-		return
-	}
-	defer dbClient.Quit()
+	wg.Add(4)
 
-	//http connection with browser
-	go func() {
-		r := mux.NewRouter()
+	// db connection
+	dbClient, err := runDBConnection()
+	checkError("Main: runDBConnection", err)
+	defer dbClient.Close()
 
-		r.HandleFunc("/devices", httpDevHandler)
-		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./View/")))
+	// http connection with browser
+	go runDynamicServer()
 
-		srv := &http.Server{
-			Handler: r,
-			Addr:    "127.0.0.1" + ":" + httpConnPort,
-			// Good practice: enforce timeouts for servers you create!
-			WriteTimeout: 15 * time.Second,
-			ReadTimeout:  15 * time.Second,
-		}
+	// web socket server
+	go websocketServer()
 
-		go log.Fatal(srv.ListenAndServe())
-	} ()
+	//-----TCP-Config
+	go runConfigServer(configConnType, configHost, configPort)
+	//-----TCP
+	go runTCPServer()
 
-	//tcp connection with devices
-	ln, err := net.Listen(devConnType, connHost + ":" + devConnPort)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Errorln(err)
-			continue
-		}
-
-		go requestHandler(conn)
-	}
+	wg.Wait()
 }
