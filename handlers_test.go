@@ -24,57 +24,57 @@ func deleteAllInBase(dbClient dao.DbWorker) {
 	CheckError("Some error with FlushAll()", err)
 }
 
-func TestDevTypeHandler(t *testing.T) {
-
-	//Create redis client------------------------------------------------------------
-	var myRedis dao.DbWorker = &dao.MyRedis{}
-	myRedis.Connect()
-	defer myRedis.Close()
-	//--------------------------------------------------------------------------------
-
-	Convey("Message handles correct", t, func() {
-		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-		deleteAllInBase(myRedis)
-	})
-	Convey("Empty message", t, func() {
-		req := Request{}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown action")
-		deleteAllInBase(myRedis)
-	})
-	Convey("Type washer message", t, func() {
-		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "washer", Name: "bosh", MAC: "00-15-E9-2B-99-3C"}}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-		deleteAllInBase(myRedis)
-	})
-	Convey("Unknown type message", t, func() {
-		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "nil", Name: "bosh", MAC: "00-15-E9-2B-99-3C"}}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown device type")
-		deleteAllInBase(myRedis)
-	})
-	// need to change handlers
-	Convey("Empty MAC", t, func() {
-		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: ""}}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-		deleteAllInBase(myRedis)
-	})
-	Convey("Empty Type", t, func() {
-		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown device type")
-		deleteAllInBase(myRedis)
-	})
-	Convey("Empty Name", t, func() {
-		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "", MAC: "00-15-E9-2B-99-3C"}}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-		deleteAllInBase(myRedis)
-	})
-	Convey("Empty Time", t, func() {
-		req := Request{Action: "update", Time: 0, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
-		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-		deleteAllInBase(myRedis)
-	})
-
-}
+//func TestDevTypeHandler(t *testing.T) {
+//
+//	//Create redis client------------------------------------------------------------
+//	var myRedis dao.DbWorker = &dao.MyRedis{}
+//	myRedis.Connect()
+//	defer myRedis.Close()
+//	//--------------------------------------------------------------------------------
+//
+//	Convey("Message handles correct", t, func() {
+//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
+//		deleteAllInBase(myRedis)
+//	})
+//	Convey("Empty message", t, func() {
+//		req := Request{}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown action")
+//		deleteAllInBase(myRedis)
+//	})
+//	Convey("Type washer message", t, func() {
+//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "washer", Name: "bosh", MAC: "00-15-E9-2B-99-3C"}}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
+//		deleteAllInBase(myRedis)
+//	})
+//	Convey("Unknown type message", t, func() {
+//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "nil", Name: "bosh", MAC: "00-15-E9-2B-99-3C"}}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown device type")
+//		deleteAllInBase(myRedis)
+//	})
+//	// need to change handlers
+//	Convey("Empty MAC", t, func() {
+//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: ""}}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
+//		deleteAllInBase(myRedis)
+//	})
+//	Convey("Empty Type", t, func() {
+//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown device type")
+//		deleteAllInBase(myRedis)
+//	})
+//	Convey("Empty Name", t, func() {
+//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "", MAC: "00-15-E9-2B-99-3C"}}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
+//		deleteAllInBase(myRedis)
+//	})
+//	Convey("Empty Time", t, func() {
+//		req := Request{Action: "update", Time: 0, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
+//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
+//		deleteAllInBase(myRedis)
+//	})
+//
+//}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -84,7 +84,7 @@ func TestSendJSONToServer(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.DbWorker = &dao.MyRedis{}
-	myRedis.Connect(dbHost, dbPort)
+	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
@@ -114,7 +114,7 @@ func TestCheckJSONToServer(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.DbWorker = &dao.MyRedis{}
-	myRedis.Connect(dbHost, dbPort)
+	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
@@ -282,7 +282,7 @@ func TestHTTPConnection(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.DbWorker = &dao.MyRedis{}
-	myRedis.Connect(dbHost, dbPort)
+	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
@@ -307,7 +307,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.DbWorker = &dao.MyRedis{}
-	myRedis.Connect(dbHost, dbPort)
+	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
@@ -516,7 +516,7 @@ func TestWSConnection(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.DbWorker = &dao.MyRedis{}
-	myRedis.Connect(dbHost, dbPort)
+	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
