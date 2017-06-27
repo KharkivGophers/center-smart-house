@@ -23,8 +23,8 @@ func websocketServer() {
 		subWSChannel = make(chan []string)
 	)
 
-	wsDBClient, err := runDBConnection()
-	checkError("webSocket: runDBConnection", err)
+	wsDBClient, err := RunDBConnection()
+	CheckError("webSocket: RunDBConnection", err)
 
 	go CloseWebsocket(connChanal, stopCloseWS)
 	go WSSubscribe(wsDBClient, roomIDForDevWSPublish, subWSChannel, connChanal, stopSub)
@@ -66,10 +66,10 @@ func runDynamicServer() {
 	go log.Fatal(srv.ListenAndServe())
 }
 
-func runDBConnection() (*redis.Client, error) {
+func RunDBConnection() (*redis.Client, error) {
 	client := redis.New()
 	err := client.Connect(dbHost, dbPort)
-	checkError("runDBConnection error: ", err)
+	CheckError("RunDBConnection error: ", err)
 	for err != nil {
 		log.Errorln("1 Database: connection has failed:", err)
 		time.Sleep(time.Second)
@@ -98,7 +98,7 @@ func runTCPServer() {
 
 	for {
 		conn, err := ln.Accept()
-		if checkError("TCP conn Accept", err) == nil {
+		if CheckError("TCP conn Accept", err) == nil {
 			go tcpDataHandler(conn)
 		}
 	}
@@ -126,8 +126,8 @@ func runConfigServer(connType string, host string, port string) {
 	)
 
 	pool.init()
-	dbClient, err := runDBConnection()
-	checkError("runConfigServer: runDBConnection", err)
+	dbClient, err := RunDBConnection()
+	CheckError("runConfigServer: RunDBConnection", err)
 
 	go reconnecting(dbClient)
 	defer dbClient.Close()
@@ -145,7 +145,7 @@ func runConfigServer(connType string, host string, port string) {
 
 	for {
 		conn, err := ln.Accept()
-		checkError("TCP config conn Accept", err)
+		CheckError("TCP config conn Accept", err)
 		go sendDefaultConfiguration(conn, &pool)
 	}
 }
@@ -164,7 +164,7 @@ func sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 	if err != nil {
 		pool.removeConn(config.MAC)
 	}
-	checkError("sendNewConfig", err)
+	CheckError("sendNewConfig", err)
 }
 
 func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
@@ -174,10 +174,10 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 		config *DevConfig
 	)
 
-	dbClient, err := runDBConnection()
-	checkError("DBConnection Error in ----> sendDefaultConfiguration", err)
+	dbClient, err := RunDBConnection()
+	CheckError("DBConnection Error in ----> sendDefaultConfiguration", err)
 	err = json.NewDecoder(conn).Decode(&req)
-	checkError("sendDefaultConfiguration JSON Decod", err)
+	CheckError("sendDefaultConfiguration JSON Decod", err)
 
 	pool.addConn(conn, req.Meta.MAC)
 
@@ -186,10 +186,10 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 	if ok, _ := dbClient.Exists(configInfo); ok {
 
 		state, err := dbClient.HMGet(configInfo, "TurnedOn")
-		checkError("Get from DB error1: TurnedOn ", err)
+		CheckError("Get from DB error1: TurnedOn ", err)
 
 		if  strings.Join(state, " ")!= "" {
-			config = GetDeviceConfigFridge(dbClient, configInfo,req.Meta.MAC)
+			config = GetFridgeConfig(dbClient, configInfo,req.Meta.MAC)
 			log.Println("Old Device with MAC: ",req.Meta.MAC, "detected.")
 		}
 
@@ -197,11 +197,11 @@ func sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = CreateDefaultConfigToFridge()
-		SetDeviceConfigFridge(dbClient, configInfo, config)
+		SetFridgeConfig(dbClient, configInfo, config)
 	}
 
 	err = json.NewEncoder(conn).Encode(&config)
-	checkError("sendDefaultConfiguration JSON enc", err)
+	CheckError("sendDefaultConfiguration JSON enc", err)
 	log.Warningln("Configuration has been successfully sent")
 }
 

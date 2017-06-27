@@ -33,7 +33,7 @@ func tcpDataHandler(conn net.Conn) {
 			Descr:  "Data has been delivered successfully",
 		}
 		err = json.NewEncoder(conn).Encode(&res)
-		checkError("tcpDataHandler JSON enc", err)
+		CheckError("tcpDataHandler JSON enc", err)
 	}
 
 }
@@ -73,7 +73,7 @@ func devTypeHandler(req Request) string {
 Save data about fridge in DB. Return struct ServerError
 */
 func (req *Request) fridgeDataHandler() *ServerError {
-	dbClient, _ := runDBConnection()
+	dbClient, _ := RunDBConnection()
 
 	var devData FridgeData
 	mac := req.Meta.MAC
@@ -85,11 +85,11 @@ func (req *Request) fridgeDataHandler() *ServerError {
 	devParamsKey := devKey + ":" + "params"
 
 	_, err := dbClient.SAdd("devParamsKeys", devParamsKey)
-	checkError("DB error11", err)
+	CheckError("DB error11", err)
 	_, err = dbClient.HMSet(devKey, "ReqTime", devReqTime)
-	checkError("DB error12", err)
+	CheckError("DB error12", err)
 	_, err = dbClient.SAdd(devParamsKey, "TempCam1", "TempCam2")
-	checkError("DB error13", err)
+	CheckError("DB error13", err)
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
@@ -99,16 +99,16 @@ func (req *Request) fridgeDataHandler() *ServerError {
 
 	for time, value := range devData.TempCam1 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam1",
-			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		if checkError("DB error14", err) != nil {
+			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+		if CheckError("DB error14", err) != nil {
 			return &ServerError{Error: err}
 		}
 	}
 
 	for time, value := range devData.TempCam2 {
 		_, err := dbClient.ZAdd(devParamsKey+":"+"TempCam2",
-			int64ToString(time), int64ToString(time)+":"+float32ToString(float64(value)))
-		if checkError("DB error15", err) != nil {
+			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+		if CheckError("DB error15", err) != nil {
 			return &ServerError{Error: err}
 		}
 	}
@@ -122,7 +122,7 @@ func (req *Request) washerDataHandler() *ServerError {
 }
 
 func configSubscribe(client *redis.Client, roomID string, message chan []string, pool *ConnectionPool) {
-	subscribe(client, roomID, message)
+	Subscribe(client, roomID, message)
 	for {
 		var config DevConfig
 		select {
@@ -131,7 +131,7 @@ func configSubscribe(client *redis.Client, roomID string, message chan []string,
 			if msg[0] == "message" {
 				// log.Println("message[0]", msg[0])
 				err := json.Unmarshal([]byte(msg[2]), &config)
-				checkError("configSubscribe: unmarshal", err)
+				CheckError("configSubscribe: unmarshal", err)
 				go sendNewConfiguration(config, pool)
 			}
 		}
@@ -141,10 +141,10 @@ func configSubscribe(client *redis.Client, roomID string, message chan []string,
 //----------------------HTTP Dynamic Connection----------------------------------------------------------------------------------
 
 func getDevicesHandler(w http.ResponseWriter, r *http.Request) {
-	client, _ := runDBConnection()
+	client, _ := RunDBConnection()
 	devices := getAllDevices(client)
 	err := json.NewEncoder(w).Encode(devices)
-	checkError("getDevicesHandler JSON enc", err)
+	CheckError("getDevicesHandler JSON enc", err)
 }
 
 func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +157,7 @@ func getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	device := getDevice(devParamsKey, devParamsKeysTokens)
 	err := json.NewEncoder(w).Encode(device)
-	checkError("getDevDataHandler JSON enc", err)
+	CheckError("getDevDataHandler JSON enc", err)
 }
 
 func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
@@ -165,11 +165,10 @@ func getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"] // type + mac
 	mac := strings.Split(id, ":")[2]
 
-	dbClient, _ := runDBConnection()
+	dbClient, _ := RunDBConnection()
 	configInfo := mac + ":" + "config" // key
 
-	var config = GetDeviceConfigFridge(dbClient, configInfo, mac)
-
+	var config = GetFridgeConfig(dbClient, configInfo, mac)
 
 	json.NewEncoder(w).Encode(config)
 }
@@ -180,10 +179,10 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"] // warning!! type : name : mac
 	mac := strings.Split(id, ":")[2]
-	dbClient, _ := runDBConnection()
+	dbClient, _ := RunDBConnection()
 	configInfo := mac + ":" + "config" // key
 
-	config = GetDeviceConfigFridge(dbClient, configInfo, mac)
+	config = GetFridgeConfig(dbClient, configInfo, mac)
 
 	// log.Warnln("Config Before", config)
 	err := json.NewDecoder(r.Body).Decode(&config)
@@ -194,7 +193,9 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info(config)
-	checkError("Encode error", err) // log.Warnln("Config After: ", config)
+	CheckError("Encode error", err) // log.Warnln("Config After: ", config)
+
+
 	if !validateMAC(config.MAC) {
 		log.Error("Invalid MAC")
 		http.Error(w, "Invalid MAC", 400)
@@ -212,10 +213,10 @@ func patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Send Frequency should be more than 150!", 400)
 	} else {
 		// Save New Configuration to DB
-		SetDeviceConfigFridge(dbClient,configInfo,config)
+		SetFridgeConfig(dbClient,configInfo,config)
 		log.Println("New Config was added to DB: ", config)
 		JSONСonfig, _ := json.Marshal(config)
-		go publishConfigMessage(JSONСonfig, "configChan")
+		go PublishConfigMessage(JSONСonfig, "configChan")
 	}
 }
 
@@ -332,7 +333,7 @@ func CloseWebsocket(connChan chan *websocket.Conn, stopCloseWS chan string) {
 Listens changes in database. If they have, we will send to all websocket which working with them.
 */
 func WSSubscribe(client *redis.Client, roomID string, chanForTheSub chan []string, connChan chan *websocket.Conn, stopWSSub chan bool) {
-	subscribe(client, roomID, chanForTheSub)
+	Subscribe(client, roomID, chanForTheSub)
 	for {
 		select {
 		case msg := <-chanForTheSub:
@@ -352,7 +353,7 @@ func WSSubscribe(client *redis.Client, roomID string, chanForTheSub chan []strin
 func checkAndSendInfoToWSClient(msg []string, connChan chan *websocket.Conn) {
 	r := new(Request)
 	err := json.Unmarshal([]byte(msg[2]), &r)
-	if checkError("checkAndSendInfoToWSClient", err) != nil {
+	if CheckError("checkAndSendInfoToWSClient", err) != nil {
 		return
 	}
 	if _, ok := mapConn[r.Meta.MAC]; ok {
@@ -381,13 +382,13 @@ func getToChanal(conn *websocket.Conn, connChan chan *websocket.Conn) {
 
 func publishWS(req Request) {
 	pubReq, err := json.Marshal(req)
-	checkError("Marshal for publish.", err)
-	go publishMessage(pubReq, roomIDForDevWSPublish)
+	CheckError("Marshal for publish.", err)
+	go PublishMessage(pubReq, roomIDForDevWSPublish)
 }
 
 //-----------------Common functions-------------------------------------------------------------------------------------------
 
-func checkError(desc string, err error) error {
+func CheckError(desc string, err error) error {
 	if err != nil {
 		log.Errorln(desc, err)
 		return err
@@ -395,31 +396,30 @@ func checkError(desc string, err error) error {
 	return nil
 }
 
-func subscribe(client *redis.Client, roomID string, channel chan []string) {
+func Subscribe(client *redis.Client, roomID string, channel chan []string) {
 	err := client.Connect(dbHost, dbPort)
-	checkError("Subscribe", err)
+	CheckError("Subscribe", err)
 	go client.Subscribe(channel, roomID)
 }
-func publishMessage(message interface{}, roomID string) {
-	dbClient, _ := runDBConnection()
+func PublishMessage(message interface{}, roomID string) {
+	dbClient, _ := RunDBConnection()
 
 	_, err := dbClient.Publish(roomID, message)
-	checkError("Publish", err)
+	CheckError("Publish", err)
 }
-func publishConfigMessage(message []byte, roomID string) {
-	dbClient, _ := runDBConnection()
+func PublishConfigMessage(message []byte, roomID string) {
+	dbClient, _ := RunDBConnection()
 	_, err := dbClient.Publish(roomID, message)
-	checkError("Publish", err)
+	CheckError("Publish", err)
 }
 
-func float32ToString(num float64) string {
+func Float32ToString(num float64) string {
 	return strconv.FormatFloat(num, 'f', -1, 32)
 }
 
-func int64ToString(n int64) string {
+func Int64ToString(n int64) string {
 	return strconv.FormatInt(int64(n), 10)
 }
-
 //-------------------Work with data base-------------------------------------------------------------------------------------------
 
 func getAllDevices(dbClient *redis.Client) []DevData {
@@ -427,7 +427,7 @@ func getAllDevices(dbClient *redis.Client) []DevData {
 	var devices []DevData
 
 	devParamsKeys, err := dbClient.SMembers("devParamsKeys")
-	if checkError("Cant read members from devParamsKeys", err) != nil {
+	if CheckError("Cant read members from devParamsKeys", err) != nil {
 		return nil
 	}
 
@@ -438,7 +438,7 @@ func getAllDevices(dbClient *redis.Client) []DevData {
 
 	for index, key := range devParamsKeysTokens {
 		params, err := dbClient.SMembers(devParamsKeys[index])
-		checkError("Cant read members from "+devParamsKeys[index], err)
+		CheckError("Cant read members from "+devParamsKeys[index], err)
 
 		device.Meta.Type = key[1]
 		device.Meta.Name = key[2]
@@ -448,7 +448,7 @@ func getAllDevices(dbClient *redis.Client) []DevData {
 		values := make([][]string, len(params))
 		for i, p := range params {
 			values[i], _ = dbClient.ZRangeByScore(devParamsKeys[index]+":"+p, "-inf", "inf")
-			checkError("Cant use ZRangeByScore for "+devParamsKeys[index], err)
+			CheckError("Cant use ZRangeByScore for "+devParamsKeys[index], err)
 			device.Data[p] = values[i]
 		}
 
@@ -459,10 +459,10 @@ func getAllDevices(dbClient *redis.Client) []DevData {
 
 func getDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
 	var device DevData
-	dbClient, _ := runDBConnection()
+	dbClient, _ := RunDBConnection()
 
 	params, err := dbClient.SMembers(devParamsKey)
-	checkError("Cant read members from devParamsKeys", err)
+	CheckError("Cant read members from devParamsKeys", err)
 	device.Meta.Type = devParamsKeysTokens[1]
 	device.Meta.Name = devParamsKeysTokens[2]
 	device.Meta.MAC = devParamsKeysTokens[3]
@@ -471,35 +471,35 @@ func getDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
 	values := make([][]string, len(params))
 	for i, p := range params {
 		values[i], err = dbClient.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
-		checkError("Cant use ZRangeByScore", err)
+		CheckError("Cant use ZRangeByScore", err)
 		device.Data[p] = values[i]
 	}
 	return device
 }
 
-func SetDeviceConfigFridge(dbClient *redis.Client, configInfo string, config *DevConfig) {
+func SetFridgeConfig(dbClient *redis.Client, configInfo string, config *DevConfig) {
 	// Save default configuration to DB
 	_, err := dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
-	checkError("DB error1: TurnedOn", err)
+	CheckError("DB error1: TurnedOn", err)
 	_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
-	checkError("DB error2: CollectFreq", err)
+	CheckError("DB error2: CollectFreq", err)
 	_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
-	checkError("DB error3: SendFreq", err)
+	CheckError("DB error3: SendFreq", err)
 	_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
-	checkError("DB error4: StreamOn", err)
+	CheckError("DB error4: StreamOn", err)
 }
 
-func GetDeviceConfigFridge(dbClient *redis.Client, configInfo, mac string) (*DevConfig) {
+func GetFridgeConfig(dbClient *redis.Client, configInfo, mac string) (*DevConfig) {
 	var config DevConfig
 
 	state, err := dbClient.HMGet(configInfo, "TurnedOn")
-	checkError("Get from DB error1: TurnedOn ", err)
+	CheckError("Get from DB error1: TurnedOn ", err)
 	sendFreq, err := dbClient.HMGet(configInfo, "SendFreq")
-	checkError("Get from DB error2: SendFreq ", err)
+	CheckError("Get from DB error2: SendFreq ", err)
 	collectFreq, err := dbClient.HMGet(configInfo, "CollectFreq")
-	checkError("Get from DB error3: CollectFreq ", err)
+	CheckError("Get from DB error3: CollectFreq ", err)
 	streamOn, err := dbClient.HMGet(configInfo, "StreamOn")
-	checkError("Get from DB error4: StreamOn ", err)
+	CheckError("Get from DB error4: StreamOn ", err)
 
 	stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
 	sendFreqInt, _ := strconv.Atoi(strings.Join(sendFreq, " "))

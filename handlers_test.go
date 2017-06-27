@@ -21,14 +21,14 @@ var timeForSleep time.Duration = 1000 * time.Millisecond
 
 func deleteAllInBase(dbClient dao.DbWorker) {
 	err := dbClient.FlushAll()
-	checkError("Some error with FlushAll()", err)
+	CheckError("Some error with FlushAll()", err)
 }
 
 func TestDevTypeHandler(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	var myRedis dao.DbWorker = &dao.MyRedis{}
-	myRedis.Connect(dbHost, dbPort)
+	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
