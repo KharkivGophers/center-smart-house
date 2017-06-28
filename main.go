@@ -15,7 +15,7 @@ func main() {
 	go runDynamicServer()
 
 	// web socket server
-	server := webSocket.NewWebSocketServer(connHost,"2540", 6379)
+	server := webSocket.NewWebSocketServer(connHost,"2540", connHost,6379)
 	go server.StartWebsocketServer()
 
 	//-----TCP-Config

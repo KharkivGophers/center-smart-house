@@ -95,3 +95,10 @@ func (pool *ConnectionPool) init() {
 
 	pool.conn = make(map[string]net.Conn)
 }
+
+//----------------------------------------
+
+type DBURL struct {
+	DbHost string
+	DbPort uint
+}
