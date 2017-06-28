@@ -286,13 +286,13 @@ func TestHTTPConnection(t *testing.T) {
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
 
-	Convey("Check http://"+connHost+":"+httpConnPort+"/devices/{id}/data. Should be without error ", t, func() {
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "//devices/fridge:hladik0e31:00-15-E9-2B-99-3C/data")
+	Convey("Check myHTTP://"+connHost+":"+httpConnPort+"/devices/{id}/data. Should be without error ", t, func() {
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "//devices/fridge:hladik0e31:00-15-E9-2B-99-3C/data")
 		So(res, ShouldNotBeNil)
 		deleteAllInBase(myRedis)
 	})
-	Convey("Check http://"+connHost+":"+httpConnPort+"/devices. Should be without error ", t, func() {
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
+	Convey("Check myHTTP://"+connHost+":"+httpConnPort+"/devices. Should be without error ", t, func() {
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices")
 		So(res, ShouldNotBeNil)
 	})
 }
@@ -321,7 +321,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		conn.Write([]byte(reqConfig))
 		connForDAta.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 		So(bodyString, ShouldContainSubstring, mustHave)
@@ -335,7 +335,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustNotHave := "testName2"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -351,7 +351,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustNotHave := "testName3"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 
@@ -367,7 +367,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustNotHave := "TestMACFridge3"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 
@@ -382,7 +382,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustNotHave := "fridge4"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 
@@ -398,7 +398,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustNotHave := "fridge5"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices")
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 
@@ -415,7 +415,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -430,7 +430,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"collectFreq\":0"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -445,7 +445,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"sendFreq\":0"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -460,7 +460,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("myHTTP://" + connHost + ":" + httpConnPort + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -475,7 +475,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave :="\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
-		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		url := "myHTTP://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
 		httpClient.Do(r)
 		res, _ := httpClient.Get(url)
@@ -493,7 +493,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave :="\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
-		url := "http://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		url := "myHTTP://"+connHost+":"+httpConnPort+"/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":true}")))
 		time.Sleep(timeForSleep)
 		httpClient.Do(r)

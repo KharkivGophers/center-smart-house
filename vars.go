@@ -20,7 +20,7 @@ var (
 	connType    = "tcp"
 	tcpConnPort = "3030"
 
-	//http connection
+	//myHTTP connection
 	httpConnPort = "8100"
 
 	//for TCP config

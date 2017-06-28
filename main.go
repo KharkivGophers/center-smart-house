@@ -1,6 +1,10 @@
 package main
 
-import "github.com/KharkivGophers/center-smart-house/server/webSocket"
+import (
+	"github.com/KharkivGophers/center-smart-house/server/webSocket"
+	"github.com/KharkivGophers/center-smart-house/server/myHTTP"
+	"github.com/KharkivGophers/center-smart-house/common/models"
+)
 
 func main() {
 
@@ -11,12 +15,13 @@ func main() {
 	CheckError("Main: RunDBConnection", err)
 	defer dbClient.Close()
 
-	// http connection with browser
-	go runDynamicServer()
+	// myHTTP connection with browser
+	httpserver := myHTTP.NewHTTPServer(connHost, httpConnPort, models.DBURL{connHost, dbPort})
+	go httpserver.RunDynamicServer()
 
 	// web socket server
 	server := webSocket.NewWebSocketServer(connHost,"2540", connHost,6379)
-	go server.StartWebsocketServer()
+	go server.StartWebSocketServer()
 
 	//-----TCP-Config
 	go runConfigServer(configConnType, configHost, configPort)
