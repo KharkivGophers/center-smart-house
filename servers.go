@@ -3,44 +3,14 @@ package main
 import (
 	"encoding/json"
 	"net"
-	//"net/http"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	//"github.com/gorilla/handlers"
-	//"github.com/gorilla/mux"
 	"menteslibres.net/gosexy/redis"
 
 	"strings"
 )
 
-//myHTTP web socket connection
-
-
-//myHTTP dynamic connection with browser
-//func runDynamicServer() {
-//	r := mux.NewRouter()
-//	r.HandleFunc("/devices", getDevicesHandler).Methods("GET")
-//	r.HandleFunc("/devices/{id}/data", getDevDataHandler).Methods("GET")
-//	r.HandleFunc("/devices/{id}/config", getDevConfigHandler).Methods("GET")
-//
-//	r.HandleFunc("/devices/{id}/config", patchDevConfigHandler).Methods("PATCH")
-//
-//	//provide static html pages
-//	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./view/")))
-//
-//	srv := &http.Server{
-//		Handler:      r,
-//		Addr:         connHost + ":" + httpConnPort,
-//		WriteTimeout: 15 * time.Second,
-//		ReadTimeout:  15 * time.Second,
-//	}
-//
-//	//CORS provides Cross-Origin Resource Sharing middleware
-//	http.ListenAndServe(connHost+":"+httpConnPort, handlers.CORS()(r))
-//
-//	go log.Fatal(srv.ListenAndServe())
-//}
 
 func RunDBConnection() (*redis.Client, error) {
 	client := redis.New()
