@@ -54,7 +54,8 @@ func (server *HTTPServer)RunDynamicServer() {
 func (server *HTTPServer)getDevicesHandler(w http.ResponseWriter, r *http.Request) {
 
 	myRedis, err := dao.MyRedis{Host: server.DbHost, Port: server.DbPort}.RunDBConnection()
-	CheckError("HTTP Dynamic Connection: runDBConnection", err)
+	defer myRedis.Close()
+	CheckError("HTTP Dynamic Connection: getDevicesHandler", err)
 
 	devices := myRedis.GetAllDevices()
 	err = json.NewEncoder(w).Encode(devices)
@@ -64,7 +65,8 @@ func (server *HTTPServer)getDevicesHandler(w http.ResponseWriter, r *http.Reques
 func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	myRedis, err := dao.MyRedis{Host: server.DbHost, Port: server.DbPort}.RunDBConnection()
-	CheckError("HTTP Dynamic Connection: runDBConnection", err)
+	defer myRedis.Close()
+	CheckError("HTTP Dynamic Connection: getDevDataHandler", err)
 
 	vars := mux.Vars(r)
 	devID := "device:" + vars["id"]
@@ -84,7 +86,8 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 	mac := strings.Split(id, ":")[2]
 
 	myRedis, err := dao.MyRedis{Host: server.DbHost, Port: server.DbPort}.RunDBConnection()
-	CheckError("HTTP Dynamic Connection: runDBConnection", err)
+	defer myRedis.Close()
+	CheckError("HTTP Dynamic Connection: getDevConfigHandler", err)
 
 	configInfo := mac + ":" + "config" // key
 
@@ -101,7 +104,8 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	mac := strings.Split(id, ":")[2]
 
 	myRedis, err := dao.MyRedis{Host: server.DbHost, Port: server.DbPort}.RunDBConnection()
-	CheckError("HTTP Dynamic Connection: runDBConnection", err)
+	defer myRedis.Close()
+	CheckError("HTTP Dynamic Connection: patchDevConfigHandler", err)
 
 	configInfo := mac + ":" + "config" // key
 
@@ -139,6 +143,6 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 		myRedis.SetFridgeConfig(configInfo,config)
 		log.Println("New Config was added to DB: ", config)
 		JSONСonfig, _ := json.Marshal(config)
-		go myRedis.Publish("configChan",JSONСonfig)
+		myRedis.Publish("configChan",JSONСonfig)
 	}
 }

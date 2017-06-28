@@ -5,11 +5,9 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 
-	"menteslibres.net/gosexy/redis"
 	"github.com/KharkivGophers/center-smart-house/common/models"
 	"github.com/KharkivGophers/center-smart-house/dao"
 )
@@ -122,22 +120,7 @@ func (req *Request) washerDataHandler() *ServerError {
 	return nil
 }
 
-func configSubscribe(client *redis.Client, roomID string, message chan []string, pool *ConnectionPool) {
-	Subscribe(client, roomID, message)
-	for {
-		var config DevConfig
-		select {
-		case msg := <-message:
-			// log.Println("message", msg)
-			if msg[0] == "message" {
-				// log.Println("message[0]", msg[0])
-				err := json.Unmarshal([]byte(msg[2]), &config)
-				CheckError("configSubscribe: unmarshal", err)
-				go sendNewConfiguration(config, pool)
-			}
-		}
-	}
-}
+
 
 //-----------------Common functions-------------------------------------------------------------------------------------------
 
@@ -149,11 +132,7 @@ func CheckError(desc string, err error) error {
 	return nil
 }
 
-func Subscribe(client *redis.Client, roomID string, channel chan []string) {
-	err := client.Connect(dbHost, dbPort)
-	CheckError("Subscribe", err)
-	go client.Subscribe(channel, roomID)
-}
+
 
 func Float32ToString(num float64) string {
 	return strconv.FormatFloat(num, 'f', -1, 32)
@@ -161,47 +140,4 @@ func Float32ToString(num float64) string {
 
 func Int64ToString(n int64) string {
 	return strconv.FormatInt(int64(n), 10)
-}
-//-------------------Work with data base-------------------------------------------------------------------------------------------
-
-func SetFridgeConfig(dbClient *redis.Client, configInfo string, config *DevConfig) {
-	// Save default configuration to DB
-	_, err := dbClient.HMSet(configInfo, "TurnedOn", config.TurnedOn)
-	CheckError("DB error1: TurnedOn", err)
-	_, err = dbClient.HMSet(configInfo, "CollectFreq", config.CollectFreq)
-	CheckError("DB error2: CollectFreq", err)
-	_, err = dbClient.HMSet(configInfo, "SendFreq", config.SendFreq)
-	CheckError("DB error3: SendFreq", err)
-	_, err = dbClient.HMSet(configInfo, "StreamOn", config.StreamOn)
-	CheckError("DB error4: StreamOn", err)
-}
-
-func GetFridgeConfig(dbClient *redis.Client, configInfo, mac string) (*DevConfig) {
-	var config DevConfig
-
-	state, err := dbClient.HMGet(configInfo, "TurnedOn")
-	CheckError("Get from DB error1: TurnedOn ", err)
-	sendFreq, err := dbClient.HMGet(configInfo, "SendFreq")
-	CheckError("Get from DB error2: SendFreq ", err)
-	collectFreq, err := dbClient.HMGet(configInfo, "CollectFreq")
-	CheckError("Get from DB error3: CollectFreq ", err)
-	streamOn, err := dbClient.HMGet(configInfo, "StreamOn")
-	CheckError("Get from DB error4: StreamOn ", err)
-
-	stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
-	sendFreqInt, _ := strconv.Atoi(strings.Join(sendFreq, " "))
-	collectFreqInt, _ := strconv.Atoi(strings.Join(collectFreq, " "))
-	streamOnBool, _ := strconv.ParseBool(strings.Join(streamOn, " "))
-
-	config = DevConfig{
-		MAC: mac,
-		TurnedOn:    stateBool,
-		CollectFreq: int64(collectFreqInt),
-		SendFreq:    int64(sendFreqInt),
-		StreamOn:    streamOnBool,
-	}
-
-	log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
-
-	return &config
 }

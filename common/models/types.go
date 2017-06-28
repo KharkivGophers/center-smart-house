@@ -73,23 +73,23 @@ type ConnectionPool struct {
 	conn map[string]net.Conn
 }
 
-func (pool *ConnectionPool) addConn(conn net.Conn, key string) {
+func (pool *ConnectionPool) AddConn(conn net.Conn, key string) {
 	pool.Lock()
 	pool.conn[key] = conn
 	defer pool.Unlock()
 }
 
-func (pool *ConnectionPool) getConn(key string) net.Conn {
+func (pool *ConnectionPool) GetConn(key string) net.Conn {
 	pool.Lock()
 	defer pool.Unlock()
 	return pool.conn[key]
 }
-func (pool *ConnectionPool) removeConn(key string)  {
+func (pool *ConnectionPool) RemoveConn(key string)  {
 	pool.Lock()
 	defer pool.Unlock()
 	 delete(pool.conn, key)
 }
-func (pool *ConnectionPool) init() {
+func (pool *ConnectionPool) Init() {
 	pool.Lock()
 	defer pool.Unlock()
 
@@ -102,3 +102,5 @@ type DBURL struct {
 	DbHost string
 	DbPort uint
 }
+
+

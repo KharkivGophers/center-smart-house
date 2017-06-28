@@ -4,6 +4,8 @@ import (
 	"github.com/KharkivGophers/center-smart-house/server/webSocket"
 	"github.com/KharkivGophers/center-smart-house/server/myHTTP"
 	"github.com/KharkivGophers/center-smart-house/common/models"
+	"github.com/KharkivGophers/center-smart-house/server/tcp/tcpConfig"
+	"time"
 )
 
 func main() {
@@ -24,7 +26,9 @@ func main() {
 	go server.StartWebSocketServer()
 
 	//-----TCP-Config
-	go runConfigServer(configConnType, configHost, configPort)
+	reconnect := time.NewTicker(time.Second * 1)
+	tcpServer := tcpConfig.NewTCPConfigServer(connHost, configPort, models.DBURL{connHost, dbPort},reconnect )
+	go tcpServer.RunConfigServer()
 	//-----TCP
 	go runTCPServer()
 
