@@ -6,31 +6,31 @@ import (
 	"github.com/KharkivGophers/center-smart-house/common/models"
 	"github.com/KharkivGophers/center-smart-house/server/tcp/tcpConfig"
 	"time"
+	"github.com/KharkivGophers/center-smart-house/server/tcp/tcpData"
 )
 
 func main() {
 
 	wg.Add(4)
 
-	// db connection
-	dbClient, err := RunDBConnection()
-	CheckError("Main: RunDBConnection", err)
-	defer dbClient.Close()
-
 	// myHTTP connection with browser
 	httpserver := myHTTP.NewHTTPServer(connHost, httpConnPort, models.DBURL{connHost, dbPort})
 	go httpserver.RunDynamicServer()
 
 	// web socket server
-	server := webSocket.NewWebSocketServer(connHost,"2540", connHost,6379)
+	server := webSocket.NewWebSocketServer(connHost, "2540", connHost, 6379)
 	go server.StartWebSocketServer()
 
 	//-----TCP-Config
 	reconnect := time.NewTicker(time.Second * 1)
-	tcpServer := tcpConfig.NewTCPConfigServer(connHost, configPort, models.DBURL{connHost, dbPort},reconnect )
-	go tcpServer.RunConfigServer()
+	messages := make(chan []string)
+	tcpConfigServer := tcpConfig.NewTCPConfigServer(connHost, configPort,
+		models.DBURL{connHost, dbPort}, reconnect, messages)
+	go tcpConfigServer.RunConfigServer()
 	//-----TCP
-	go runTCPServer()
+
+	tcpDataserver := tcpData.NewTCPDataServer(connHost, tcpConnPort, models.DBURL{connHost, dbPort}, reconnect)
+	go tcpDataserver.RunTCPServer()
 
 	wg.Wait()
 }

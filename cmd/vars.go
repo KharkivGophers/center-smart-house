@@ -1,9 +1,8 @@
 package main
 
 import (
-	"net/http"
+
 	"sync"
-	"github.com/gorilla/websocket"
 	"os"
 	"strconv"
 )
@@ -35,18 +34,7 @@ var (
 
 	wg    sync.WaitGroup
 
-	//This var is using by websocket
-	mapConn     = make(map[string]*listConnection)
-	upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			//if r.Host == connHost+":"+wsConnPort {
-			//	return true
-			//}
-			return true
-		},
-	}
+
 )
 
 func getEnvDbPort(key string) uint {
