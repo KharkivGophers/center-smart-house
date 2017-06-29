@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 
-
 	"github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/common"
 	. "github.com/KharkivGophers/center-smart-house/common/models"
@@ -27,11 +26,13 @@ type WSServer struct {
 
 func NewWebSocketConnections() *WSConnectionsMap {
 	var (
-		connChanCloseWS = make(chan *websocket.Conn)
-		stopCloseWS     = make(chan string)
-		mapConn         = make(map[string]*ListConnection)
+		connChanCloseWS   = make(chan *websocket.Conn)
+		stopCloseWS       = make(chan string)
+		mapConn           = make(map[string]*ListConnection)
+		MacChan           = make(chan string)
+		CloseMapCollector = make(chan string)
 	)
-	return &WSConnectionsMap{ConnChanCloseWS: connChanCloseWS, StopCloseWS: stopCloseWS, MapConn: mapConn}
+	return &WSConnectionsMap{ConnChanCloseWS: connChanCloseWS, StopCloseWS: stopCloseWS, MapConn: mapConn, MacChan: MacChan, CloseMapCollector: CloseMapCollector}
 }
 
 func NewPubSub(roomIDForWSPubSub string, stopSub chan bool, subWSChannel chan []string) *PubSub {
@@ -82,6 +83,7 @@ func (server *WSServer) StartWebSocketServer() {
 
 	go server.CloseWebsocket()
 	go server.WSSubscribe(myRedis)
+	go server.WSConnectionsMap.MapCollector()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/devices/{id}", server.WebSocketHandler)
@@ -113,6 +115,8 @@ func (server *WSServer) WebSocketHandler(w http.ResponseWriter, r *http.Request)
 	server.WSConnectionsMap.MapConn[uri[2]].Add(conn)
 	server.WSConnectionsMap.Unlock()
 
+	log.Info(len(server.WSConnectionsMap.MapConn))
+
 }
 
 /**
@@ -122,8 +126,10 @@ func (server *WSServer) CloseWebsocket() {
 	for {
 		select {
 		case connAddres := <-server.WSConnectionsMap.ConnChanCloseWS:
-			for _, val := range server.WSConnectionsMap.MapConn {
+			for key, val := range server.WSConnectionsMap.MapConn {
+
 				if ok := val.Remove(connAddres); ok {
+					server.WSConnectionsMap.MacChan <- key
 					break
 				}
 			}
@@ -151,8 +157,6 @@ func (server *WSServer) WSSubscribe(dbWorker dao.DbWorker) {
 		}
 	}
 }
-
-
 
 //We are check mac in our mapConnections.
 // If we have mac in the map we will send message to all connections.

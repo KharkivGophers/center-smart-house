@@ -7,9 +7,11 @@ import (
 )
 
 type WSConnectionsMap struct {
-	ConnChanCloseWS chan *websocket.Conn
-	StopCloseWS     chan string
-	MapConn         map[string]*ListConnection
+	ConnChanCloseWS   chan *websocket.Conn
+	StopCloseWS       chan string
+	MacChan           chan string
+	CloseMapCollector chan string
+	MapConn           map[string]*ListConnection
 	sync.Mutex
 }
 
@@ -46,14 +48,27 @@ func (list *ListConnection) Remove(conn *websocket.Conn) bool {
 	return false
 }
 
-func (connMap *WSConnectionsMap) Remove(mac string){
+func (connMap *WSConnectionsMap) Remove(mac string) {
 	connMap.Lock()
 	delete(connMap.MapConn, mac)
 	connMap.Unlock()
 }
-///////////------------------------------------------------------------------------------------>
-func (connMap *WSConnectionsMap) MapCollector(mac chan  string, ){
-	connMap.Lock()
-	delete(connMap.MapConn, mac)
-	connMap.Unlock()
+
+func (connMap *WSConnectionsMap) MapCollector() {
+	for {
+		select {
+		case mac := <-connMap.MacChan:
+			connMap.Lock()
+			if len(connMap.MapConn[mac].Connections) == 0 {
+				delete(connMap.MapConn, mac)
+				log.Info("REMOVE WSConnectionsMap --------------> ", len(connMap.MapConn),"  ", mac)
+
+			}
+			connMap.Unlock()
+
+		case <-connMap.CloseMapCollector:
+			return
+		}
+	}
+
 }
