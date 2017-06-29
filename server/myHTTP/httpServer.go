@@ -34,7 +34,7 @@ func (server *HTTPServer)RunDynamicServer() {
 	r.HandleFunc("/devices/{id}/config", server.patchDevConfigHandler).Methods("PATCH")
 
 	//provide static html pages
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./view/")))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("../view/")))
 
 	srv := &http.Server{
 		Handler:      r,

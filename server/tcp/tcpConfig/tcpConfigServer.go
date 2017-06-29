@@ -21,16 +21,17 @@ type TCPConfigServer struct {
 
 	reconnect *time.Ticker
 	pool      ConnectionPool
-	messages  chan []string
+	Messages  chan []string
 }
 
-func NewTCPConfigServer(host, port string, dburl DBURL, reconnect *time.Ticker)*TCPConfigServer{
-	messages  := make(chan []string)
-	return &TCPConfigServer{DBURL:dburl,
-	Host:host,
-	Port:port,
-	reconnect:reconnect,
-	messages:messages,}
+func NewTCPConfigServer(host, port string, dburl DBURL, reconnect *time.Ticker, messages  chan []string) *TCPConfigServer {
+	return &TCPConfigServer{
+		DBURL:     dburl,
+		Host:      host,
+		Port:      port,
+		reconnect: reconnect,
+		Messages:  messages,
+	}
 }
 
 func (server *TCPConfigServer) RunConfigServer() {
@@ -50,7 +51,7 @@ func (server *TCPConfigServer) RunConfigServer() {
 		}
 		server.reconnect.Stop()
 	}
-	go server.configSubscribe("configChan", server.messages, &server.pool)
+	go server.configSubscribe("configChan", server.Messages, &server.pool)
 
 	for {
 		conn, err := ln.Accept()
