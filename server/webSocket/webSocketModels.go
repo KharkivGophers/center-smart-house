@@ -10,6 +10,7 @@ type WSConnectionsMap struct {
 	ConnChanCloseWS chan *websocket.Conn
 	StopCloseWS     chan string
 	MapConn         map[string]*ListConnection
+	sync.Mutex
 }
 
 type PubSub struct {
