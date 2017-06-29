@@ -4,26 +4,25 @@ import (
 	"time"
 	"net/http"
 	"encoding/json"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
-
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"strings"
+
+
 	"github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/common"
-
 	. "github.com/KharkivGophers/center-smart-house/common/models"
 )
 
 type WSServer struct {
+	Host             string
+	Port             string
 	WSConnectionsMap WSConnectionsMap
 	PubSub           PubSub
 	DBURL            DBURL
-
-	Host     string
-	Port     string
-	Upgrader websocket.Upgrader
+	Upgrader         websocket.Upgrader
 }
 
 func NewWebSocketConnections() *WSConnectionsMap {
@@ -71,8 +70,8 @@ func NewWSServer(host, port string, pubSub PubSub, dburi DBURL, wsConnections WS
 			},
 		}
 	)
-	return &WSServer{wsConnections, pubSub,
-			 dburi, host, port, upgrader}
+	return &WSServer{host, port, wsConnections, pubSub,
+			 dburi, upgrader}
 }
 
 //myHTTP web socket connection
@@ -152,6 +151,8 @@ func (server *WSServer) WSSubscribe(dbWorker dao.DbWorker) {
 		}
 	}
 }
+
+
 
 //We are check mac in our mapConnections.
 // If we have mac in the map we will send message to all connections.

@@ -45,3 +45,15 @@ func (list *ListConnection) Remove(conn *websocket.Conn) bool {
 	}
 	return false
 }
+
+func (connMap *WSConnectionsMap) Remove(mac string){
+	connMap.Lock()
+	delete(connMap.MapConn, mac)
+	connMap.Unlock()
+}
+///////////------------------------------------------------------------------------------------>
+func (connMap *WSConnectionsMap) MapCollector(mac chan  string, ){
+	connMap.Lock()
+	delete(connMap.MapConn, mac)
+	connMap.Unlock()
+}
