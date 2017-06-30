@@ -3,15 +3,37 @@ package devices
 import (
 	"strconv"
 	"strings"
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"encoding/json"
-	"github.com/KharkivGophers/center-smart-house/dao"
+	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
+
 )
 
-func (server *TCPDataServer) SetDevData(req *Request) *ServerError {
-	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
-	defer myRedis.Close()
+type Fridge struct {
+}
+
+func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbInterface) DevData {
+	var device DevData
+
+	params, err := worker.SMembers(devParamsKey)
+	CheckError("Cant read members from devParamsKeys", err)
+	device.Meta.Type = devParamsKeysTokens[1]
+	device.Meta.Name = devParamsKeysTokens[2]
+	device.Meta.MAC = devParamsKeysTokens[3]
+	device.Data = make(map[string][]string)
+
+	values := make([][]string, len(params))
+	for i, p := range params {
+		values[i], err = worker.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
+		CheckError("Cant use ZRangeByScore", err)
+		device.Data[p] = values[i]
+	}
+	return device
+}
+
+func (fridge *Fridge) SetDevData(req *Request, worker DbInterface) *ServerError {
+	defer worker.Close()
 
 	var devData FridgeData
 	mac := req.Meta.MAC
@@ -22,11 +44,11 @@ func (server *TCPDataServer) SetDevData(req *Request) *ServerError {
 	devKey := "device" + ":" + devType + ":" + devName + ":" + mac
 	devParamsKey := devKey + ":" + "params"
 
-	_, err = myRedis.Client.SAdd("devParamsKeys", devParamsKey)
+	_, err := worker.SAdd("devParamsKeys", devParamsKey)
 	CheckError("DB error11", err)
-	_, err = myRedis.Client.HMSet(devKey, "ReqTime", devReqTime)
+	_, err = worker.HMSet(devKey, "ReqTime", devReqTime)
 	CheckError("DB error12", err)
-	_, err = myRedis.Client.SAdd(devParamsKey, "TempCam1", "TempCam2")
+	_, err = worker.SAdd(devParamsKey, "TempCam1", "TempCam2")
 	CheckError("DB error13", err)
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
@@ -36,7 +58,7 @@ func (server *TCPDataServer) SetDevData(req *Request) *ServerError {
 	}
 
 	for time, value := range devData.TempCam1 {
-		_, err := myRedis.Client.ZAdd(devParamsKey+":"+"TempCam1",
+		_, err := worker.ZAdd(devParamsKey+":"+"TempCam1",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
 		if CheckError("DB error14", err) != nil {
 			return &ServerError{Error: err}
@@ -44,7 +66,7 @@ func (server *TCPDataServer) SetDevData(req *Request) *ServerError {
 	}
 
 	for time, value := range devData.TempCam2 {
-		_, err := myRedis.Client.ZAdd(devParamsKey+":"+"TempCam2",
+		_, err := worker.ZAdd(devParamsKey+":"+"TempCam2",
 			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
 		if CheckError("DB error15", err) != nil {
 			return &ServerError{Error: err}
@@ -54,16 +76,16 @@ func (server *TCPDataServer) SetDevData(req *Request) *ServerError {
 	return nil
 }
 
-func (myRedis *MyRedis) GetDevConfig(configInfo, mac string) (*DevConfig) {
+func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbInterface) (*DevConfig) {
 	var config DevConfig
 
-	state, err := myRedis.Client.HMGet(configInfo, "TurnedOn")
+	state, err := worker.HMGet(configInfo, "TurnedOn")
 	CheckError("Get from DB error1: TurnedOn ", err)
-	sendFreq, err := myRedis.Client.HMGet(configInfo, "SendFreq")
+	sendFreq, err := worker.HMGet(configInfo, "SendFreq")
 	CheckError("Get from DB error2: SendFreq ", err)
-	collectFreq, err := myRedis.Client.HMGet(configInfo, "CollectFreq")
+	collectFreq, err := worker.HMGet(configInfo, "CollectFreq")
 	CheckError("Get from DB error3: CollectFreq ", err)
-	streamOn, err := myRedis.Client.HMGet(configInfo, "StreamOn")
+	streamOn, err := worker.HMGet(configInfo, "StreamOn")
 	CheckError("Get from DB error4: StreamOn ", err)
 
 	stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
@@ -72,7 +94,7 @@ func (myRedis *MyRedis) GetDevConfig(configInfo, mac string) (*DevConfig) {
 	streamOnBool, _ := strconv.ParseBool(strings.Join(streamOn, " "))
 
 	config = DevConfig{
-		MAC: mac,
+		MAC:         mac,
 		TurnedOn:    stateBool,
 		CollectFreq: int64(collectFreqInt),
 		SendFreq:    int64(sendFreqInt),
@@ -84,13 +106,13 @@ func (myRedis *MyRedis) GetDevConfig(configInfo, mac string) (*DevConfig) {
 	return &config
 }
 
-func  (myRedis *MyRedis) SetDevConfig(configInfo string, config *DevConfig) {
-	_, err := myRedis.Client.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker DbInterface) {
+	_, err := worker.HMSet(configInfo, "TurnedOn", config.TurnedOn)
 	CheckError("DB error1: TurnedOn", err)
-	_, err = myRedis.Client.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+	_, err = worker.HMSet(configInfo, "CollectFreq", config.CollectFreq)
 	CheckError("DB error2: CollectFreq", err)
-	_, err = myRedis.Client.HMSet(configInfo, "SendFreq", config.SendFreq)
+	_, err = worker.HMSet(configInfo, "SendFreq", config.SendFreq)
 	CheckError("DB error3: SendFreq", err)
-	_, err = myRedis.Client.HMSet(configInfo, "StreamOn", config.StreamOn)
+	_, err = worker.HMSet(configInfo, "StreamOn", config.StreamOn)
 	CheckError("DB error4: StreamOn", err)
 }

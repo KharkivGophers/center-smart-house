@@ -18,11 +18,11 @@ type HTTPServer struct{
 	Host     string
 	Port     string
 
-	DBURL	 DBURL
+	DbServer	Server
 }
 
-func NewHTTPServer (host, port string, dburl DBURL) *HTTPServer{
-	return &HTTPServer{Host:host, Port:port, DBURL: dburl}
+func NewHTTPServer (host, port string, dburl Server) *HTTPServer{
+	return &HTTPServer{Host:host, Port:port, DbServer: dburl}
 }
 
 func (server *HTTPServer)RunDynamicServer() {
@@ -53,7 +53,7 @@ func (server *HTTPServer)RunDynamicServer() {
 
 func (server *HTTPServer)getDevicesHandler(w http.ResponseWriter, r *http.Request) {
 
-	myRedis, err := dao.MyRedis{Host: server.DBURL.DbHost, Port: server.DBURL.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("HTTP Dynamic Connection: getDevicesHandler", err)
 
@@ -64,7 +64,7 @@ func (server *HTTPServer)getDevicesHandler(w http.ResponseWriter, r *http.Reques
 
 func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 
-	myRedis, err := dao.MyRedis{Host: server.DBURL.DbHost, Port: server.DBURL.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("HTTP Dynamic Connection: getDevDataHandler", err)
 
@@ -85,7 +85,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 	id := vars["id"] // type + mac
 	mac := strings.Split(id, ":")[2]
 
-	myRedis, err := dao.MyRedis{Host: server.DBURL.DbHost, Port: server.DBURL.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("HTTP Dynamic Connection: getDevConfigHandler", err)
 
@@ -103,7 +103,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	id := vars["id"] // warning!! type : name : mac
 	mac := strings.Split(id, ":")[2]
 
-	myRedis, err := dao.MyRedis{Host: server.DBURL.DbHost, Port: server.DBURL.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("HTTP Dynamic Connection: patchDevConfigHandler", err)
 

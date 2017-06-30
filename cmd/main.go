@@ -9,6 +9,7 @@ import (
 	"github.com/KharkivGophers/center-smart-house/servers/tcp/data"
 	"fmt"
 	"sync"
+	"github.com/KharkivGophers/center-smart-house/servers/tcp"
 )
 
 func main() {
@@ -29,11 +30,11 @@ func main() {
 	reconnect := time.NewTicker(time.Second * 1)
 	messages := make(chan []string)
 
-	tcpConfigServer := config.NewTCPConfigServer(models.Server{IP: centerIP, Port: tcpDevConfigPort}, dbServer, reconnect, messages)
+	tcpConfigServer := tcp.NewTCPConfigServer(models.Server{IP: centerIP, Port: tcpDevConfigPort}, dbServer, reconnect, messages)
 	go tcpConfigServer.RunConfigServer()
 
 	// tcp data
-	tcpDataServer := data.NewTCPDataServer(models.Server{IP: centerIP, Port: tcpDevDataPort}, dbServer, reconnect)
+	tcpDataServer := tcp.NewTCPDataServer(models.Server{IP: centerIP, Port: tcpDevDataPort}, dbServer, reconnect)
 	go tcpDataServer.RunTCPServer()
 
 	wg.Wait()

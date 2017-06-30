@@ -11,6 +11,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/models"
 	"github.com/KharkivGophers/center-smart-house/dao"
 	"fmt"
+	"github.com/KharkivGophers/center-smart-house/drivers"
 )
 
 type TCPConfigServer struct {
@@ -40,6 +41,9 @@ func NewDefaultConfig() *DevConfig {
 }
 
 func (server *TCPConfigServer) RunConfigServer() {
+
+	//TODO For this method could work correct we must add switch case. Which chose type our device. For exemle in TCP Data connection
+	//
 
 	server.Pool.Init()
 
@@ -82,7 +86,7 @@ func (server *TCPConfigServer) sendNewConfiguration(config DevConfig, pool *Conn
 	CheckError("sendNewConfig", err)
 }
 
-func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
+func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool, driver drivers.ConfigDevDriver) {
 	// Send Default Configuration to Device
 	var (
 		req    Request
@@ -105,7 +109,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 		CheckError("Get from DB error: TurnedOn ", err)
 
 		if strings.Join(state, " ") != "" {
-			config = myRedis.GetFridgeConfig(configInfo, req.Meta.MAC)
+			config = driver.GetDevConfig(configInfo, req.Meta.MAC)
 			log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 		}
 
@@ -113,7 +117,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = NewDefaultConfig()
-		myRedis.SetFridgeConfig(configInfo, config)
+		driver.SetDevConfig(configInfo, config)
 	}
 
 	err = json.NewEncoder(conn).Encode(&config)

@@ -2,6 +2,8 @@ package drivers
 
 import (
 	. "github.com/KharkivGophers/center-smart-house/models"
+	. "github.com/KharkivGophers/center-smart-house/dao"
+
 )
 
 type ConfigDevDriver interface {
@@ -10,6 +12,6 @@ type ConfigDevDriver interface {
 }
 
 type DataDevDriver interface {
-	GetDevData(configInfo, mac string) (*DevConfig)
-	SetDevData(configInfo string, config *DevConfig)
+	GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbInterface) DevData
+	SetDevData(req *Request, worker DbInterface) *ServerError
 }

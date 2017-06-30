@@ -19,7 +19,7 @@ type WSServer struct {
 	Port             string
 	WSConnectionsMap WSConnectionsMap
 	PubSub           PubSub
-	DBURL            DBURL
+	DbServer         Server
 	Upgrader         websocket.Upgrader
 }
 
@@ -45,7 +45,7 @@ func NewWebSocketServer(wsHost, wsPort, dbhost string, dbPort uint) *WSServer {
 		subWSChannel          = make(chan []string)
 	)
 
-	dburl := DBURL{DbHost: dbhost, DbPort: dbPort}
+	dburl := Server{IP: dbhost, Port: dbPort}
 	return NewWSServer(wsHost, wsPort, *NewPubSub(roomIDForDevWSPublish, stopSub, subWSChannel), dburl,
 		*NewWebSocketConnections())
 
@@ -57,7 +57,7 @@ func NewWebSocketServer(wsHost, wsPort, dbhost string, dbPort uint) *WSServer {
 // 	CheckOrigin: func(r *http.Request) bool {
 //			return true
 //	}
-func NewWSServer(host, port string, pubSub PubSub, dburi DBURL, wsConnections WSConnectionsMap) *WSServer {
+func NewWSServer(host, port string, pubSub PubSub, dburi Server, wsConnections WSConnectionsMap) *WSServer {
 	var (
 		upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -77,7 +77,7 @@ func NewWSServer(host, port string, pubSub PubSub, dburi DBURL, wsConnections WS
 //http web socket connection
 func (server *WSServer) StartWebSocketServer() {
 
-	myRedis, err := dao.MyRedis{Host: server.Host, Port: server.DBURL.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.Host, Port: server.DbServer.Port}.RunDBConnection()
 	CheckError("webSocket: runDBConnection", err)
 
 	go server.CloseWebsocket()
