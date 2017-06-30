@@ -1,6 +1,6 @@
 package dao
 import (
-	. "github.com/KharkivGophers/center-smart-house/common/models"
+	. "github.com/KharkivGophers/center-smart-house/models"
 
 )
 type DbWorker interface {
@@ -13,7 +13,11 @@ type DbWorker interface {
 	GetAllDevices() ([]DevData)
 	GetDevice(devParamsKey string, devParamsKeysTokens []string) (DevData)
 
+	// Not yet implemented
+	GetDevConfig(configInfo, devType string, mac string) (*DevConfig)
+	SetDevConfig(configInfo string, devType string, config *DevConfig)
+
 	// Only to Fridge. Must be refactored
-	GetFridgeConfig( configInfo, mac string) (*DevConfig)
+	GetFridgeConfig(configInfo, mac string) (*DevConfig)
 	SetFridgeConfig(configInfo string, config *DevConfig)
 }

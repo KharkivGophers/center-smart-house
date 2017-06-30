@@ -1,4 +1,4 @@
-package myHTTP
+package http
 
 import (
 	"net/http"
@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	. "github.com/KharkivGophers/center-smart-house/common/models"
+	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/common"
 	"github.com/KharkivGophers/center-smart-house/dao"
 )
@@ -49,7 +49,7 @@ func (server *HTTPServer)RunDynamicServer() {
 	go log.Fatal(srv.ListenAndServe())
 }
 
-//----------------------myHTTP Dynamic Connection----------------------------------------------------------------------------------
+//----------------------http Dynamic Connection----------------------------------------------------------------------------------
 
 func (server *HTTPServer)getDevicesHandler(w http.ResponseWriter, r *http.Request) {
 

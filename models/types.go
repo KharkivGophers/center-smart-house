@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+type Server struct {
+	IP string
+	Port uint
+}
+
 type ServerError struct {
 	Error   error
 	Message string
@@ -84,23 +89,16 @@ func (pool *ConnectionPool) GetConn(key string) net.Conn {
 	defer pool.Unlock()
 	return pool.conn[key]
 }
+
 func (pool *ConnectionPool) RemoveConn(key string)  {
 	pool.Lock()
 	defer pool.Unlock()
 	 delete(pool.conn, key)
 }
+
 func (pool *ConnectionPool) Init() {
 	pool.Lock()
 	defer pool.Unlock()
 
 	pool.conn = make(map[string]net.Conn)
 }
-
-//----------------------------------------
-
-type DBURL struct {
-	DbHost string
-	DbPort uint
-}
-
-

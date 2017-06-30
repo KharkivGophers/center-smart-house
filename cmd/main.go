@@ -1,36 +1,40 @@
 package main
 
 import (
-	"github.com/KharkivGophers/center-smart-house/server/webSocket"
-	"github.com/KharkivGophers/center-smart-house/server/myHTTP"
-	"github.com/KharkivGophers/center-smart-house/common/models"
-	"github.com/KharkivGophers/center-smart-house/server/tcp/tcpConfig"
+	"github.com/KharkivGophers/center-smart-house/servers/webSocket"
+	"github.com/KharkivGophers/center-smart-house/servers/http"
+	"github.com/KharkivGophers/center-smart-house/models"
+	"github.com/KharkivGophers/center-smart-house/servers/tcp/config"
 	"time"
-	"github.com/KharkivGophers/center-smart-house/server/tcp/tcpData"
+	"github.com/KharkivGophers/center-smart-house/servers/tcp/data"
+	"fmt"
+	"sync"
 )
 
 func main() {
 
+	var wg sync.WaitGroup
+
 	wg.Add(4)
 
-	// myHTTP connection with browser
-	httpserver := myHTTP.NewHTTPServer(connHost, httpConnPort, models.DBURL{connHost, dbPort})
-	go httpserver.RunDynamicServer()
+	// http connection with browser
+	httpServer := http.NewHTTPServer(centerIP, httpConnPort, dbServer)
+	go httpServer.RunDynamicServer()
 
-	// web socket server
-	server := webSocket.NewWebSocketServer(connHost, "2540", connHost, 6379)
-	go server.StartWebSocketServer()
+	// web socket servers
+	webSockerServer := webSocket.NewWebSocketServer(centerIP, fmt.Sprint(wsPort), centerIP, dbServer.Port)
+	go webSockerServer.StartWebSocketServer()
 
-	//-----TCP-Config
+	// tcp config
 	reconnect := time.NewTicker(time.Second * 1)
 	messages := make(chan []string)
-	tcpConfigServer := tcpConfig.NewTCPConfigServer(connHost, configPort,
-		models.DBURL{connHost, dbPort}, reconnect, messages)
-	go tcpConfigServer.RunConfigServer()
-	//-----TCP
 
-	tcpDataserver := tcpData.NewTCPDataServer(connHost, tcpConnPort, models.DBURL{connHost, dbPort}, reconnect)
-	go tcpDataserver.RunTCPServer()
+	tcpConfigServer := config.NewTCPConfigServer(models.Server{IP: centerIP, Port: tcpDevConfigPort}, dbServer, reconnect, messages)
+	go tcpConfigServer.RunConfigServer()
+
+	// tcp data
+	tcpDataServer := data.NewTCPDataServer(models.Server{IP: centerIP, Port: tcpDevDataPort}, dbServer, reconnect)
+	go tcpDataServer.RunTCPServer()
 
 	wg.Wait()
 }

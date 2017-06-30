@@ -1,40 +1,33 @@
 package main
 
 import (
-
-	"sync"
 	"os"
 	"strconv"
+	"github.com/KharkivGophers/center-smart-house/models"
 )
 
-//var from main.go
 var (
-	//Database
-	dbHost     = getEnvDbHost("REDIS_PORT_6379_TCP_ADDR")
-	dbPort     = getEnvDbPort("REDIS_PORT_6379_TCP_PORT")
-	//General
-	connHost = "0.0.0.0"
+	dbServer = models.Server{
+		IP: getEnvDbHost("REDIS_PORT_6379_TCP_ADDR"),
+		Port: getEnvDbPort("REDIS_PORT_6379_TCP_PORT"),
+	}
 
-	//tcp conn with devices
-	connType    = "tcp"
-	tcpConnPort = "3030"
+	centerIP = "0.0.0.0"
 
-	//myHTTP connection
+	// tcp data connection with devices
+	dataConnType    = "tcp"
+	tcpDevDataPort = uint(3030)
+
+	// http connection with browser
 	httpConnPort = "8100"
 
-	//for TCP config
+	// tcp config connection with devices
 	configConnType = "tcp"
-	configHost     = "0.0.0.0"
-	configPort     = "3000"
+	tcpDevConfigPort  = uint(3000)
 
-	//Web-socket connections
-	wsConnPort            = "2540"
+	// web-socket connection
+	wsPort            = uint(2540)
 	roomIDForDevWSPublish = "devWS"
-
-
-	wg    sync.WaitGroup
-
-
 )
 
 func getEnvDbPort(key string) uint {

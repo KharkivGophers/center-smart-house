@@ -1,4 +1,4 @@
-package tcpConfig
+package tcp
 
 import (
 	"strings"
@@ -8,55 +8,60 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	. "github.com/KharkivGophers/center-smart-house/common"
-	. "github.com/KharkivGophers/center-smart-house/common/models"
+	. "github.com/KharkivGophers/center-smart-house/models"
 	"github.com/KharkivGophers/center-smart-house/dao"
+	"fmt"
 )
 
 type TCPConfigServer struct {
-	DBURL
-
-	Host string
-	Port string
-
-	reconnect *time.Ticker
-	pool      ConnectionPool
+	DbServer	Server
+	LocalServer	Server
+	Reconnect	*time.Ticker
+	Pool      ConnectionPool
 	Messages  chan []string
 }
 
-func NewTCPConfigServer(host, port string, dburl DBURL, reconnect *time.Ticker, messages  chan []string) *TCPConfigServer {
+func NewTCPConfigServer(local Server, db Server, reconnect *time.Ticker, messages  chan []string) *TCPConfigServer {
 	return &TCPConfigServer{
-		DBURL:     dburl,
-		Host:      host,
-		Port:      port,
-		reconnect: reconnect,
+		LocalServer: local,
+		DbServer:		db,
+		Reconnect: reconnect,
 		Messages:  messages,
+	}
+}
+
+func NewDefaultConfig() *DevConfig {
+	return &DevConfig {
+		TurnedOn:    true,
+		StreamOn:    true,
+		CollectFreq: 1000,
+		SendFreq:    5000,
 	}
 }
 
 func (server *TCPConfigServer) RunConfigServer() {
 
-	server.pool.Init()
+	server.Pool.Init()
 
-	myRedis, err := dao.MyRedis{Host: server.DbHost, Port: server.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("TCP Connection: runConfigServer", err)
 
-	ln, err := net.Listen("tcp", server.Host+":"+server.Port)
+	ln, err := net.Listen("tcp", server.LocalServer.IP + ":" + fmt.Sprint(server.LocalServer.Port))
 
 	for err != nil {
-
-		for range server.reconnect.C {
-			ln, _ = net.Listen("tcp", server.Host+":"+server.Port)
+		for range server.Reconnect.C {
+			ln, _ = net.Listen("tcp", server.LocalServer.IP + ":" + fmt.Sprint(server.LocalServer.Port))
 		}
-		server.reconnect.Stop()
+		server.Reconnect.Stop()
 	}
-	go server.configSubscribe("configChan", server.Messages, &server.pool)
+
+	go server.configSubscribe("configChan", server.Messages, &server.Pool)
 
 	for {
 		conn, err := ln.Accept()
 		CheckError("TCP config conn Accept", err)
-		go server.sendDefaultConfiguration(conn, &server.pool)
+		go server.sendDefaultConfiguration(conn, &server.Pool)
 	}
 }
 
@@ -84,7 +89,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 		config *DevConfig
 	)
 
-	myRedis, err := dao.MyRedis{Host: server.DbHost, Port: server.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("DBConnection Error in ----> sendDefaultConfiguration", err)
 	err = json.NewDecoder(conn).Decode(&req)
@@ -97,7 +102,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	if ok, _ := myRedis.Client.Exists(configInfo); ok {
 
 		state, err := myRedis.Client.HMGet(configInfo, "TurnedOn")
-		CheckError("Get from DB error1: TurnedOn ", err)
+		CheckError("Get from DB error: TurnedOn ", err)
 
 		if strings.Join(state, " ") != "" {
 			config = myRedis.GetFridgeConfig(configInfo, req.Meta.MAC)
@@ -107,7 +112,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	} else {
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
-		config = CreateDefaultConfigToFridge()
+		config = NewDefaultConfig()
 		myRedis.SetFridgeConfig(configInfo, config)
 	}
 
@@ -117,7 +122,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 }
 
 func (server *TCPConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {
-	myRedis, err := dao.MyRedis{Host: server.DbHost, Port: server.DbPort}.RunDBConnection()
+	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("TCP Connection: runConfigServer", err)
 
@@ -132,16 +137,5 @@ func (server *TCPConfigServer) configSubscribe(roomID string, message chan []str
 				go server.sendNewConfiguration(config, pool)
 			}
 		}
-	}
-}
-
-// Only fridge. must be refactored------------------------------------------------------------
-
-func CreateDefaultConfigToFridge() *DevConfig {
-	return &DevConfig{
-		TurnedOn:    true,
-		StreamOn:    true,
-		CollectFreq: 1000,
-		SendFreq:    5000,
 	}
 }

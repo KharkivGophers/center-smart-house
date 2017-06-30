@@ -13,7 +13,7 @@ import (
 	"github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/common"
 
-	. "github.com/KharkivGophers/center-smart-house/common/models"
+	. "github.com/KharkivGophers/center-smart-house/models"
 )
 
 type WSServer struct {
@@ -56,7 +56,7 @@ func NewWebSocketServer(wsHost, wsPort, dbhost string, dbPort uint) *WSServer {
 // Return referenced address on the WSServer with default Upgrader where:
 // 	ReadBufferSize:  1024,
 // 	WriteBufferSize: 1024,
-// 	CheckOrigin: func(r *myHTTP.Request) bool {
+// 	CheckOrigin: func(r *http.Request) bool {
 //			return true
 //	}
 func NewWSServer(host, port string , pubSub PubSub, dburi DBURL, wsConnections WSConnectionsMap) *WSServer {
@@ -76,7 +76,7 @@ func NewWSServer(host, port string , pubSub PubSub, dburi DBURL, wsConnections W
 			 dburi, host, port, upgrader}
 }
 
-//myHTTP web socket connection
+//http web socket connection
 func (server *WSServer) StartWebSocketServer() {
 
 	myRedis, err := dao.MyRedis{Host: server.Host, Port: server.DbPort}.RunDBConnection()
