@@ -12,6 +12,6 @@ type ConfigDevDriver interface {
 }
 
 type DataDevDriver interface {
-	GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbInterface) DevData
-	SetDevData(req *Request, worker DbInterface) *ServerError
+	GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisInteractor) DevData
+	SetDevData(req *Request, worker RedisInteractor) *ServerError
 }

@@ -3,7 +3,9 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/models"
 
 )
-type DbWorker interface {
+
+// Abstract database interface.
+type DbInteractor interface {
 	FlushAll() (error)
 	Publish(channel string, message interface{}) (int64, error)
 	Connect()(error)
@@ -22,7 +24,8 @@ type DbWorker interface {
 	//SetFridgeConfig(configInfo string, config *DevConfig)
 }
 
-type DbInterface interface {
+// Concrete redis database interface.
+type RedisInteractor interface {
 	SAdd(key string, member ...interface{}) (int64, error)
 	ZAdd(key string, arguments ...interface{}) (int64, error)
 

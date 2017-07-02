@@ -7,13 +7,15 @@ import (
 	"encoding/json"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
-
 )
 
 type Fridge struct {
+	Data	FridgeData
+	Config	DevConfig
+	Meta	DevMeta
 }
 
-func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbInterface) DevData {
+func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisInteractor) DevData {
 	var device DevData
 
 	params, err := worker.SMembers(devParamsKey)
@@ -32,7 +34,7 @@ func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []stri
 	return device
 }
 
-func (fridge *Fridge) SetDevData(req *Request, worker DbInterface) *ServerError {
+func (fridge *Fridge) SetDevData(req *Request, worker RedisInteractor) *ServerError {
 	defer worker.Close()
 
 	var devData FridgeData
@@ -76,7 +78,7 @@ func (fridge *Fridge) SetDevData(req *Request, worker DbInterface) *ServerError 
 	return nil
 }
 
-func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbInterface) (*DevConfig) {
+func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker RedisInteractor) (*DevConfig) {
 	var config DevConfig
 
 	state, err := worker.HMGet(configInfo, "TurnedOn")
@@ -106,7 +108,7 @@ func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbInterface) (
 	return &config
 }
 
-func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker DbInterface) {
+func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker RedisInteractor) {
 	_, err := worker.HMSet(configInfo, "TurnedOn", config.TurnedOn)
 	CheckError("DB error1: TurnedOn", err)
 	_, err = worker.HMSet(configInfo, "CollectFreq", config.CollectFreq)

@@ -30,17 +30,6 @@ type DevConfig struct {
 	MAC         string `json:"mac"`
 }
 
-type DevConfigFreqs struct {
-	CollectFreq int64  `json:"collectFreq"`
-	SendFreq    int64  `json:"sendFreq"`
-	MAC         string `json:"mac"`
-}
-
-type DevConfigTurnedOn struct {
-	TurnedOn bool   `json:"turnedOn"`
-	MAC      string `json:"mac"`
-}
-
 type DevMeta struct {
 	Type string `json:"type"`
 	Name string `json:"name"`
