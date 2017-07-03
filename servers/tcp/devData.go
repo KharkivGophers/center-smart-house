@@ -107,3 +107,5 @@ func (server *TCPDataServer) devTypeHandler(req Request) string {
 	}
 	return string("Device request correct")
 }
+
+

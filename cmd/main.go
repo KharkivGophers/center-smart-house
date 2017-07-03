@@ -4,9 +4,9 @@ import (
 	"github.com/KharkivGophers/center-smart-house/servers/webSocket"
 	"github.com/KharkivGophers/center-smart-house/servers/http"
 	"github.com/KharkivGophers/center-smart-house/models"
-	"github.com/KharkivGophers/center-smart-house/servers/tcp/config"
+
 	"time"
-	"github.com/KharkivGophers/center-smart-house/servers/tcp/data"
+
 	"fmt"
 	"sync"
 	"github.com/KharkivGophers/center-smart-house/servers/tcp"

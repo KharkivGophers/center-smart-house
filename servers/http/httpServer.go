@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	. "github.com/KharkivGophers/center-smart-house/models"
-	. "github.com/KharkivGophers/center-smart-house/common"
 	"github.com/KharkivGophers/center-smart-house/dao"
 )
 
@@ -81,6 +80,7 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
+	//TODO For this method could work correct we must add switch case. Which chose type our device. For exemle in TCP Data connection
 	vars := mux.Vars(r)
 	id := vars["id"] // type + mac
 	mac := strings.Split(id, ":")[2]
@@ -97,7 +97,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-
+	//TODO For this method could work correct we must add switch case. cd Which chose type our device. For exemle in TCP Data connection
 	var config *DevConfig
 	vars := mux.Vars(r)
 	id := vars["id"] // warning!! type : name : mac

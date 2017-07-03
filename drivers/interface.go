@@ -7,8 +7,8 @@ import (
 )
 
 type ConfigDevDriver interface {
-	GetDevConfig(configInfo, mac string) (*DevConfig)
-	SetDevConfig(configInfo string, config *DevConfig)
+	GetDevConfig(configInfo, mac string, worker RedisInteractor) (*DevConfig)
+	SetDevConfig(configInfo string, config *DevConfig, worker RedisInteractor)
 }
 
 type DataDevDriver interface {

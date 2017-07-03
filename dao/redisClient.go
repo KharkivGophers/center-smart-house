@@ -59,7 +59,7 @@ func (myRedis MyRedis)RunDBConnection() (*MyRedis, error) {
 	return  &myRedis, err
 }
 
-func  PublishWS(req Request, roomID string, worker DbWorker ) {
+func  PublishWS(req Request, roomID string, worker DbInteractor) {
 	pubReq, err := json.Marshal(req)
 	CheckError("Marshal for publish.", err)
 
