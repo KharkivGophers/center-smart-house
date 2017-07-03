@@ -142,7 +142,7 @@ func (server *WSServer) CloseWebsocket() {
 /*
 Listens changes in database. If they have, we will send to all websocket which working with them.
 */
-func (server *WSServer) WSSubscribe(dbWorker dao.DbWorker) {
+func (server *WSServer) WSSubscribe(dbWorker dao.DbInteractor) {
 	dbWorker.Subscribe(server.PubSub.SubWSChannel, server.PubSub.RoomIDForWSPubSub)
 	for {
 		select {

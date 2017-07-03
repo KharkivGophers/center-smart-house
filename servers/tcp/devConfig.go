@@ -12,7 +12,6 @@ import (
 	"github.com/KharkivGophers/center-smart-house/dao"
 	"fmt"
 	"github.com/KharkivGophers/center-smart-house/drivers"
-	"github.com/KharkivGophers/center-smart-house/drivers/devices"
 )
 
 type TCPConfigServer struct {
@@ -98,16 +97,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	switch req.Meta.Type {
-	case "fridge":
-		device = &devices.Fridge{}
-	case "washer":
-		//if err := req.washerDataHandler(); err != nil {
-		//	log.Errorf("%v", err.Error)
-		//}
-	default:
-		log.Println("Device request: unknown device type")
-	}
+	device = *drivers.SelectDevice(req)
 
 	// Send Default Configuration to Device
 

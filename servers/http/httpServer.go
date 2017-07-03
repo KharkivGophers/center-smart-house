@@ -11,6 +11,7 @@ import (
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	"github.com/KharkivGophers/center-smart-house/dao"
+	"github.com/KharkivGophers/center-smart-house/drivers"
 )
 
 type HTTPServer struct{
@@ -83,33 +84,46 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 	//TODO For this method could work correct we must add switch case. Which chose type our device. For exemle in TCP Data connection
 	vars := mux.Vars(r)
 	id := vars["id"] // type + mac
-	mac := strings.Split(id, ":")[2]
+	macAndType := strings.Split(id, ":")
 
 	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("HTTP Dynamic Connection: getDevConfigHandler", err)
 
-	configInfo := mac + ":" + "config" // key
+	configInfo := macAndType[2] + ":" + "config" // key
 
-	var config = myRedis.GetFridgeConfig(configInfo, mac)
-
+	var device drivers.ConfigDevDriver = *drivers.SelectDeviceString(macAndType[0])
+	log.Info(device)
+	if device==nil{
+		http.Error(w, "This type is not found", 400)
+		return
+	}
+	config := device.GetDevConfig(configInfo, macAndType[2], myRedis.Client)
 	json.NewEncoder(w).Encode(config)
 }
 
 func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-	//TODO For this method could work correct we must add switch case. cd Which chose type our device. For exemle in TCP Data connection
+
 	var config *DevConfig
 	vars := mux.Vars(r)
 	id := vars["id"] // warning!! type : name : mac
-	mac := strings.Split(id, ":")[2]
+	typeAndMac := strings.Split(id, ":")
 
 	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
 	defer myRedis.Close()
 	CheckError("HTTP Dynamic Connection: patchDevConfigHandler", err)
 
-	configInfo := mac + ":" + "config" // key
+	configInfo := typeAndMac[2] + ":" + "config" // key
 
-	config =  myRedis.GetFridgeConfig(configInfo, mac)
+	log.Info()
+
+	var device drivers.ConfigDevDriver = *drivers.SelectDeviceString(typeAndMac[0])
+	if device==nil{
+		http.Error(w, "This type is not found", 400)
+		return
+	}
+	config = device.GetDevConfig(configInfo, typeAndMac[2], myRedis.Client)
+
 
 	// log.Warnln("Config Before", config)
 	err = json.NewDecoder(r.Body).Decode(&config)
@@ -140,7 +154,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 		http.Error(w, "Send Frequency should be more than 150!", 400)
 	} else {
 		// Save New Configuration to DB
-		myRedis.SetFridgeConfig(configInfo,config)
+		device.SetDevConfig(configInfo,config, myRedis.Client)
 		log.Println("New Config was added to DB: ", config)
 		JSONСonfig, _ := json.Marshal(config)
 		myRedis.Publish("configChan",JSONСonfig)
