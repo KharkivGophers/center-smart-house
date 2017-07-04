@@ -9,7 +9,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	. "github.com/KharkivGophers/center-smart-house/models"
-	"github.com/KharkivGophers/center-smart-house/dao"
+	. "github.com/KharkivGophers/center-smart-house/dao"
 	"fmt"
 	"github.com/KharkivGophers/center-smart-house/drivers"
 )
@@ -47,9 +47,11 @@ func (server *TCPConfigServer) RunConfigServer() {
 
 	server.Pool.Init()
 
-	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
-	defer myRedis.Close()
-	CheckError("TCP Connection: runConfigServer", err)
+	dbClient, err := GetDBConnection(server.DbServer)
+	defer dbClient.Close()
+	if CheckError("TCP Connection: runConfigServer", err)!= nil{
+		return
+	}
 
 	ln, err := net.Listen("tcp", server.LocalServer.IP+":"+fmt.Sprint(server.LocalServer.Port))
 
@@ -97,26 +99,27 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	device = *drivers.SelectDevice(req)
+	device = *drivers.IdentDevRequest(req)
 
 	// Send Default Configuration to Device
 
-	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
-	defer myRedis.Close()
-	CheckError("DBConnection Error in ----> sendDefaultConfiguration", err)
-
+	dbClient, err := GetDBConnection(server.DbServer)
+	defer dbClient.Close()
+	if CheckError("DBConnection Error in ----> sendDefaultConfiguration", err)!= nil{
+		return
+	}
 
 	pool.AddConn(conn, req.Meta.MAC)
 
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
-	if ok, _ := myRedis.Client.Exists(configInfo); ok {
+	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
 
-		state, err := myRedis.Client.HMGet(configInfo, "TurnedOn")
+		state, err := dbClient.GetClient().HMGet(configInfo, "TurnedOn")
 		CheckError("Get from DB error: TurnedOn ", err)
 
 		if strings.Join(state, " ") != "" {
-			config = device.GetDevConfig(configInfo, req.Meta.MAC, myRedis.Client)
+			config = device.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
 			log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 		}
 
@@ -124,7 +127,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = NewDefaultConfig()
-		device.SetDevConfig(configInfo, config,myRedis.Client)
+		device.SetDevConfig(configInfo, config,dbClient.GetClient())
 	}
 
 	err = json.NewEncoder(conn).Encode(&config)
@@ -133,11 +136,15 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 }
 
 func (server *TCPConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {
-	myRedis, err := dao.MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
-	defer myRedis.Close()
-	CheckError("TCP Connection: runConfigServer", err)
 
-	myRedis.Subscribe(message, roomID)
+
+	dbClient, err := GetDBConnection(server.DbServer)
+	defer dbClient.Close()
+	if CheckError("TCP Connection: runConfigServer", err)!= nil{
+		return
+	}
+
+	dbClient.Subscribe(message, roomID)
 	for {
 		var config DevConfig
 		select {

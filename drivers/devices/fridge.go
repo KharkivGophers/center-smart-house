@@ -15,7 +15,7 @@ type Fridge struct {
 	Meta	DevMeta
 }
 
-func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisInteractor) DevData {
+func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisClient) DevData {
 	var device DevData
 
 	params, err := worker.SMembers(devParamsKey)
@@ -34,7 +34,7 @@ func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []stri
 	return device
 }
 
-func (fridge *Fridge) SetDevData(req *Request, worker RedisInteractor) *ServerError {
+func (fridge *Fridge) SetDevData(req *Request, worker RedisClient) *ServerError {
 	defer worker.Close()
 
 	var devData FridgeData
@@ -78,7 +78,7 @@ func (fridge *Fridge) SetDevData(req *Request, worker RedisInteractor) *ServerEr
 	return nil
 }
 
-func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker RedisInteractor) (*DevConfig) {
+func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker RedisClient) (*DevConfig) {
 	var config DevConfig
 
 	state, err := worker.HMGet(configInfo, "TurnedOn")
@@ -108,7 +108,7 @@ func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker RedisInteracto
 	return &config
 }
 
-func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker RedisInteractor) {
+func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker RedisClient) {
 	_, err := worker.HMSet(configInfo, "TurnedOn", config.TurnedOn)
 	CheckError("DB error1: TurnedOn", err)
 	_, err = worker.HMSet(configInfo, "CollectFreq", config.CollectFreq)

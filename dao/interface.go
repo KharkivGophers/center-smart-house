@@ -5,17 +5,18 @@ import (
 )
 
 // Abstract database interface.
-type DbInteractor interface {
+type DbClient interface {
 	FlushAll() (error)
 	Publish(channel string, message interface{}) (int64, error)
 	Connect()(error)
 	Subscribe(cn chan []string, channel ...string) error
 	Close() (error)
-	RunDBConnection() (*MyRedis, error)
+	RunDBConnection() (error)
 	GetAllDevices() ([]DevData)
 	GetDevice(devParamsKey string, devParamsKeysTokens []string) (DevData)
+	GetClient() RedisClient
 
-	// Not yet implemented
+	// Not yet implemented.
 	//GetDevConfig(configInfo, devType string, mac string) (*DevConfig)
 	//SetDevConfig(configInfo string, devType string, config *DevConfig)
 
@@ -24,8 +25,9 @@ type DbInteractor interface {
 	//SetFridgeConfig(configInfo string, config *DevConfig)
 }
 
-// Concrete redis database interface.
-type RedisInteractor interface {
+
+// Concrete redis Condatabase interface.
+type RedisClient interface {
 	SAdd(key string, member ...interface{}) (int64, error)
 	ZAdd(key string, arguments ...interface{}) (int64, error)
 
@@ -37,4 +39,6 @@ type RedisInteractor interface {
 
 	Close() error
 	Connect(host string, port uint) (err error)
+
+	Exists(key string) (bool, error)
 }

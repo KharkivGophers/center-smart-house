@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 
-	"github.com/KharkivGophers/center-smart-house/dao"
+	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 )
 
@@ -77,11 +77,11 @@ func NewWSServer(host, port string, pubSub PubSub, dburi Server, wsConnections W
 //http web socket connection
 func (server *WSServer) StartWebSocketServer() {
 
-	myRedis, err := dao.MyRedis{Host: server.Host, Port: server.DbServer.Port}.RunDBConnection()
+	dbClient, err := GetDBConnection(server.DbServer)
 	CheckError("webSocket: runDBConnection", err)
 
 	go server.CloseWebsocket()
-	go server.WSSubscribe(myRedis)
+	go server.WSSubscribe(dbClient)
 	go server.WSConnectionsMap.MapCollector()
 
 	r := mux.NewRouter()
@@ -142,7 +142,7 @@ func (server *WSServer) CloseWebsocket() {
 /*
 Listens changes in database. If they have, we will send to all websocket which working with them.
 */
-func (server *WSServer) WSSubscribe(dbWorker dao.DbInteractor) {
+func (server *WSServer) WSSubscribe(dbWorker DbClient) {
 	dbWorker.Subscribe(server.PubSub.SubWSChannel, server.PubSub.RoomIDForWSPubSub)
 	for {
 		select {

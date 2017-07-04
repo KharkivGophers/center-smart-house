@@ -78,8 +78,12 @@ Checks  type device and call special func for send data to DB.
 */
 func (server *TCPDataServer) devTypeHandler(req Request) string {
 
-	myRedis, err := MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port}.RunDBConnection()
-	CheckError("devTypeHandler: Db Connection", err)
+
+	dbClient, err := GetDBConnection(server.DbServer)
+	defer dbClient.Close()
+	if CheckError("devTypeHandler: Db Connection", err)!= nil{
+		return string("Data base connection error")
+	}
 
 	switch req.Action {
 	case "update":
@@ -96,7 +100,7 @@ func (server *TCPDataServer) devTypeHandler(req Request) string {
 			log.Println("Device request: unknown device type")
 			return string("Device request: unknown device type")
 		}
-		data.SetDevData(&req, myRedis.Client)
+		data.SetDevData(&req, dbClient.GetClient())
 		go PublishWS(req, "devWS", &MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port})
 		//go publishWS(req)
 

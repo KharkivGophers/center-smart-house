@@ -22,6 +22,11 @@ func (myRedis *MyRedis) FlushAll() error {
 	_, err := myRedis.Client.FlushAll()
 	return err
 }
+
+func (myRedis *MyRedis) GetClient() RedisClient{
+	return  myRedis.Client
+}
+
 func (myRedis *MyRedis)Publish(channel string, message interface{}) (int64, error){
 	return myRedis.Client.Publish(channel,message)
 }
@@ -43,7 +48,7 @@ func (myRedis *MyRedis) Close() error{
 	return  myRedis.Client.Close()
 }
 
-func (myRedis MyRedis)RunDBConnection() (*MyRedis, error) {
+func (myRedis *MyRedis)RunDBConnection() (error) {
 	err := myRedis.Connect()
 	CheckError("RunDBConnection error: ", err)
 	for err != nil {
@@ -56,17 +61,17 @@ func (myRedis MyRedis)RunDBConnection() (*MyRedis, error) {
 		log.Errorln("err not nil")
 	}
 
-	return  &myRedis, err
+	return err
 }
 
-func  PublishWS(req Request, roomID string, worker DbInteractor) {
+func  PublishWS(req Request, roomID string, worker DbClient) {
 	pubReq, err := json.Marshal(req)
 	CheckError("Marshal for publish.", err)
 
-	dbClient, _ := worker.RunDBConnection()
-	defer dbClient.Close()
+	worker.RunDBConnection()
+	defer worker.Close()
 
-	_, err = dbClient.Publish(roomID, pubReq)
+	_, err = worker.Publish(roomID, pubReq)
 	CheckError("Publish", err)
 }
 
@@ -122,4 +127,14 @@ func (myRedis *MyRedis) GetDevice(devParamsKey string, devParamsKeysTokens []str
 		device.Data[p] = values[i]
 	}
 	return device
+}
+
+
+func GetDBConnection(db Server) (DbClient, error) {
+	client := &MyRedis{Host: db.IP, Port: db.Port}
+	err := client.RunDBConnection()
+	if err !=nil{
+		return nil, err
+	}
+	return client, nil
 }

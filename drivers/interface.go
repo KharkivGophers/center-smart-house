@@ -7,11 +7,11 @@ import (
 )
 
 type ConfigDevDriver interface {
-	GetDevConfig(configInfo, mac string, worker RedisInteractor) (*DevConfig)
-	SetDevConfig(configInfo string, config *DevConfig, worker RedisInteractor)
+	GetDevConfig(configInfo, mac string, worker RedisClient) (*DevConfig)
+	SetDevConfig(configInfo string, config *DevConfig, worker RedisClient)
 }
 
 type DataDevDriver interface {
-	GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisInteractor) DevData
-	SetDevData(req *Request, worker RedisInteractor) *ServerError
+	GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisClient) DevData
+	SetDevData(req *Request, worker RedisClient) *ServerError
 }
