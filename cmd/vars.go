@@ -19,7 +19,7 @@ var (
 	tcpDevDataPort = uint(3030)
 
 	// http connection with browser
-	httpConnPort = "8100"
+	httpConnPort = uint(8100)
 
 	// tcp config connection with devices
 	configConnType = "tcp"

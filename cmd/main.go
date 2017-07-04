@@ -19,7 +19,7 @@ func main() {
 	wg.Add(4)
 
 	// http connection with browser
-	httpServer := http.NewHTTPServer(centerIP, httpConnPort, dbServer)
+	httpServer := http.NewHTTPServer(models.Server{IP: centerIP, Port: httpConnPort}, dbServer)
 	go httpServer.RunDynamicServer()
 
 	// web socket servers
