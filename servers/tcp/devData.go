@@ -11,6 +11,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/drivers"
 	"fmt"
+	. "github.com/KharkivGophers/center-smart-house/sysFunc"
 	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
 )
 

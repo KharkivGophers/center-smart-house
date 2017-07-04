@@ -7,12 +7,13 @@ import (
 	"encoding/json"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
+	. "github.com/KharkivGophers/center-smart-house/sysFunc"
 )
 
 type Fridge struct {
-	Data	FridgeData
-	Config	DevConfig
-	Meta	DevMeta
+	Data   FridgeData
+	Config DevConfig
+	Meta   DevMeta
 }
 
 func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisClient) DevData {
@@ -117,4 +118,24 @@ func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker 
 	CheckError("DB error3: SendFreq", err)
 	_, err = worker.HMSet(configInfo, "StreamOn", config.StreamOn)
 	CheckError("DB error4: StreamOn", err)
+}
+
+func (fridge *Fridge) ValidateDevData(config DevConfig) (bool, string){
+	if !ValidateMAC(config.MAC) {
+		log.Error("Invalid MAC")
+		return false, "Invalid MAC"
+	} else if !ValidateStreamOn(config.StreamOn) {
+		log.Error("Invalid Stream Value")
+		return false, "Invalid Stream Value"
+	} else if !ValidateTurnedOn(config.TurnedOn) {
+		log.Error("Invalid Turned Value")
+		return false, "Invalid Turned Value"
+	} else if !ValidateCollectFreq(config.CollectFreq) {
+		log.Error("Invalid Collect Frequency Value")
+		return false, "Collect Frequency should be more than 150!"
+	} else if !ValidateSendFreq(config.SendFreq) {
+		log.Error("Invalid Send Frequency Value")
+		return false, "Send Frequency should be more than 150!"
+	}
+	return true, ""
 }

@@ -1,8 +1,8 @@
-package drivers
+package devices
 
 import (
 	log "github.com/Sirupsen/logrus"
-	"github.com/KharkivGophers/center-smart-house/drivers/devices"
+	. "github.com/KharkivGophers/center-smart-house/drivers"
 	. "github.com/KharkivGophers/center-smart-house/models"
 )
 
@@ -12,7 +12,7 @@ func IdentDevRequest(req Request)(*ConfigDevDriver){
 	)
 	switch req.Meta.Type {
 	case "fridge":
-		device = &devices.Fridge{}
+		device = &Fridge{}
 	case "washer":
 	default:
 		log.Println("Device request: unknown device type")
@@ -27,7 +27,7 @@ func IdentDevString(typeDev string)(*ConfigDevDriver){
 	)
 	switch typeDev {
 	case "fridge":
-		device = &devices.Fridge{}
+		device = &Fridge{}
 	case "washer":
 	default:
 		log.Println("Device request: unknown device type")

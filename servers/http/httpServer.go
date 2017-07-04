@@ -11,7 +11,9 @@ import (
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	"github.com/KharkivGophers/center-smart-house/drivers"
+	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
 	. "github.com/KharkivGophers/center-smart-house/dao"
+	. "github.com/KharkivGophers/center-smart-house/sysFunc"
 	"strconv"
 )
 
@@ -89,48 +91,51 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	id := vars["id"] // type + mac
-	macAndType := strings.Split(id, ":")
-
-	dbClient, err := GetDBConnection(server.DbServer)
-	defer dbClient.Close()
-	if CheckError("HTTP Dynamic Connection: getDevConfigHandler", err)!= nil{
+	devMeta := DevMeta{MAC:vars["mac"], Type:vars["type"], Name:vars["name"]}
+	_, err :=ValidateDevMeta(devMeta)
+	if err != nil {
+		log.Error(err)
 		return
 	}
 
-	configInfo := macAndType[2] + ":" + "config" // key
+	dbClient, err := GetDBConnection(server.DbServer)
+	defer dbClient.Close()
 
-	var device drivers.ConfigDevDriver = *drivers.IdentDevString(macAndType[0])
+	configInfo := devMeta.MAC + ":" + "config" // key
+
+	var device drivers.ConfigDevDriver = *IdentDevString(devMeta.Type)
 	log.Info(device)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return
 	}
-	config := device.GetDevConfig(configInfo, macAndType[2], dbClient.GetClient())
+	config := device.GetDevConfig(configInfo, devMeta.MAC, dbClient.GetClient())
 	json.NewEncoder(w).Encode(config)
 }
 
 func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	var config *DevConfig
-	vars := mux.Vars(r)
-	id := vars["id"] // warning!! type : name : mac
-	typeAndMac := strings.Split(id, ":")
 
-	dbClient, err := GetDBConnection(server.DbServer)
-	defer dbClient.Close()
-	if CheckError("HTTP Dynamic Connection: patchDevConfigHandler", err)!= nil{
+	vars := mux.Vars(r)
+	devMeta := DevMeta{MAC:vars["mac"], Type:vars["type"], Name:vars["name"]}
+	_, err :=ValidateDevMeta(devMeta)
+	if err != nil {
+		log.Error(err)
 		return
 	}
 
-	configInfo := typeAndMac[2] + ":" + "config" // key
+	dbClient, err := GetDBConnection(server.DbServer)
+	defer dbClient.Close()
 
-	var device drivers.ConfigDevDriver = *drivers.IdentDevString(typeAndMac[0])
+	configInfo := devMeta.MAC + ":" + "config" // key
+
+	var device drivers.ConfigDevDriver = *IdentDevString(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return
 	}
-	config = device.GetDevConfig(configInfo, typeAndMac[2], dbClient.GetClient())
+	config = device.GetDevConfig(configInfo, devMeta.MAC, dbClient.GetClient())
 
 
 	// log.Warnln("Config Before", config)
@@ -144,22 +149,9 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	log.Info(config)
 	CheckError("Encode error", err) // log.Warnln("Config After: ", config)
 
-
-	if !ValidateMAC(config.MAC) {
-		log.Error("Invalid MAC")
-		http.Error(w, "Invalid MAC", 400)
-	} else if !ValidateStreamOn(config.StreamOn) {
-		log.Error("Invalid Stream Value")
-		http.Error(w, "Invalid Stream Value", 400)
-	} else if !ValidateTurnedOn(config.TurnedOn) {
-		log.Error("Invalid Turned Value")
-		http.Error(w, "Invalid Turned Value", 400)
-	} else if !ValidateCollectFreq(config.CollectFreq) {
-		log.Error("Invalid Collect Frequency Value")
-		http.Error(w, "Collect Frequency should be more than 150!", 400)
-	} else if !ValidateSendFreq(config.SendFreq) {
-		log.Error("Invalid Send Frequency Value")
-		http.Error(w, "Send Frequency should be more than 150!", 400)
+	valid, message := device.ValidateDevData(*config)
+	if  !valid{
+		http.Error(w, message, 400)
 	} else {
 		// Save New Configuration to DB
 		device.SetDevConfig(configInfo,config, dbClient.GetClient())

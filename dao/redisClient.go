@@ -3,6 +3,7 @@ package dao
 import (
 	"menteslibres.net/gosexy/redis"
 	. "github.com/KharkivGophers/center-smart-house/models"
+	. "github.com/KharkivGophers/center-smart-house/sysFunc"
 	log "github.com/Sirupsen/logrus"
 
 

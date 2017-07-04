@@ -9,6 +9,7 @@ import (
 type ConfigDevDriver interface {
 	GetDevConfig(configInfo, mac string, worker RedisClient) (*DevConfig)
 	SetDevConfig(configInfo string, config *DevConfig, worker RedisClient)
+	ValidateDevData(config DevConfig) (bool, string)
 }
 
 type DataDevDriver interface {

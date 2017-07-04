@@ -1,8 +1,10 @@
-package models
+package sysFunc
 
 import (
 	log "github.com/Sirupsen/logrus"
 	"strconv"
+	. "github.com/KharkivGophers/center-smart-house/models"
+	"errors"
 )
 
 //-----------------Common functions-------------------------------------------------------------------------------------------
@@ -22,7 +24,6 @@ func Float32ToString(num float64) string {
 func Int64ToString(n int64) string {
 	return strconv.FormatInt(int64(n), 10)
 }
-
 
 // Validate MAC got from User
 func ValidateMAC(mac interface{}) bool {
@@ -96,4 +97,16 @@ func ValidateStreamOn(streamOn interface{}) bool {
 		log.Error("StreamOn should be in bool format!")
 		return false
 	}
+}
+
+func ValidateDevMeta(meta DevMeta) (bool, error) {
+	var err string
+	if !ValidateMAC(meta.MAC) {
+		log.Error("Invalid MAC")
+		err += "Invalid MAC. "
+	}
+	if err != "" {
+		return false, errors.New(err)
+	}
+	return true, nil
 }

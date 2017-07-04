@@ -10,6 +10,8 @@ import (
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/dao"
+	. "github.com/KharkivGophers/center-smart-house/sysFunc"
+	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
 	"fmt"
 	"github.com/KharkivGophers/center-smart-house/drivers"
 )
@@ -99,7 +101,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	device = *drivers.IdentDevRequest(req)
+	device = *IdentDevRequest(req)
 
 	// Send Default Configuration to Device
 
