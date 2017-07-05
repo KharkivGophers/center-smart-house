@@ -9,10 +9,11 @@ import (
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/dao"
-	. "github.com/KharkivGophers/center-smart-house/drivers"
+	. "github.com/KharkivGophers/center-smart-house/driver"
 	"fmt"
-	. "github.com/KharkivGophers/center-smart-house/sysFunc"
-	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
+	. "github.com/KharkivGophers/center-smart-house/sys"
+	. "github.com/KharkivGophers/center-smart-house/driver/devices"
+	"sync"
 )
 
 type TCPDataServer struct {
@@ -29,8 +30,8 @@ func NewTCPDataServer(local Server, db Server, reconnect *time.Ticker) *TCPDataS
 	}
 }
 
-func (server *TCPDataServer) RunTCPServer() {
-
+func (server *TCPDataServer) RunTCPServer(wg sync.WaitGroup) {
+	wg.Add(1)
 	ln, err := net.Listen("tcp", server.LocalServer.IP+":"+fmt.Sprint(server.LocalServer.Port))
 
 	for err != nil {
@@ -47,6 +48,7 @@ func (server *TCPDataServer) RunTCPServer() {
 			go server.tcpDataHandler(conn)
 		}
 	}
+	wg.Done()
 }
 
 //--------------------TCP-------------------------------------------------------------------------------------

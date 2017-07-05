@@ -25,8 +25,7 @@ type DbClient interface {
 	//SetFridgeConfig(configInfo string, config *DevConfig)
 }
 
-
-// Concrete redis Condatabase interface.
+// Concrete redis database interface.
 type RedisClient interface {
 	SAdd(key string, member ...interface{}) (int64, error)
 	ZAdd(key string, arguments ...interface{}) (int64, error)

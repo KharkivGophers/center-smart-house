@@ -10,10 +10,11 @@ import (
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/dao"
-	. "github.com/KharkivGophers/center-smart-house/sysFunc"
-	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
+	. "github.com/KharkivGophers/center-smart-house/sys"
+	. "github.com/KharkivGophers/center-smart-house/driver/devices"
 	"fmt"
-	"github.com/KharkivGophers/center-smart-house/drivers"
+	"github.com/KharkivGophers/center-smart-house/driver"
+	"sync"
 )
 
 type TCPConfigServer struct {
@@ -42,11 +43,11 @@ func NewDefaultConfig() *DevConfig {
 	}
 }
 
-func (server *TCPConfigServer) RunConfigServer() {
+func (server *TCPConfigServer) RunConfigServer(wg sync.WaitGroup) {
 
 	//TODO For this method could work correct we must add switch case. Which chose type our device. For exemle in TCP Data connection
 	//
-
+	wg.Add(1)
 	server.Pool.Init()
 
 	dbClient, err := GetDBConnection(server.DbServer)
@@ -71,6 +72,7 @@ func (server *TCPConfigServer) RunConfigServer() {
 		CheckError("TCP config conn Accept", err)
 		go server.sendDefaultConfiguration(conn, &server.Pool)
 	}
+	wg.Done()
 }
 
 func (server *TCPConfigServer) sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
@@ -95,13 +97,13 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	var (
 		req    Request
 		config *DevConfig
-		device drivers.ConfigDevDriver
+		device driver.ConfigDevDriver
 
 	)
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	device = *IdentDevRequest(req)
+	device = *IdentifyDevRequest(req)
 
 	// Send Default Configuration to Device
 

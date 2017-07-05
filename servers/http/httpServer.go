@@ -10,11 +10,12 @@ import (
 	"strings"
 
 	. "github.com/KharkivGophers/center-smart-house/models"
-	"github.com/KharkivGophers/center-smart-house/drivers"
-	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
+	"github.com/KharkivGophers/center-smart-house/driver"
+	. "github.com/KharkivGophers/center-smart-house/driver/devices"
 	. "github.com/KharkivGophers/center-smart-house/dao"
-	. "github.com/KharkivGophers/center-smart-house/sysFunc"
+	. "github.com/KharkivGophers/center-smart-house/sys"
 	"strconv"
+	"sync"
 )
 
 type HTTPServer struct{
@@ -27,7 +28,8 @@ func NewHTTPServer (local , db Server) *HTTPServer{
 }
 
 
-func (server *HTTPServer)RunDynamicServer() {
+func (server *HTTPServer)RunHTTPServer(wg sync.WaitGroup) {
+	wg.Add(1)
 	r := mux.NewRouter()
 	r.HandleFunc("/devices", server.getDevicesHandler).Methods("GET")
 	r.HandleFunc("/devices/{id}/data", server.getDevDataHandler).Methods("GET")
@@ -51,6 +53,7 @@ func (server *HTTPServer)RunDynamicServer() {
 	http.ListenAndServe( server.LocalServer.IP + ":" + port, handlers.CORS()(r))
 
 	go log.Fatal(srv.ListenAndServe())
+	wg.Done()
 }
 
 //----------------------http Dynamic Connection----------------------------------------------------------------------------------
@@ -103,7 +106,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 
 	configInfo := devMeta.MAC + ":" + "config" // key
 
-	var device drivers.ConfigDevDriver = *IdentDevString(devMeta.Type)
+	var device driver.ConfigDevDriver = *IdentifyDevString(devMeta.Type)
 	log.Info(device)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
@@ -130,7 +133,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 	configInfo := devMeta.MAC + ":" + "config" // key
 
-	var device drivers.ConfigDevDriver = *IdentDevString(devMeta.Type)
+	var device driver.ConfigDevDriver = *IdentifyDevString(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return

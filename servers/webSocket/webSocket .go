@@ -12,7 +12,8 @@ import (
 
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
-	. "github.com/KharkivGophers/center-smart-house/sysFunc"
+	. "github.com/KharkivGophers/center-smart-house/sys"
+	"sync"
 )
 
 type WSServer struct {
@@ -76,8 +77,8 @@ func NewWSServer(host, port string, pubSub PubSub, dburi Server, wsConnections W
 }
 
 //http web socket connection
-func (server *WSServer) StartWebSocketServer() {
-
+func (server *WSServer) RunWebSocketServer(wg sync.WaitGroup) {
+	wg.Add(1)
 	dbClient, err := GetDBConnection(server.DbServer)
 	CheckError("webSocket: runDBConnection", err)
 
@@ -95,6 +96,7 @@ func (server *WSServer) StartWebSocketServer() {
 		ReadTimeout:  15 * time.Second,
 	}
 	go log.Fatal(srv.ListenAndServe())
+	wg.Done()
 }
 
 //-------------------WEB Socket--------------------------------------------------------------------------------------------
