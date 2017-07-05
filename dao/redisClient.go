@@ -19,7 +19,7 @@ type MyRedis struct {
 	Port   uint
 }
 
-func (myRedis *MyRedis) FlushAll() error {
+func (myRedis *MyRedis) FlushAll () error {
 	_, err := myRedis.Client.FlushAll()
 	return err
 }
@@ -28,11 +28,11 @@ func (myRedis *MyRedis) GetClient() RedisClient{
 	return  myRedis.Client
 }
 
-func (myRedis *MyRedis)Publish(channel string, message interface{}) (int64, error){
+func (myRedis *MyRedis)Publish (channel string, message interface{}) (int64, error){
 	return myRedis.Client.Publish(channel,message)
 }
 
-func (myRedis *MyRedis)Connect()(error) {
+func (myRedis *MyRedis)Connect() (error) {
 	if myRedis.Host == "" || myRedis.Port == 0{
 		return errors.New("Empty value. Check Host or Port.")
 	}
@@ -49,17 +49,13 @@ func (myRedis *MyRedis) Close() error{
 	return  myRedis.Client.Close()
 }
 
-func (myRedis *MyRedis)RunDBConnection() (error) {
+func (myRedis *MyRedis) RunDBConnection() (error) {
 	err := myRedis.Connect()
 	CheckError("RunDBConnection error: ", err)
 	for err != nil {
-		log.Errorln("1 Database: connection has failed:", err)
+		log.Errorln("Database: connection has failed:", err)
 		time.Sleep(time.Second)
 		err = myRedis.Connect()
-		if err == nil {
-			continue
-		}
-		log.Errorln("err not nil")
 	}
 
 	return err
@@ -76,12 +72,14 @@ func  PublishWS(req Request, roomID string, worker DbClient) {
 	CheckError("Publish", err)
 }
 
-func (myRedis *MyRedis)GetAllDevices() []DevData {
+func (myRedis *MyRedis) GetAllDevices() []DevData {
+	myRedis.RunDBConnection()
+
 	var device DevData
 	var devices []DevData
 
 	devParamsKeys, err := myRedis.Client.SMembers("devParamsKeys")
-	if CheckError("Cant read members from devParamsKeys", err) != nil {
+	if CheckError("Can't read members from devParamsKeys", err) != nil {
 		return nil
 	}
 
@@ -92,7 +90,7 @@ func (myRedis *MyRedis)GetAllDevices() []DevData {
 
 	for index, key := range devParamsKeysTokens {
 		params, err := myRedis.Client.SMembers(devParamsKeys[index])
-		CheckError("Cant read members from "+devParamsKeys[index], err)
+		CheckError("Can't read members from "+devParamsKeys[index], err)
 
 		device.Meta.Type = key[1]
 		device.Meta.Name = key[2]
@@ -102,7 +100,7 @@ func (myRedis *MyRedis)GetAllDevices() []DevData {
 		values := make([][]string, len(params))
 		for i, p := range params {
 			values[i], _ = myRedis.Client.ZRangeByScore(devParamsKeys[index]+":"+p, "-inf", "inf")
-			CheckError("Cant use ZRangeByScore for "+devParamsKeys[index], err)
+			CheckError("Can't use ZRangeByScore for "+devParamsKeys[index], err)
 			device.Data[p] = values[i]
 		}
 
@@ -112,10 +110,12 @@ func (myRedis *MyRedis)GetAllDevices() []DevData {
 }
 
 func (myRedis *MyRedis) GetDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
+	myRedis.RunDBConnection()
+
 	var device DevData
 
 	params, err := myRedis.Client.SMembers(devParamsKey)
-	CheckError("Cant read members from devParamsKeys", err)
+	CheckError("Can't read members from devParamsKeys", err)
 	device.Meta.Type = devParamsKeysTokens[1]
 	device.Meta.Name = devParamsKeysTokens[2]
 	device.Meta.MAC = devParamsKeysTokens[3]
@@ -124,18 +124,14 @@ func (myRedis *MyRedis) GetDevice(devParamsKey string, devParamsKeysTokens []str
 	values := make([][]string, len(params))
 	for i, p := range params {
 		values[i], err = myRedis.Client.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
-		CheckError("Cant use ZRangeByScore", err)
+		CheckError("Can't use ZRangeByScore", err)
 		device.Data[p] = values[i]
 	}
 	return device
 }
 
-
-func GetDBConnection(db Server) (DbClient, error) {
+func GetDBConnection(db Server) (DbClient) {
 	client := &MyRedis{Host: db.IP, Port: db.Port}
-	err := client.RunDBConnection()
-	if err !=nil{
-		return nil, err
-	}
-	return client, nil
+	client.RunDBConnection()
+	return client
 }

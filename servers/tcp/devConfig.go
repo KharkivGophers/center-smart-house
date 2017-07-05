@@ -14,7 +14,6 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/driver/devices"
 	"fmt"
 	"github.com/KharkivGophers/center-smart-house/driver"
-	"sync"
 )
 
 type TCPConfigServer struct {
@@ -43,18 +42,11 @@ func NewDefaultConfig() *DevConfig {
 	}
 }
 
-func (server *TCPConfigServer) RunConfigServer(wg sync.WaitGroup) {
-
-	//TODO For this method could work correct we must add switch case. Which chose type our device. For exemle in TCP Data connection
-	//
-	wg.Add(1)
+func (server *TCPConfigServer) RunConfigServer(control Control) {
 	server.Pool.Init()
 
-	dbClient, err := GetDBConnection(server.DbServer)
+	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
-	if CheckError("TCP Connection: runConfigServer", err)!= nil{
-		return
-	}
 
 	ln, err := net.Listen("tcp", server.LocalServer.IP+":"+fmt.Sprint(server.LocalServer.Port))
 
@@ -72,12 +64,9 @@ func (server *TCPConfigServer) RunConfigServer(wg sync.WaitGroup) {
 		CheckError("TCP config conn Accept", err)
 		go server.sendDefaultConfiguration(conn, &server.Pool)
 	}
-	wg.Done()
 }
 
 func (server *TCPConfigServer) sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
-
-
 	connection := pool.GetConn(config.MAC)
 	if connection == nil {
 		log.Error("Has not connection with mac:config.MAC  in connectionPool")
@@ -103,15 +92,12 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	device = *IdentifyDevRequest(req)
+	device = *IdentifyDev(req.Meta.Type)
 
 	// Send Default Configuration to Device
 
-	dbClient, err := GetDBConnection(server.DbServer)
+	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
-	if CheckError("DBConnection Error in ----> sendDefaultConfiguration", err)!= nil{
-		return
-	}
 
 	pool.AddConn(conn, req.Meta.MAC)
 
@@ -140,13 +126,8 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 }
 
 func (server *TCPConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {
-
-
-	dbClient, err := GetDBConnection(server.DbServer)
+	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
-	if CheckError("TCP Connection: runConfigServer", err)!= nil{
-		return
-	}
 
 	dbClient.Subscribe(message, roomID)
 	for {

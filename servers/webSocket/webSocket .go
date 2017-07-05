@@ -50,7 +50,6 @@ func NewWebSocketServer(wsHost, wsPort, dbhost string, dbPort uint) *WSServer {
 	dburl := Server{IP: dbhost, Port: dbPort}
 	return NewWSServer(wsHost, wsPort, *NewPubSub(roomIDForDevWSPublish, stopSub, subWSChannel), dburl,
 		*NewWebSocketConnections())
-
 }
 
 // Return referenced address on the WSServer with default Upgrader where:
@@ -77,10 +76,8 @@ func NewWSServer(host, port string, pubSub PubSub, dburi Server, wsConnections W
 }
 
 //http web socket connection
-func (server *WSServer) RunWebSocketServer(wg sync.WaitGroup) {
-	wg.Add(1)
-	dbClient, err := GetDBConnection(server.DbServer)
-	CheckError("webSocket: runDBConnection", err)
+func (server *WSServer) RunWebSocketServer(control Control) {
+	dbClient := GetDBConnection(server.DbServer)
 
 	go server.CloseWebsocket()
 	go server.WSSubscribe(dbClient)
@@ -96,7 +93,6 @@ func (server *WSServer) RunWebSocketServer(wg sync.WaitGroup) {
 		ReadTimeout:  15 * time.Second,
 	}
 	go log.Fatal(srv.ListenAndServe())
-	wg.Done()
 }
 
 //-------------------WEB Socket--------------------------------------------------------------------------------------------

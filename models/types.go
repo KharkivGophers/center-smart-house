@@ -4,7 +4,26 @@ import (
 	"encoding/json"
 	"net"
 	"sync"
+	"time"
+	"log"
 )
+
+type Control struct {
+	Controller chan struct{}
+}
+
+func (c *Control) Close() {
+	select {
+	case <- c.Controller:
+	default:
+		close(c.Controller)
+	}
+}
+
+func (c *Control) Wait() {
+	<- c.Controller
+	<-time.NewTimer(6).C
+}
 
 type Server struct {
 	IP string

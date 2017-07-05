@@ -13,7 +13,6 @@ import (
 	"fmt"
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	. "github.com/KharkivGophers/center-smart-house/driver/devices"
-	"sync"
 )
 
 type TCPDataServer struct {
@@ -30,8 +29,7 @@ func NewTCPDataServer(local Server, db Server, reconnect *time.Ticker) *TCPDataS
 	}
 }
 
-func (server *TCPDataServer) RunTCPServer(wg sync.WaitGroup) {
-	wg.Add(1)
+func (server *TCPDataServer) RunTCPServer(control Control) {
 	ln, err := net.Listen("tcp", server.LocalServer.IP+":"+fmt.Sprint(server.LocalServer.Port))
 
 	for err != nil {
@@ -48,7 +46,6 @@ func (server *TCPDataServer) RunTCPServer(wg sync.WaitGroup) {
 			go server.tcpDataHandler(conn)
 		}
 	}
-	wg.Done()
 }
 
 //--------------------TCP-------------------------------------------------------------------------------------
@@ -80,13 +77,8 @@ func (server *TCPDataServer) tcpDataHandler(conn net.Conn) {
 Checks  type device and call special func for send data to DB.
 */
 func (server *TCPDataServer) devTypeHandler(req Request) string {
-
-
-	dbClient, err := GetDBConnection(server.DbServer)
+	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
-	if CheckError("devTypeHandler: Db Connection", err)!= nil{
-		return string("Data base connection error")
-	}
 
 	switch req.Action {
 	case "update":
