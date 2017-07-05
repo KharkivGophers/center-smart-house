@@ -65,7 +65,7 @@ func  PublishWS(req Request, roomID string, worker DbClient) {
 	pubReq, err := json.Marshal(req)
 	CheckError("Marshal for publish.", err)
 
-	worker.RunDBConnection()
+	worker.Connect()
 	defer worker.Close()
 
 	_, err = worker.Publish(roomID, pubReq)

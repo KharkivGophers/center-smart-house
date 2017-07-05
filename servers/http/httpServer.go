@@ -91,7 +91,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dbClient, err := GetDBConnection(server.DbServer)
+	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
 	configInfo := devMeta.MAC + ":" + "config" // key

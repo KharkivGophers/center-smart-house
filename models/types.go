@@ -5,7 +5,6 @@ import (
 	"net"
 	"sync"
 	"time"
-	"log"
 )
 
 type Control struct {

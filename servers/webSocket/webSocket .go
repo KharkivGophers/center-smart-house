@@ -13,7 +13,6 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	"sync"
 )
 
 type WSServer struct {
