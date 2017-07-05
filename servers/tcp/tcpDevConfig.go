@@ -11,25 +11,27 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	. "github.com/KharkivGophers/center-smart-house/driver/devices"
 	"fmt"
-	"github.com/KharkivGophers/center-smart-house/driver"
+	. "github.com/KharkivGophers/center-smart-house/drivers"
 )
 
-type TCPConfigServer struct {
+type TCPDevConfigServer struct {
 	DbServer    Server
 	LocalServer Server
 	Reconnect   *time.Ticker
 	Pool        ConnectionPool
 	Messages    chan []string
+	Controller  RoutinesController
 }
 
-func NewTCPConfigServer(local Server, db Server, reconnect *time.Ticker, messages chan []string) *TCPConfigServer {
-	return &TCPConfigServer{
+func NewTCPDevConfigServer(local Server, db Server, reconnect *time.Ticker, messages chan []string,
+	controller RoutinesController) *TCPDevConfigServer {
+	return &TCPDevConfigServer{
 		LocalServer: local,
 		DbServer:    db,
 		Reconnect:   reconnect,
 		Messages:    messages,
+		Controller: controller,
 	}
 }
 
@@ -42,7 +44,14 @@ func NewDefaultConfig() *DevConfig {
 	}
 }
 
-func (server *TCPConfigServer) RunConfigServer(control Control) {
+func (server *TCPDevConfigServer) Run() {
+	defer func() {
+		if r := recover(); r != nil {
+			server.Controller.Close()
+			log.Error("TCPDevConfigServer Failed")
+		}
+	} ()
+
 	server.Pool.Init()
 
 	dbClient := GetDBConnection(server.DbServer)
@@ -66,7 +75,7 @@ func (server *TCPConfigServer) RunConfigServer(control Control) {
 	}
 }
 
-func (server *TCPConfigServer) sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
+func (server *TCPDevConfigServer) sendNewConfiguration(config DevConfig, pool *ConnectionPool) {
 	connection := pool.GetConn(config.MAC)
 	if connection == nil {
 		log.Error("Has not connection with mac:config.MAC  in connectionPool")
@@ -82,11 +91,11 @@ func (server *TCPConfigServer) sendNewConfiguration(config DevConfig, pool *Conn
 	CheckError("sendNewConfig", err)
 }
 
-func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
+func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 	var (
 		req    Request
 		config *DevConfig
-		device driver.ConfigDevDriver
+		device DevConfigDriver
 
 	)
 	err := json.NewDecoder(conn).Decode(&req)
@@ -125,7 +134,7 @@ func (server *TCPConfigServer) sendDefaultConfiguration(conn net.Conn, pool *Con
 	log.Warningln("Configuration has been successfully sent")
 }
 
-func (server *TCPConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {
+func (server *TCPDevConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 

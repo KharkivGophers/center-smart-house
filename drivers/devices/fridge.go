@@ -16,7 +16,7 @@ type Fridge struct {
 	Meta   DevMeta
 }
 
-func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker RedisClient) DevData {
+func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbRedisDriver) DevData {
 	var device DevData
 
 	params, err := worker.SMembers(devParamsKey)
@@ -35,7 +35,7 @@ func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []stri
 	return device
 }
 
-func (fridge *Fridge) SetDevData(req *Request, worker RedisClient) *ServerError {
+func (fridge *Fridge) SetDevData(req *Request, worker DbRedisDriver) *ServerError {
 	defer worker.Close()
 
 	var devData FridgeData
@@ -62,7 +62,7 @@ func (fridge *Fridge) SetDevData(req *Request, worker RedisClient) *ServerError 
 
 	for time, value := range devData.TempCam1 {
 		_, err := worker.ZAdd(devParamsKey+":"+"TempCam1",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(value))
 		if CheckError("DB error14", err) != nil {
 			return &ServerError{Error: err}
 		}
@@ -70,7 +70,7 @@ func (fridge *Fridge) SetDevData(req *Request, worker RedisClient) *ServerError 
 
 	for time, value := range devData.TempCam2 {
 		_, err := worker.ZAdd(devParamsKey+":"+"TempCam2",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(float64(value)))
+			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(value))
 		if CheckError("DB error15", err) != nil {
 			return &ServerError{Error: err}
 		}
@@ -79,7 +79,7 @@ func (fridge *Fridge) SetDevData(req *Request, worker RedisClient) *ServerError 
 	return nil
 }
 
-func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker RedisClient) (*DevConfig) {
+func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
 	var config DevConfig
 
 	state, err := worker.HMGet(configInfo, "TurnedOn")
@@ -109,7 +109,7 @@ func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker RedisClient) (
 	return &config
 }
 
-func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker RedisClient) {
+func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
 	_, err := worker.HMSet(configInfo, "TurnedOn", config.TurnedOn)
 	CheckError("DB error1: TurnedOn", err)
 	_, err = worker.HMSet(configInfo, "CollectFreq", config.CollectFreq)

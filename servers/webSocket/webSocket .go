@@ -13,19 +13,19 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	"sync"
+	"fmt"
 )
 
 type WSServer struct {
-	Host             string
-	Port             string
-	WSConnectionsMap WSConnectionsMap
-	PubSub           PubSub
-	DbServer         Server
-	Upgrader         websocket.Upgrader
+	LocalServer Server
+	Connections WSConnectionsMap
+	PubSub      PubSub
+	DbServer    Server
+	Upgrader    websocket.Upgrader
+	Controller  RoutinesController
 }
 
-func NewWebSocketConnections() *WSConnectionsMap {
+func NewWSConnections() *WSConnectionsMap {
 	var (
 		connChanCloseWS   = make(chan *websocket.Conn)
 		stopCloseWS       = make(chan string)
@@ -33,23 +33,32 @@ func NewWebSocketConnections() *WSConnectionsMap {
 		MacChan           = make(chan string)
 		CloseMapCollector = make(chan string)
 	)
-	return &WSConnectionsMap{ConnChanCloseWS: connChanCloseWS, StopCloseWS: stopCloseWS, MapConn: mapConn, MacChan: MacChan, CloseMapCollector: CloseMapCollector}
+	return &WSConnectionsMap{
+		ConnChanCloseWS: connChanCloseWS,
+		StopCloseWS: stopCloseWS,
+		MapConn: mapConn,
+		MacChan: MacChan,
+		CloseMapCollector: CloseMapCollector,
+	}
 }
 
 func NewPubSub(roomIDForWSPubSub string, stopSub chan bool, subWSChannel chan []string) *PubSub {
-	return &PubSub{RoomIDForWSPubSub: roomIDForWSPubSub, StopSub: stopSub, SubWSChannel: subWSChannel}
+	return &PubSub{
+		RoomIDForWSPubSub: roomIDForWSPubSub,
+		StopSub: stopSub,
+		SubWSChannel: subWSChannel,
+	}
 }
 
-func NewWebSocketServer(wsHost, wsPort, dbhost string, dbPort uint) *WSServer {
+func NewWebSocketServer(ws, db Server, controller RoutinesController) *WSServer {
 	var (
 		roomIDForDevWSPublish = "devWS"
 		stopSub               = make(chan bool)
 		subWSChannel          = make(chan []string)
 	)
 
-	dburl := Server{IP: dbhost, Port: dbPort}
-	return NewWSServer(wsHost, wsPort, *NewPubSub(roomIDForDevWSPublish, stopSub, subWSChannel), dburl,
-		*NewWebSocketConnections())
+	return NewWSServer(ws, db, *NewPubSub(roomIDForDevWSPublish, stopSub, subWSChannel),
+		*NewWSConnections(), controller)
 }
 
 // Return referenced address on the WSServer with default Upgrader where:
@@ -58,37 +67,49 @@ func NewWebSocketServer(wsHost, wsPort, dbhost string, dbPort uint) *WSServer {
 // 	CheckOrigin: func(r *http.Request) bool {
 //			return true
 //	}
-func NewWSServer(host, port string, pubSub PubSub, dburi Server, wsConnections WSConnectionsMap) *WSServer {
+func NewWSServer(ws, db Server, pubSub PubSub, wsConnections WSConnectionsMap, controller RoutinesController) *WSServer {
 	var (
 		upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 			CheckOrigin: func(r *http.Request) bool {
-				if r.Host == host+":"+port {
+				if r.Host == ws.IP+":" + fmt.Sprint(ws.Port) {
 					return true
 				}
 				return true
 			},
 		}
 	)
-	return &WSServer{host, port, wsConnections, pubSub,
-			 dburi, upgrader}
+	return &WSServer{
+		LocalServer: ws,
+		Connections: wsConnections,
+		PubSub: pubSub,
+		DbServer: db,
+		Upgrader: upgrader,
+	}
 }
 
 //http web socket connection
-func (server *WSServer) RunWebSocketServer(control Control) {
+func (server *WSServer) Run() {
+	defer func() {
+		if r := recover(); r != nil {
+			server.Controller.Close()
+			log.Error("WebSocketServer Failed")
+		}
+	} ()
+
 	dbClient := GetDBConnection(server.DbServer)
 
-	go server.CloseWebsocket()
-	go server.WSSubscribe(dbClient)
-	go server.WSConnectionsMap.MapCollector()
+	go server.Close()
+	go server.Subscribe(dbClient)
+	go server.Connections.MapCollector()
 
 	r := mux.NewRouter()
-	r.HandleFunc("/devices/{id}", server.WebSocketHandler)
+	r.HandleFunc("/devices/{id}", server.WSHandler)
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         server.Host + ":" + server.Port,
+		Addr:         server.LocalServer.IP + ":" + fmt.Sprint(server.LocalServer.Port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
@@ -96,7 +117,7 @@ func (server *WSServer) RunWebSocketServer(control Control) {
 }
 
 //-------------------WEB Socket--------------------------------------------------------------------------------------------
-func (server *WSServer) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
+func (server *WSServer) WSHandler(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := server.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -104,35 +125,35 @@ func (server *WSServer) WebSocketHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	//http://..../device/type/name/mac
-	server.WSConnectionsMap.Lock()
+	server.Connections.Lock()
 	uri := strings.Split(r.URL.String(), "/")
 
-	if _, ok := server.WSConnectionsMap.MapConn[uri[2]]; !ok {
-		server.WSConnectionsMap.MapConn[uri[2]] = new(ListConnection)
+	if _, ok := server.Connections.MapConn[uri[2]]; !ok {
+		server.Connections.MapConn[uri[2]] = new(ListConnection)
 	}
-	server.WSConnectionsMap.MapConn[uri[2]].Add(conn)
-	server.WSConnectionsMap.Unlock()
+	server.Connections.MapConn[uri[2]].Add(conn)
+	server.Connections.Unlock()
 
-	log.Info(len(server.WSConnectionsMap.MapConn))
+	log.Info(len(server.Connections.MapConn))
 
 }
 
 /**
 Delete connections in mapConn
 */
-func (server *WSServer) CloseWebsocket() {
+func (server *WSServer) Close() {
 	for {
 		select {
-		case connAddres := <-server.WSConnectionsMap.ConnChanCloseWS:
-			for key, val := range server.WSConnectionsMap.MapConn {
+		case connAddres := <-server.Connections.ConnChanCloseWS:
+			for key, val := range server.Connections.MapConn {
 
 				if ok := val.Remove(connAddres); ok {
-					server.WSConnectionsMap.MacChan <- key
+					server.Connections.MacChan <- key
 					break
 				}
 			}
-		case <-server.WSConnectionsMap.StopCloseWS:
-			log.Info("CloseWebsocket closed")
+		case <-server.Connections.StopCloseWS:
+			log.Info("Close closed")
 			return
 		}
 	}
@@ -141,7 +162,7 @@ func (server *WSServer) CloseWebsocket() {
 /*
 Listens changes in database. If they have, we will send to all websocket which working with them.
 */
-func (server *WSServer) WSSubscribe(dbWorker DbClient) {
+func (server *WSServer) Subscribe(dbWorker DbDriver) {
 	dbWorker.Subscribe(server.PubSub.SubWSChannel, server.PubSub.RoomIDForWSPubSub)
 	for {
 		select {
@@ -150,7 +171,7 @@ func (server *WSServer) WSSubscribe(dbWorker DbClient) {
 				go server.checkAndSendInfoToWSClient(msg)
 			}
 		case <-server.PubSub.StopSub:
-			log.Info("WSSubscribe closed")
+			log.Info("Subscribe closed")
 			return
 		}
 	}
@@ -165,26 +186,26 @@ func (server *WSServer) checkAndSendInfoToWSClient(msg []string) {
 	if CheckError("checkAndSendInfoToWSClient", err) != nil {
 		return
 	}
-	if _, ok := server.WSConnectionsMap.MapConn[r.Meta.MAC]; ok {
+	if _, ok := server.Connections.MapConn[r.Meta.MAC]; ok {
 		server.sendInfoToWSClient(r.Meta.MAC, msg[2])
 		return
 	}
-	log.Infof("mapConn dont have this MAC: %v. Len map is %v", r.Meta.MAC, len(server.WSConnectionsMap.MapConn))
+	log.Infof("mapConn dont have this MAC: %v. Len map is %v", r.Meta.MAC, len(server.Connections.MapConn))
 }
 
 //Send message to all connections which we have in map, and which pertain to mac
 func (server *WSServer) sendInfoToWSClient(mac, message string) {
-	server.WSConnectionsMap.MapConn[mac].Lock()
-	for _, val := range server.WSConnectionsMap.MapConn[mac].Connections {
+	server.Connections.MapConn[mac].Lock()
+	for _, val := range server.Connections.MapConn[mac].Connections {
 		err := val.WriteMessage(1, []byte(message))
 		if err != nil {
 			log.Errorf("Connection %v closed", val.RemoteAddr())
-			go getToChanal(val, server.WSConnectionsMap.ConnChanCloseWS)
+			go getToChannel(val, server.Connections.ConnChanCloseWS)
 		}
 	}
-	server.WSConnectionsMap.MapConn[mac].Unlock()
+	server.Connections.MapConn[mac].Unlock()
 }
 
-func getToChanal(conn *websocket.Conn, connChanCloseWS chan *websocket.Conn) {
+func getToChannel(conn *websocket.Conn, connChanCloseWS chan *websocket.Conn) {
 	connChanCloseWS <- conn
 }

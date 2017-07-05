@@ -5,31 +5,26 @@ import (
 	"github.com/KharkivGophers/center-smart-house/servers/http"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	"time"
-	"fmt"
 	"github.com/KharkivGophers/center-smart-house/servers/tcp"
 )
 
 func main() {
 
-	var control Control
+	var controller RoutinesController
 
-	// http connection with browser
-	httpServer := http.NewHTTPServer(Server{IP: centerIP, Port: httpConnPort}, dbServer)
-	go httpServer.RunHTTPServer(control)
+	httpServer := http.NewHTTPServer(Server{IP: centerIP, Port: httpConnPort}, dbServer, controller)
+	go httpServer.Run()
 
-	// web socket servers
-	webSocketServer := webSocket.NewWebSocketServer(centerIP, fmt.Sprint(wsPort), centerIP, dbServer.Port)
-	go webSocketServer.RunWebSocketServer(control)
+	webSocketServer := webSocket.NewWebSocketServer(Server{IP: centerIP, Port: wsPort}, dbServer, controller)
+	go webSocketServer.Run()
 
-	// tcp config
 	reconnect := time.NewTicker(time.Second * 1)
 	messages := make(chan []string)
-	tcpConfigServer := tcp.NewTCPConfigServer(Server{IP: centerIP, Port: tcpDevConfigPort}, dbServer, reconnect, messages)
-	go tcpConfigServer.RunConfigServer(control)
+	tcpDevConfigServer := tcp.NewTCPDevConfigServer(Server{IP: centerIP, Port: tcpDevConfigPort}, dbServer, reconnect, messages, controller)
+	go tcpDevConfigServer.Run()
 
-	// tcp data
-	tcpDataServer := tcp.NewTCPDataServer(Server{IP: centerIP, Port: tcpDevDataPort}, dbServer, reconnect)
-	go tcpDataServer.RunTCPServer(control)
+	tcpDevDataServer := tcp.NewTCPDevDataServer(Server{IP: centerIP, Port: tcpDevDataPort}, dbServer, reconnect, controller)
+	go tcpDevDataServer.Run()
 
-	control.Wait()
+	controller.Wait()
 }

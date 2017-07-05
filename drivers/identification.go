@@ -1,12 +1,12 @@
-package devices
+package drivers
 
 import (
 	log "github.com/Sirupsen/logrus"
-	. "github.com/KharkivGophers/center-smart-house/driver"
+	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
 )
 
-func IdentifyDev(devType string)(*ConfigDevDriver){
-	var device ConfigDevDriver
+func IdentifyDev(devType string)(*DevConfigDriver){
+	var device DevConfigDriver
 
 	switch devType {
 	case "fridge":

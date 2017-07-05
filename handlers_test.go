@@ -83,7 +83,7 @@ func TestSendJSONToServer(t *testing.T) {
 	defer conn.Close()
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.DbWorker = &dao.MyRedis{}
+	var myRedis dao.DbWorker = &dao.RedisClient{}
 	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
@@ -113,7 +113,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	res := "\"status\":200,\"descr\":\"Data has been delivered successfully\""
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.DbWorker = &dao.MyRedis{}
+	var myRedis dao.DbWorker = &dao.RedisClient{}
 	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
@@ -281,7 +281,7 @@ func TestHTTPConnection(t *testing.T) {
 	var httpClient = &http.Client{}
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.DbWorker = &dao.MyRedis{}
+	var myRedis dao.DbWorker = &dao.RedisClient{}
 	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
@@ -306,7 +306,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 	defer conn.Close()
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.DbWorker = &dao.MyRedis{}
+	var myRedis dao.DbWorker = &dao.RedisClient{}
 	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------
@@ -515,7 +515,7 @@ func TestWSConnection(t *testing.T) {
 		 "mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":null}"
 
 	//Create redis client------------------------------------------------------------
-	var myRedis dao.DbWorker = &dao.MyRedis{}
+	var myRedis dao.DbWorker = &dao.RedisClient{}
 	myRedis.Connect()
 	defer myRedis.Close()
 	//--------------------------------------------------------------------------------

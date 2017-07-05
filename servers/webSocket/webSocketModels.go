@@ -61,7 +61,7 @@ func (connMap *WSConnectionsMap) MapCollector() {
 			connMap.Lock()
 			if len(connMap.MapConn[mac].Connections) == 0 {
 				delete(connMap.MapConn, mac)
-				log.Info("REMOVE WSConnectionsMap --------------> ", len(connMap.MapConn),"  ", mac)
+				log.Info("REMOVE Connections --------------> ", len(connMap.MapConn),"  ", mac)
 
 			}
 			connMap.Unlock()
@@ -70,5 +70,4 @@ func (connMap *WSConnectionsMap) MapCollector() {
 			return
 		}
 	}
-
 }

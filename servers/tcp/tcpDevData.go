@@ -9,27 +9,36 @@ import (
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/dao"
-	. "github.com/KharkivGophers/center-smart-house/driver"
+	. "github.com/KharkivGophers/center-smart-house/drivers"
 	"fmt"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	. "github.com/KharkivGophers/center-smart-house/driver/devices"
+	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
 )
 
-type TCPDataServer struct {
+type TCPDevDataServer struct {
 	DbServer    Server
 	LocalServer Server
 	Reconnect   *time.Ticker
+	Controller  RoutinesController
 }
 
-func NewTCPDataServer(local Server, db Server, reconnect *time.Ticker) *TCPDataServer {
-	return &TCPDataServer{
+func NewTCPDevDataServer(local Server, db Server, reconnect *time.Ticker, controller  RoutinesController) *TCPDevDataServer {
+	return &TCPDevDataServer{
 		LocalServer: local,
 		DbServer:    db,
 		Reconnect:   reconnect,
+		Controller:  controller,
 	}
 }
 
-func (server *TCPDataServer) RunTCPServer(control Control) {
+func (server *TCPDevDataServer) Run() {
+	defer func() {
+		if r := recover(); r != nil {
+			server.Controller.Close()
+			log.Error("TCPDevDataServer Failed")
+		}
+	} ()
+
 	ln, err := net.Listen("tcp", server.LocalServer.IP+":"+fmt.Sprint(server.LocalServer.Port))
 
 	for err != nil {
@@ -49,7 +58,7 @@ func (server *TCPDataServer) RunTCPServer(control Control) {
 }
 
 //--------------------TCP-------------------------------------------------------------------------------------
-func (server *TCPDataServer) tcpDataHandler(conn net.Conn) {
+func (server *TCPDevDataServer) tcpDataHandler(conn net.Conn) {
 	var req Request
 	var res Response
 	for {
@@ -76,13 +85,13 @@ func (server *TCPDataServer) tcpDataHandler(conn net.Conn) {
 /*
 Checks  type device and call special func for send data to DB.
 */
-func (server *TCPDataServer) devTypeHandler(req Request) string {
+func (server *TCPDevDataServer) devTypeHandler(req Request) string {
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
 	switch req.Action {
 	case "update":
-		var data DataDevDriver
+		var data DevDataDriver
 
 		switch req.Meta.Type {
 		case "fridge":
@@ -96,7 +105,7 @@ func (server *TCPDataServer) devTypeHandler(req Request) string {
 			return string("Device request: unknown device type")
 		}
 		data.SetDevData(&req, dbClient.GetClient())
-		go PublishWS(req, "devWS", &MyRedis{Host: server.DbServer.IP, Port: server.DbServer.Port})
+		go PublishWS(req, "devWS", &RedisClient{DbServer: server.DbServer})
 		//go publishWS(req)
 
 	default:

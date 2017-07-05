@@ -17,8 +17,8 @@ func CheckError(desc string, err error) error {
 	return nil
 }
 
-func Float32ToString(num float64) string {
-	return strconv.FormatFloat(num, 'f', -1, 32)
+func Float32ToString(num float32) string {
+	return strconv.FormatFloat(float64(num), 'f', -1, 32)
 }
 
 func Int64ToString(n int64) string {
@@ -37,7 +37,7 @@ func ValidateMAC(mac interface{}) bool {
 			return false
 		}
 	default:
-		log.Error("MAC should be in string format")
+		log.Error("MAC should be in a string format")
 		return false
 	}
 }

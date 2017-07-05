@@ -10,23 +10,30 @@ import (
 	"strings"
 
 	. "github.com/KharkivGophers/center-smart-house/models"
-	"github.com/KharkivGophers/center-smart-house/driver"
-	. "github.com/KharkivGophers/center-smart-house/driver/devices"
+	. "github.com/KharkivGophers/center-smart-house/drivers"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	"strconv"
 )
 
-type HTTPServer struct{
+type HTTPServer struct {
 	LocalServer Server
-	DbServer Server
+	DbServer    Server
+	Controller  RoutinesController
 }
 
-func NewHTTPServer (local , db Server) *HTTPServer{
-	return &HTTPServer{LocalServer:local, DbServer: db}
+func NewHTTPServer (local , db Server, controller RoutinesController) *HTTPServer{
+	return &HTTPServer{LocalServer:local, DbServer: db, Controller: controller}
 }
 
-func (server *HTTPServer)RunHTTPServer(control Control) {
+func (server *HTTPServer) Run() {
+	defer func() {
+		if r := recover(); r != nil {
+			server.Controller.Close()
+			log.Error("HTTPServer Failed")
+		}
+	} ()
+
 	r := mux.NewRouter()
 	r.HandleFunc("/devices", server.getDevicesHandler).Methods(http.MethodGet)
 	r.HandleFunc("/devices/{id}/data", server.getDevDataHandler).Methods(http.MethodGet)
@@ -54,7 +61,7 @@ func (server *HTTPServer)RunHTTPServer(control Control) {
 
 //----------------------http Dynamic Connection----------------------------------------------------------------------------------
 
-func (server *HTTPServer)getDevicesHandler(w http.ResponseWriter, r *http.Request) {
+func (server *HTTPServer) getDevicesHandler(w http.ResponseWriter, r *http.Request) {
 
 	dbClient:= GetDBConnection(server.DbServer)
 	defer dbClient.Close()
@@ -91,12 +98,12 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dbClient, err := GetDBConnection(server.DbServer)
+	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
 	configInfo := devMeta.MAC + ":" + "config" // key
 
-	var device driver.ConfigDevDriver = *IdentifyDev(devMeta.Type)
+	var device DevConfigDriver = *IdentifyDev(devMeta.Type)
 	log.Info(device)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
@@ -123,7 +130,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 	configInfo := devMeta.MAC + ":" + "config" // key
 
-	var device driver.ConfigDevDriver = *IdentifyDev(devMeta.Type)
+	var device DevConfigDriver = *IdentifyDev(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return

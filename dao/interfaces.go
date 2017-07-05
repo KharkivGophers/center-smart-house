@@ -5,7 +5,7 @@ import (
 )
 
 // Abstract database interface.
-type DbClient interface {
+type DbDriver interface {
 	FlushAll() (error)
 	Publish(channel string, message interface{}) (int64, error)
 	Connect()(error)
@@ -14,7 +14,7 @@ type DbClient interface {
 	RunDBConnection() (error)
 	GetAllDevices() ([]DevData)
 	GetDevice(devParamsKey string, devParamsKeysTokens []string) (DevData)
-	GetClient() RedisClient
+	GetClient() DbRedisDriver
 
 	// Not yet implemented.
 	//GetDevConfig(configInfo, devType string, mac string) (*DevConfig)
@@ -26,7 +26,7 @@ type DbClient interface {
 }
 
 // Concrete redis database interface.
-type RedisClient interface {
+type DbRedisDriver interface {
 	SAdd(key string, member ...interface{}) (int64, error)
 	ZAdd(key string, arguments ...interface{}) (int64, error)
 

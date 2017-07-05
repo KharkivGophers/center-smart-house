@@ -2,27 +2,24 @@ package models
 
 import (
 	"encoding/json"
-	"net"
-	"sync"
 	"time"
-	"log"
 )
 
-type Control struct {
-	Controller chan struct{}
+type RoutinesController struct {
+	StopChan chan struct{}
 }
 
-func (c *Control) Close() {
+func (c *RoutinesController) Close() {
 	select {
-	case <- c.Controller:
+	case <- c.StopChan:
 	default:
-		close(c.Controller)
+		close(c.StopChan)
 	}
 }
 
-func (c *Control) Wait() {
-	<- c.Controller
-	<-time.NewTimer(6).C
+func (c *RoutinesController) Wait() {
+	<- c.StopChan
+	<-time.NewTimer(5).C
 }
 
 type Server struct {
@@ -79,36 +76,3 @@ type DevData struct {
 	Meta DevMeta             `json:"meta"`
 	Data map[string][]string `json:"data"`
 }
-
-//Connections pool for configTCPServer
-type ConnectionPool struct {
-	sync.Mutex
-	conn map[string]net.Conn
-}
-
-func (pool *ConnectionPool) AddConn(conn net.Conn, key string) {
-	pool.Lock()
-	pool.conn[key] = conn
-	defer pool.Unlock()
-}
-
-func (pool *ConnectionPool) GetConn(key string) net.Conn {
-	pool.Lock()
-	defer pool.Unlock()
-	return pool.conn[key]
-}
-
-func (pool *ConnectionPool) RemoveConn(key string)  {
-	pool.Lock()
-	defer pool.Unlock()
-	 delete(pool.conn, key)
-}
-
-func (pool *ConnectionPool) Init() {
-	pool.Lock()
-	defer pool.Unlock()
-
-	pool.conn = make(map[string]net.Conn)
-}
-
-
