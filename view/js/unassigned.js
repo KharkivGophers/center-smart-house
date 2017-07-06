@@ -41,8 +41,8 @@
                 $("#"+back).append('<button type="button" class="btn btn-basic" id="dataBtn' + data_length + '">' + 'Detailed data' + '</button>');
                 $("#"+ "dataBtn" + data_length).on('click', function () {
                     var id = this.id.replace( /^\D+/g, '');
-                    window.location = "fridge.html?id=" + obj[id - 1]["meta"]["type"] + ":zzz"
-                        + obj[id - 1]["meta"]["name"] + ":" +  obj[id - 1]["meta"]["mac"];
+                    window.location = "fridge.html?type=" + obj[id - 1]["meta"]["type"] + "&name="
+                        + obj[id - 1]["meta"]["name"] + "&mac=" +  obj[id - 1]["meta"]["mac"];
                 });
 
                 $('#' + info_card).append('</div'); // Close

@@ -79,7 +79,6 @@ func (server *TCPDevDataServer) tcpDataHandler(conn net.Conn) {
 		err = json.NewEncoder(conn).Encode(&res)
 		CheckError("tcpDataHandler JSON enc", err)
 	}
-
 }
 
 /*
@@ -97,7 +96,7 @@ func (server TCPDevDataServer) devTypeHandler(req Request) string {
 		case "fridge":
 			data = &Fridge{}
 		case "washer":
-			return string("We havent washer realisation")
+			return string("We havent washer")
 		default:
 			log.Println("Device request: unknown device type")
 			return string("Device request: unknown device type")

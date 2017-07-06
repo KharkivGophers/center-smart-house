@@ -176,6 +176,7 @@ function printFridgeChart(obj) {
 var url = window.location.href.split("/");
 var urlParams = parseURLParams(window.location.href);
 var domen = url[2].split(":");
+console.dir(url)
 var showDataFromWS = true;
 var fridges = [];
 
