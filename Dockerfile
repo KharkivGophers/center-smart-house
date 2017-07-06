@@ -9,4 +9,4 @@ RUN \
   chown daemon center-smart-house && \
   chmod +x center-smart-house  
 USER daemon
-CMD center-smart-house
+#CMD center-smart-house
