@@ -7,6 +7,7 @@ COPY ./cmd/center-smart-house $HOME
 
 RUN \
   cd $HOME && \
+  ls && \
   chown daemon center-smart-house && \
   chmod +x center-smart-house
   
