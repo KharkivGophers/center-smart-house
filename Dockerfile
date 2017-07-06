@@ -10,4 +10,4 @@ RUN \
   chmod +x center-smart-house
   
 USER daemon
-CMD $HOME/center-smart-house
+#CMD $HOME/center-smart-house
