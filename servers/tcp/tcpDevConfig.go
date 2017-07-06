@@ -16,24 +16,34 @@ import (
 )
 
 type TCPDevConfigServer struct {
-	DbServer    Server
-	LocalServer Server
-	Reconnect   *time.Ticker
-	Pool        ConnectionPool
-	Messages    chan []string
-	Controller  RoutinesController
+	DbServer            Server
+	LocalServer         Server
+	Reconnect           *time.Ticker
+	Pool                ConnectionPool
+	Messages            chan []string
+	StopConfigSubscribe chan struct{}
+	Controller          RoutinesController
 }
 
-func NewTCPDevConfigServer(local Server, db Server, reconnect *time.Ticker, messages chan []string,
+func NewTCPDevConfigServer(local Server, db Server, reconnect *time.Ticker, messages chan []string, stopConfigSubscribe chan struct{},
 	controller RoutinesController) *TCPDevConfigServer {
 	return &TCPDevConfigServer{
-		LocalServer: local,
-		DbServer:    db,
-		Reconnect:   reconnect,
-		Messages:    messages,
-		Controller: controller,
+		LocalServer:         local,
+		DbServer:            db,
+		Reconnect:           reconnect,
+		Messages:            messages,
+		Controller:          controller,
+		StopConfigSubscribe: stopConfigSubscribe,
 	}
 }
+func NewTCPDevConfigServerDefault(local Server, db Server, controller RoutinesController) *TCPDevConfigServer {
+	messages := make(chan []string)
+	stopConfigSubscribe := make(chan struct{})
+	reconnect := time.NewTicker(time.Second * 1)
+	return NewTCPDevConfigServer(local, db, reconnect, messages, stopConfigSubscribe, controller)
+}
+
+
 
 func NewDefaultConfig() *DevConfig {
 	return &DevConfig{
@@ -47,10 +57,11 @@ func NewDefaultConfig() *DevConfig {
 func (server *TCPDevConfigServer) Run() {
 	defer func() {
 		if r := recover(); r != nil {
+			server.StopConfigSubscribe <- struct{}{}
 			server.Controller.Close()
 			log.Error("TCPDevConfigServer Failed")
 		}
-	} ()
+	}()
 
 	server.Pool.Init()
 
@@ -96,7 +107,6 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 		req    Request
 		config *DevConfig
 		device DevConfigDriver
-
 	)
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
@@ -126,7 +136,7 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = NewDefaultConfig()
-		device.SetDevConfig(configInfo, config,dbClient.GetClient())
+		device.SetDevConfig(configInfo, config, dbClient.GetClient())
 	}
 
 	err = json.NewEncoder(conn).Encode(&config)
@@ -148,6 +158,8 @@ func (server *TCPDevConfigServer) configSubscribe(roomID string, message chan []
 				CheckError("configSubscribe: unmarshal", err)
 				go server.sendNewConfiguration(config, pool)
 			}
+		case <-server.StopConfigSubscribe:
+			return
 		}
 	}
 }

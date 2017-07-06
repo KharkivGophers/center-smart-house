@@ -85,7 +85,7 @@ func (server *TCPDevDataServer) tcpDataHandler(conn net.Conn) {
 /*
 Checks  type device and call special func for send data to DB.
 */
-func (server *TCPDevDataServer) devTypeHandler(req Request) string {
+func (server TCPDevDataServer) devTypeHandler(req Request) string {
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
@@ -97,9 +97,7 @@ func (server *TCPDevDataServer) devTypeHandler(req Request) string {
 		case "fridge":
 			data = &Fridge{}
 		case "washer":
-			//if err := req.washerDataHandler(); err != nil {
-			//	log.Errorf("%v", err.Error)
-			//}
+			return string("We havent washer realisation")
 		default:
 			log.Println("Device request: unknown device type")
 			return string("Device request: unknown device type")

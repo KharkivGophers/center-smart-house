@@ -33,6 +33,7 @@ func (list *ListConnection) Add(conn *websocket.Conn) {
 	list.Unlock()
 
 }
+
 func (list *ListConnection) Remove(conn *websocket.Conn) bool {
 	list.Lock()
 	defer list.Unlock()

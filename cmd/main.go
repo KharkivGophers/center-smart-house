@@ -18,12 +18,13 @@ func main() {
 	webSocketServer := webSocket.NewWebSocketServer(Server{IP: centerIP, Port: wsPort}, dbServer, controller)
 	go webSocketServer.Run()
 
-	reconnect := time.NewTicker(time.Second * 1)
-	messages := make(chan []string)
-	tcpDevConfigServer := tcp.NewTCPDevConfigServer(Server{IP: centerIP, Port: tcpDevConfigPort}, dbServer, reconnect, messages, controller)
+	tcpDevConfigServer := tcp.NewTCPDevConfigServerDefault(Server{IP: centerIP, Port: tcpDevConfigPort},
+		dbServer, controller)
 	go tcpDevConfigServer.Run()
 
-	tcpDevDataServer := tcp.NewTCPDevDataServer(Server{IP: centerIP, Port: tcpDevDataPort}, dbServer, reconnect, controller)
+	reconnect := time.NewTicker(time.Second * 1)
+	tcpDevDataServer := tcp.NewTCPDevDataServer(Server{IP: centerIP, Port: tcpDevDataPort},
+		dbServer, reconnect, controller)
 	go tcpDevDataServer.Run()
 
 	controller.Wait()

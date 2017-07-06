@@ -13,7 +13,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/drivers"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	"strconv"
+	"fmt"
 )
 
 type HTTPServer struct {
@@ -23,7 +23,11 @@ type HTTPServer struct {
 }
 
 func NewHTTPServer (local , db Server, controller RoutinesController) *HTTPServer{
-	return &HTTPServer{LocalServer:local, DbServer: db, Controller: controller}
+	return &HTTPServer{
+		LocalServer:local,
+		DbServer: db,
+		Controller: controller,
+	}
 }
 
 func (server *HTTPServer) Run() {
@@ -44,7 +48,7 @@ func (server *HTTPServer) Run() {
 	//provide static html pages
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("../view/")))
 
-	var port string =strconv.FormatUint(uint64(server.LocalServer.Port),10)
+	port := fmt.Sprint(server.LocalServer.Port)
 
 	srv := &http.Server{
 		Handler:      r,

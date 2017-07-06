@@ -23,7 +23,8 @@ import (
 
 var timeForSleep time.Duration = 1000 * time.Millisecond
 
-func deleteAllInBase(dbClient dao.DbClient) {
+func deleteAllInBase(dbClient dao.DbDriver) {
+	defer treatmentPanic("Recovered in TestCheckJSONToServer")
 	err := dbClient.FlushAll()
 	CheckError("Some error with FlushAll()", err)
 }
@@ -102,13 +103,15 @@ func TestSendJSONToServer(t *testing.T) {
 		log.Error("Conn is nil")
 	}
 	//Create redis client------------------------------------------------------------
-	var dbCli dao.DbClient = &dao.MyRedis{}
+	defer treatmentPanic("Recovered in TestCheckJSONToServer")
+	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
 
 	res := "\"status\":200,\"descr\":\"Data has been delivered successfully\""
-	req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
+	req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge",
+		Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 	message, _ := json.Marshal(req)
 
 	if coonNotNil {
@@ -142,7 +145,8 @@ func TestCheckJSONToServer(t *testing.T) {
 	res := "\"status\":200,\"descr\":\"Data has been delivered successfully\""
 
 	//Create redis client------------------------------------------------------------
-	var dbCli dao.DbClient = &dao.MyRedis{}
+	defer treatmentPanic("Recovered in TestCheckJSONToServer")
+	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -341,7 +345,8 @@ func TestHTTPConnection(t *testing.T) {
 	var httpClient = &http.Client{}
 
 	//Create redis client------------------------------------------------------------
-	var dbCli dao.DbClient = &dao.MyRedis{}
+	defer treatmentPanic("Recovered in TestCheckJSONToServer")
+	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -360,16 +365,17 @@ func TestHTTPConnection(t *testing.T) {
 func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
-
 	conn, _ := net.Dial("tcp", centerIP+":"+fmt.Sprint(tcpDevDataPort))
 	defer conn.Close()
 	var httpClient = &http.Client{}
 
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	connForDAta, _ := net.Dial("tcp", centerIP+":"+fmt.Sprint(tcpDevDataPort))
 	defer conn.Close()
 
 	//Create redis client------------------------------------------------------------
-	var dbCli dao.DbClient = &dao.MyRedis{}
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
+	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -478,7 +484,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -493,7 +499,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"collectFreq\":0"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -508,7 +514,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"sendFreq\":0"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -523,7 +529,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -538,7 +544,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave := "\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
-		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
 		httpClient.Do(r)
 		res, _ := httpClient.Get(url)
@@ -556,7 +562,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 		mustHave := "\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
-		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/fridge:testName1:00-15-E9-2B-99-3C/config"
+		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":true}")))
 		time.Sleep(timeForSleep)
 		httpClient.Do(r)
@@ -579,7 +585,8 @@ func TestWSConnection(t *testing.T) {
 		"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":null}"
 
 	//Create redis client------------------------------------------------------------
-	var dbCli dao.DbClient = &dao.MyRedis{}
+	defer treatmentPanic("Recovered in TestWSConnection")
+	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -588,7 +595,10 @@ func TestWSConnection(t *testing.T) {
 		//Create Web Socket connection from the client side--------------------------------
 		url := "ws://" + centerIP + ":" + fmt.Sprint(wsPort) + "/devices/00-15-E9-2B-99-3C"
 		var dialer *websocket.Dialer
-		conn, _, _ := dialer.Dial(url, nil)
+		conn, _, err := dialer.Dial(url, nil)
+		if err!=nil{
+			log.Error(err)
+		}
 		//---------------------------------------------------------------------------------
 
 		defer treatmentPanic("Recovered in TestWSConnection")

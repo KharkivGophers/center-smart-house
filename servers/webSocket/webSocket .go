@@ -34,10 +34,10 @@ func NewWSConnections() *WSConnectionsMap {
 		CloseMapCollector = make(chan string)
 	)
 	return &WSConnectionsMap{
-		ConnChanCloseWS: connChanCloseWS,
-		StopCloseWS: stopCloseWS,
-		MapConn: mapConn,
-		MacChan: MacChan,
+		ConnChanCloseWS:   connChanCloseWS,
+		StopCloseWS:       stopCloseWS,
+		MapConn:           mapConn,
+		MacChan:           MacChan,
 		CloseMapCollector: CloseMapCollector,
 	}
 }
@@ -45,8 +45,8 @@ func NewWSConnections() *WSConnectionsMap {
 func NewPubSub(roomIDForWSPubSub string, stopSub chan bool, subWSChannel chan []string) *PubSub {
 	return &PubSub{
 		RoomIDForWSPubSub: roomIDForWSPubSub,
-		StopSub: stopSub,
-		SubWSChannel: subWSChannel,
+		StopSub:           stopSub,
+		SubWSChannel:      subWSChannel,
 	}
 }
 
@@ -73,7 +73,7 @@ func NewWSServer(ws, db Server, pubSub PubSub, wsConnections WSConnectionsMap, c
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 			CheckOrigin: func(r *http.Request) bool {
-				if r.Host == ws.IP+":" + fmt.Sprint(ws.Port) {
+				if r.Host == ws.IP+":"+fmt.Sprint(ws.Port) {
 					return true
 				}
 				return true
@@ -83,9 +83,10 @@ func NewWSServer(ws, db Server, pubSub PubSub, wsConnections WSConnectionsMap, c
 	return &WSServer{
 		LocalServer: ws,
 		Connections: wsConnections,
-		PubSub: pubSub,
-		DbServer: db,
-		Upgrader: upgrader,
+		PubSub:      pubSub,
+		DbServer:    db,
+		Upgrader:    upgrader,
+		Controller:  controller,
 	}
 }
 
@@ -93,10 +94,13 @@ func NewWSServer(ws, db Server, pubSub PubSub, wsConnections WSConnectionsMap, c
 func (server *WSServer) Run() {
 	defer func() {
 		if r := recover(); r != nil {
+			server.Connections.StopCloseWS <- ""
+			server.PubSub.StopSub <- false
+			server.Connections.CloseMapCollector <- ""
 			server.Controller.Close()
 			log.Error("WebSocketServer Failed")
 		}
-	} ()
+	}()
 
 	dbClient := GetDBConnection(server.DbServer)
 
