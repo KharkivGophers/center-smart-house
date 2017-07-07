@@ -13,7 +13,6 @@ type DbDriver interface {
 	Close() (error)
 	RunDBConnection() (error)
 	GetAllDevices() ([]DevData)
-	GetDevice(devParamsKey string, devParamsKeysTokens []string) (DevData)
 	GetClient() DbRedisDriver
 
 	// Not yet implemented.

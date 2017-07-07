@@ -13,6 +13,6 @@ type DevConfigDriver interface {
 }
 
 type DevDataDriver interface {
-	GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbRedisDriver) DevData
+	GetDevData(devParamsKey string, devParamsKeysTokens DevMeta, worker DbRedisDriver) DevData
 	SetDevData(req *Request, worker DbRedisDriver) *ServerError
 }

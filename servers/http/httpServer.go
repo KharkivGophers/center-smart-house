@@ -81,14 +81,15 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 	defer dbClient.Close()
 
 	vars := mux.Vars(r)
-	devID := "device:" + vars["id"]
+	devID := "device:" + vars["type"]+":"+vars["name"]+":"+vars["mac"]
 
-	devParamsKeysTokens := []string{}
-	devParamsKeysTokens = strings.Split(devID, ":")
+	devMeta := DevMeta{vars["type"],vars["name"],vars["mac"],""}
 	devParamsKey := devID + ":" + "params"
 
-	device := dbClient.GetDevice(devParamsKey, devParamsKeysTokens)
-	err := json.NewEncoder(w).Encode(device)
+	device := IdentifyDevData(vars["type"])
+	deviceData := device.GetDevData(devParamsKey, devMeta, dbClient.GetClient())
+
+	err := json.NewEncoder(w).Encode(deviceData)
 	CheckError("getDevDataHandler JSON enc", err)
 }
 
@@ -107,7 +108,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 
 	configInfo := devMeta.MAC + ":" + "config" // key
 
-	var device DevConfigDriver = *IdentifyDev(devMeta.Type)
+	var device DevConfigDriver = *IdentifyDevConfig(devMeta.Type)
 	log.Info(device)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
@@ -134,7 +135,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 	configInfo := devMeta.MAC + ":" + "config" // key
 
-	var device DevConfigDriver = *IdentifyDev(devMeta.Type)
+	var device DevConfigDriver = *IdentifyDevConfig(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return

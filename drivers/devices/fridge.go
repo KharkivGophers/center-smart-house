@@ -11,23 +11,21 @@ import (
 )
 
 type Fridge struct {
-	Data   FridgeData
+	Data   FridgeData `json:"data"`
 	Config DevConfig
-	Meta   DevMeta
+	Meta   DevMeta `json:"meta"`
 }
 type FridgeData struct {
 	TempCam1 map[int64]float32 `json:"tempCam1"`
 	TempCam2 map[int64]float32 `json:"tempCam2"`
 }
 
-func (fridge *Fridge) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbRedisDriver) DevData {
+func (fridge *Fridge) GetDevData(devParamsKey string, devMeta DevMeta, worker DbRedisDriver) DevData {
 	var device DevData
 
 	params, err := worker.SMembers(devParamsKey)
 	CheckError("Cant read members from devParamsKeys", err)
-	device.Meta.Type = devParamsKeysTokens[1]
-	device.Meta.Name = devParamsKeysTokens[2]
-	device.Meta.MAC = devParamsKeysTokens[3]
+	device.Meta = devMeta
 	device.Data = make(map[string][]string)
 
 	values := make([][]string, len(params))

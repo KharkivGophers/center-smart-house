@@ -111,7 +111,7 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	device = *IdentifyDev(req.Meta.Type)
+	device = *IdentifyDevConfig(req.Meta.Type)
 
 	// Send Default Configuration to Device
 

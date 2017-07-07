@@ -108,24 +108,5 @@ func (rc *RedisClient) GetAllDevices() []DevData {
 	return devices
 }
 
-func (rc *RedisClient) GetDevice(devParamsKey string, devParamsKeysTokens []string) DevData {
-	rc.RunDBConnection()
 
-	var device DevData
-
-	params, err := rc.Client.SMembers(devParamsKey)
-	CheckError("Can't read members from devParamsKeys", err)
-	device.Meta.Type = devParamsKeysTokens[1]
-	device.Meta.Name = devParamsKeysTokens[2]
-	device.Meta.MAC = devParamsKeysTokens[3]
-	device.Data = make(map[string][]string)
-
-	values := make([][]string, len(params))
-	for i, p := range params {
-		values[i], err = rc.Client.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
-		CheckError("Can't use ZRangeByScore", err)
-		device.Data[p] = values[i]
-	}
-	return device
-}
 
