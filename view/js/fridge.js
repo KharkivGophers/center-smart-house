@@ -183,14 +183,14 @@ var fridges = [];
 var socket = new WebSocket("ws://" + domen[0] + ":2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
 socket.onmessage = function (event) {
     var incomingMessage = event.data;
-    var fridge = JSON.parse(incomingMessage);
+    var fridge = JSON.parse(incomingMessage)
     fridges.push(fridge);
 };
 
 $(document).ready(function () {
     var urlParams = parseURLParams(window.location.href);
 
-    $.get("/devices/" + urlParams["id"] + "/data", function (data) {
+    $.get("/devices/id/data"+"?mac="+urlParams["mac"]+"&type="+urlParams["type"]+"&name="+urlParams["name"] , function (data) {
         var obj = JSON.parse(data);
         setDevDataFields(obj);
         printFridgeChart(obj);

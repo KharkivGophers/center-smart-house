@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/handlers"
 	log "github.com/Sirupsen/logrus"
 	"encoding/json"
-	"strings"
+
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/drivers"
@@ -66,7 +66,6 @@ func (server *HTTPServer) Run() {
 //----------------------http Dynamic Connection----------------------------------------------------------------------------------
 
 func (server *HTTPServer) getDevicesHandler(w http.ResponseWriter, r *http.Request) {
-
 	dbClient:= GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
@@ -80,13 +79,13 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
-	vars := mux.Vars(r)
-	devID := "device:" + vars["type"]+":"+vars["name"]+":"+vars["mac"]
+	log.Info(dbClient.GetClient())
 
-	devMeta := DevMeta{vars["type"],vars["name"],vars["mac"],""}
+	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
+	devID := "device:" + devMeta.Type+":"+devMeta.Name+":"+devMeta.MAC
 	devParamsKey := devID + ":" + "params"
 
-	device := IdentifyDevData(vars["type"])
+	device := IdentifyDevData(devMeta.Type)
 	deviceData := device.GetDevData(devParamsKey, devMeta, dbClient.GetClient())
 
 	err := json.NewEncoder(w).Encode(deviceData)
@@ -94,9 +93,7 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	devMeta := DevMeta{MAC:vars["mac"], Type:vars["type"], Name:vars["name"]}
+	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
 	_, err :=ValidateDevMeta(devMeta)
 	if err != nil {
 		log.Error(err)
@@ -122,8 +119,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 	var config *DevConfig
 
-	vars := mux.Vars(r)
-	devMeta := DevMeta{MAC:vars["mac"], Type:vars["type"], Name:vars["name"]}
+	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
 	_, err :=ValidateDevMeta(devMeta)
 	if err != nil {
 		log.Error(err)

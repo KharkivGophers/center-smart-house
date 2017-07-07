@@ -37,7 +37,7 @@ func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
 	return true, ""
 }
 
-func (washer *Washer) GetDevData(devParamsKey string, devParamsKeysTokens []string, worker DbRedisDriver) DevData {
+func (washer *Washer) GetDevData(devParamsKey string, devParamsKeysTokens DevMeta, worker DbRedisDriver) DevData {
 	return DevData{}
 }
 func (washer *Washer) SetDevData(req *Request, worker DbRedisDriver) *ServerError {
