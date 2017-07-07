@@ -3,10 +3,12 @@ package dao
 import (
 	. "github.com/KharkivGophers/center-smart-house/models"
 
+	"reflect"
+	"strconv"
 )
 
 type DBMock struct {
-	Client   *DbMockClient
+	Client *DbMockClient
 	//DbServer Server
 }
 
@@ -43,18 +45,29 @@ func (dbClien *DBMock) GetClient() DbRedisDriver {
 
 // Implementation DbRedisDriver-----------------------------------------------------------------
 type DbMockClient struct {
-	Hash map[string][]interface{}
+	Hash      map[string][]interface{}
+	Set       map[string][]interface{}
+	SortedSet map[string]map[int64]string
 }
 
 func (dbClien *DbMockClient) checkMap() {
 	if dbClien.Hash == nil {
 		dbClien.Hash = make(map[string][]interface{})
 	}
+	if dbClien.Set == nil {
+		dbClien.Set = make(map[string][]interface{})
+	}
+	if dbClien.SortedSet == nil {
+		dbClien.SortedSet = make(map[string]map[int64]string)
+	}
 }
 func (dbClien *DbMockClient) SAdd(key string, member ...interface{}) (int64, error) {
+	dbClien.checkMap()
+	dbClien.Set[key] = append(dbClien.Hash[key], member)
 	return 0, nil
 }
 func (dbClien *DbMockClient) ZAdd(key string, arguments ...interface{}) (int64, error) {
+
 	return 0, nil
 }
 
@@ -64,9 +77,25 @@ func (dbClien *DbMockClient) HMSet(key string, values ...interface{}) (string, e
 	return "", nil
 }
 func (dbClien *DbMockClient) HMGet(key string, fields ...string) ([]string, error) {
+	var array []string
 
-	return nil, nil
+	for _, val := range dbClien.Hash[key] {
+		arr := val.([]interface{})
+		field := arr[0].(string)
+		if field == fields[0] {
+			switch reflect.TypeOf(arr[1]).String() {
+			case "bool":
+				array = append(array, strconv.FormatBool(arr[1].(bool)))
+			case "string":
+				array = append(array, arr[1].(string))
+			case "int64":
+				array = append(array, strconv.FormatInt(arr[1].(int64), 10))
+			}
+		}
+	}
+	return array, nil
 }
+
 func (dbClien *DbMockClient) ZRangeByScore(key string, values ...interface{}) ([]string, error) {
 	return nil, nil
 }

@@ -64,22 +64,26 @@ func (fridge *Fridge) SetDevData(req *Request, worker DbRedisDriver) *ServerErro
 		return &ServerError{Error: err}
 	}
 
-	for time, value := range devData.TempCam1 {
-		_, err := worker.ZAdd(devParamsKey+":"+"TempCam1",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(value))
+	err = setDevData(devData.TempCam1, devParamsKey+":"+"TempCam1", worker)
+	if CheckError("DB error14", err) != nil {
+		return &ServerError{Error: err}
+	}
+
+	err = setDevData(devData.TempCam2, devParamsKey+":"+"TempCam2", worker)
+	if CheckError("DB error14", err) != nil {
+		return &ServerError{Error: err}
+	}
+
+	return nil
+}
+
+func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) error {
+	for time, value := range TempCam {
+		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float32ToString(value))
 		if CheckError("DB error14", err) != nil {
-			return &ServerError{Error: err}
+			return err
 		}
 	}
-
-	for time, value := range devData.TempCam2 {
-		_, err := worker.ZAdd(devParamsKey+":"+"TempCam2",
-			Int64ToString(time), Int64ToString(time)+":"+Float32ToString(value))
-		if CheckError("DB error15", err) != nil {
-			return &ServerError{Error: err}
-		}
-	}
-
 	return nil
 }
 
@@ -124,7 +128,7 @@ func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker 
 	CheckError("DB error4: StreamOn", err)
 }
 
-func (fridge *Fridge) ValidateDevData(config DevConfig) (bool, string){
+func (fridge *Fridge) ValidateDevData(config DevConfig) (bool, string) {
 	if !ValidateMAC(config.MAC) {
 		log.Error("Invalid MAC")
 		return false, "Invalid MAC"
