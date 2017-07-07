@@ -129,8 +129,3 @@ func (rc *RedisClient) GetDevice(devParamsKey string, devParamsKeysTokens []stri
 	return device
 }
 
-func GetDBConnection(db Server) (DbDriver) {
-	client := &RedisClient{DbServer: db}
-	client.RunDBConnection()
-	return client
-}

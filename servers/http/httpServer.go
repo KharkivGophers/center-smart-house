@@ -141,17 +141,12 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	}
 	config = device.GetDevConfig(configInfo, devMeta.MAC, dbClient.GetClient())
 
-
 	// log.Warnln("Config Before", config)
 	err = json.NewDecoder(r.Body).Decode(&config)
-
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		log.Errorln("NewDec: ", err)
 	}
-
-	log.Info(config)
-	CheckError("Encode error", err) // log.Warnln("Config After: ", config)
 
 	valid, message := device.ValidateDevData(*config)
 	if  !valid{

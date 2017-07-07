@@ -62,17 +62,6 @@ type Request struct {
 	Data   json.RawMessage `json:"data"`
 }
 
-type FridgeData struct {
-	TempCam1 map[int64]float32 `json:"tempCam1"`
-	TempCam2 map[int64]float32 `json:"tempCam2"`
-}
-
-type WasherData struct {
-	Mode   string
-	Drying string
-	Temp   map[int64]float32
-}
-
 type DevData struct {
 	Site string              `json:"site"`
 	Meta DevMeta             `json:"meta"`

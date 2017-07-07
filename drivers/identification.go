@@ -12,6 +12,7 @@ func IdentifyDev(devType string)(*DevConfigDriver){
 	case "fridge":
 		device = &Fridge{}
 	case "washer":
+		device = &Washer{}
 	default:
 		log.Println("Device request: unknown device type")
 		return nil
