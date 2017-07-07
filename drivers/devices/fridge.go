@@ -8,6 +8,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/sys"
+
 )
 
 type Fridge struct {

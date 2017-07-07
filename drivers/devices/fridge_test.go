@@ -8,7 +8,6 @@ import (
 
 	"reflect"
 	"encoding/json"
-	"fmt"
 )
 
 // ------------------------With Mock--------------------------------------------------------------
@@ -136,6 +135,10 @@ func TestSetDevData(t *testing.T) {
 	tempCam[1] = 1.0
 	tempCam[2] = 2.0
 
+	dataMap := make(map[string][]string)
+	dataMap["TempCam1"]= []string{"1:1","2:2"}
+	dataMap["TempCam2"]= []string{"1:1","2:2"}
+
 	meta := models.DevMeta{MAC:"00-00-00-11-11-11", Name:"name",Type:"fridge"}
 	data :=FridgeData{tempCam,tempCam}
 	fridge := Fridge{}
@@ -144,15 +147,16 @@ func TestSetDevData(t *testing.T) {
 
 	req := models.Request{Meta:meta, Data:b}
 
-	Convey("", t, func() {
-		expected := ""
+	Convey("Must bu all ok", t, func() {
+
 		fridge.SetDevData(&req, dbWorker.Client)
 		dbWorker.Connect()
-		devParamsKey:="device:" +meta.Type +":"+meta.Name+":"+meta.MAC
+		devParamsKey:="device:" +meta.Type +":"+meta.Name+":"+meta.MAC+":params"
+
 		actual := fridge.GetDevData(devParamsKey,meta,dbWorker.Client)
-		fmt.Println(actual.Data)
+		expected := models.DevData{Meta:meta,Data:dataMap}
+		dbWorker.FlushAll()
 		So(actual, ShouldResemble, expected)
 	})
-	//dbWorker.FlushAll()
 }
 
