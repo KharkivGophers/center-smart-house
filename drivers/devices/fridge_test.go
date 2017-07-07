@@ -148,7 +148,8 @@ func TestSetDevData(t *testing.T) {
 		expected := ""
 		fridge.SetDevData(&req, dbWorker.Client)
 		dbWorker.Connect()
-		actual := fridge.GetDevData("device:" +meta.Type +":"+meta.Name+":"+meta.MAC,meta,dbWorker.Client)
+		devParamsKey:="device:" +meta.Type +":"+meta.Name+":"+meta.MAC
+		actual := fridge.GetDevData(devParamsKey,meta,dbWorker.Client)
 		fmt.Println(actual.Data)
 		So(actual, ShouldResemble, expected)
 	})
