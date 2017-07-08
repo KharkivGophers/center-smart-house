@@ -18,7 +18,7 @@ type WasherData struct {
 }
 
 type WasherConfig struct {
-	MAC            string    `json:"mac"`
+	MAC            string   `json:"mac"`
 	WashTime       int64    `json:"washTime"`
 	WashTurnovers  int64    `json:"washTurnovers"`
 	RinseTime      int64    `json:"rinseTime"`
@@ -28,13 +28,37 @@ type WasherConfig struct {
 }
 
 var (
-	LightMode WasherConfig = WasherConfig{WashTime: 60, WashTurnovers: 240, RinseTime: 30, RinseTurnovers: 120, SpinTime: 30, SpinTurnovers: 60}
+	LightMode WasherConfig = WasherConfig{
+		WashTime:       90,
+		WashTurnovers:  240,
+		RinseTime:      30,
+		RinseTurnovers: 120,
+		SpinTime:       30,
+		SpinTurnovers:  60,
+	}
+	FastMode WasherConfig = WasherConfig{
+		WashTime:       30,
+		WashTurnovers:  300,
+		RinseTime:      15,
+		RinseTurnovers: 240,
+		SpinTime:       15,
+		SpinTurnovers:  60,
+	}
+	StandartMode WasherConfig = WasherConfig{
+		WashTime:       120,
+		WashTurnovers:  240,
+		RinseTime:      60,
+		RinseTurnovers: 180,
+		SpinTime:       60,
+		SpinTurnovers:  60,
+	}
 )
 
 func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig)  { return &DevConfig{} }
 func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {}
 func (washer *Washer) ValidateDevData(config DevConfig) (bool, string)                         { return true, "" }
 func (washer *Washer) GetDefaultConfig() (*DevConfig)                                          { return &DevConfig{} }
+func (washer *Washer) CheckDevConfig(arr []byte, configInfo, mac string, client DbDriver)([]byte){return []byte{}}
 
 func (washer *Washer) GetDevData(devParamsKey string, devParamsKeysTokens DevMeta, worker DbRedisDriver) DevData {
 	return DevData{}

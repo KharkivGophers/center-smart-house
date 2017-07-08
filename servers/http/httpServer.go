@@ -82,6 +82,7 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 	log.Info(dbClient.GetClient())
 
 	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
+
 	devID := "device:" + devMeta.Type+":"+devMeta.Name+":"+devMeta.MAC
 	devParamsKey := devID + ":" + "params"
 
@@ -112,7 +113,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	config := device.GetDevConfig(configInfo, devMeta.MAC, dbClient.GetClient())
-	json.NewEncoder(w).Encode(config)
+	w.Write(config.Data)
 }
 
 func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +121,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	var config *DevConfig
 
 	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
+
 	_, err :=ValidateDevMeta(devMeta)
 	if err != nil {
 		log.Error(err)
@@ -136,10 +138,11 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 		http.Error(w, "This type is not found", 400)
 		return
 	}
-	config = device.GetDevConfig(configInfo, devMeta.MAC, dbClient.GetClient())
 
-	// log.Warnln("Config Before", config)
 	err = json.NewDecoder(r.Body).Decode(&config)
+
+	config.Data = device.CheckDevConfig(config.Data, configInfo, devMeta.MAC, dbClient)
+
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		log.Errorln("NewDec: ", err)

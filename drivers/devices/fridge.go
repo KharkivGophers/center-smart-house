@@ -94,9 +94,23 @@ func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) err
 }
 
 func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	var config FridgeConfig
+	var fridgeConfig FridgeConfig = *fridge.getFridgeConfig(configInfo,mac,worker)
 	var devConfig DevConfig
 
+	arrByte, err:=json.Marshal(&fridgeConfig)
+	CheckError("GetDevConfig. Exception in the marshal() ", err)
+
+	devConfig = DevConfig{
+		MAC:mac,
+		Data: arrByte,
+	}
+
+	log.Println("Configuration from DB: ", fridgeConfig.TurnedOn, fridgeConfig.SendFreq, fridgeConfig.CollectFreq)
+
+	return &devConfig
+}
+
+func (fridge *Fridge) getFridgeConfig(configInfo, mac string, worker DbRedisDriver) (*FridgeConfig) {
 	state, err := worker.HMGet(configInfo, "TurnedOn")
 	CheckError("Get from DB error1: TurnedOn ", err)
 	sendFreq, err := worker.HMGet(configInfo, "SendFreq")
@@ -111,29 +125,18 @@ func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver)
 	collectFreqInt, _ := strconv.Atoi(strings.Join(collectFreq, " "))
 	streamOnBool, _ := strconv.ParseBool(strings.Join(streamOn, " "))
 
-	config = FridgeConfig{
+	return &FridgeConfig{
 		TurnedOn:    stateBool,
 		CollectFreq: int64(collectFreqInt),
 		SendFreq:    int64(sendFreqInt),
 		StreamOn:    streamOnBool,
 	}
-
-	arrByte, err:=json.Marshal(config)
-	CheckError("GetDevConfig. Exception in the marshal() ", err)
-
-	devConfig = DevConfig{
-		MAC:mac,
-		Data: arrByte,
-	}
-
-	log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
-
-	return &devConfig
 }
+
 
 func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
 	var fridgeConfig FridgeConfig
-	json.Unmarshal(config.Data, fridgeConfig)
+	json.Unmarshal(config.Data, &fridgeConfig)
 
 	_, err := worker.HMSet(configInfo, "TurnedOn", fridgeConfig.TurnedOn)
 	CheckError("DB error1: TurnedOn", err)
@@ -147,7 +150,7 @@ func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker 
 
 func (fridge *Fridge) ValidateDevData(config DevConfig) (bool, string) {
 	var fridgeConfig FridgeConfig
-	json.Unmarshal(config.Data, fridgeConfig)
+	json.Unmarshal(config.Data, &fridgeConfig)
 
 	if !ValidateMAC(config.MAC) {
 		log.Error("Invalid MAC")
@@ -184,4 +187,12 @@ func (fridge *Fridge)GetDefaultConfig() (*DevConfig) {
 		MAC:fridge.Meta.MAC,
 		Data: arrByte,
 	}
+}
+
+
+func (fridge *Fridge)CheckDevConfig(arr []byte, configInfo, mac string, client DbDriver)([]byte){
+	fridgeConfig := fridge.getFridgeConfig(configInfo, mac, client.GetClient())
+	json.Unmarshal(arr,&fridgeConfig)
+	arr,_ = json.Marshal(fridgeConfig)
+	return  arr
 }

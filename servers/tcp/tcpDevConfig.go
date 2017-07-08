@@ -83,8 +83,7 @@ func (server *TCPDevConfigServer) sendNewConfiguration(config DevConfig, pool *C
 		return
 	}
 
-	// log.Println("mac in pool sendNewConfig", config.MAC)
-	err := json.NewEncoder(connection).Encode(&config)
+	_,err :=connection.Write(config.Data)
 
 	if err != nil {
 		pool.RemoveConn(config.MAC)
@@ -126,10 +125,12 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = device.GetDefaultConfig()
+
 		device.SetDevConfig(configInfo, config, dbClient.GetClient())
 	}
 
-	err = json.NewEncoder(conn).Encode(&config)
+	//err = json.NewEncoder(conn).Encode(&config)
+	_, err = conn.Write(config.Data)
 	CheckError("sendDefaultConfiguration JSON enc", err)
 	log.Warningln("Configuration has been successfully sent")
 }

@@ -19,7 +19,7 @@ function parseURLParams(url) {
 }
 
 function requestHandler(id, xhr) {
-    var url = "/devices/" + id + "/config";
+    var url = "/devices/" + id + "/config?mac=" + urlParams["mac"] + "&type=" + urlParams["type"] + "&name=" + urlParams["name"];
     xhr.open("PATCH", url, true);
     xhr.setRequestHeader("Content-type", "application/json");
     xhr.onreadystatechange = function () {
@@ -36,10 +36,15 @@ function sendDevConfigFreq(id, collectFreq, sendFreq) {
     var xhr = new XMLHttpRequest();
     requestHandler(id, xhr);
 
+    console.dir(id[0]);
+
     var config = JSON.stringify(
         {
-            "collectFreq": collectFreq,
-            "sendFreq": sendFreq
+            "mac": id[0],
+            "data": {
+                "collectFreq": collectFreq,
+                "sendFreq": sendFreq
+            }
         });
 
     xhr.send(config);
@@ -49,9 +54,14 @@ function sendDevConfigTurnedOn(id, turnedOn) {
     var xhr = new XMLHttpRequest();
     requestHandler(id, xhr);
 
+    console.dir(id[0]);
+
     var config = JSON.stringify(
         {
-            "turnedOn": turnedOn
+            "mac": id[0],
+            "data": {
+                "turnedOn": turnedOn
+            }
         });
 
     xhr.send(config);
@@ -93,94 +103,94 @@ function printFridgeChart(obj) {
 
     // Create the chart
     Highcharts.stockChart('container', {
-            chart: {
-                events: {
-                    load: function () {
-                        var seriesTemCam1 = this.series[0];
-                        var seriesTemCam2 = this.series[1];
-                        var timerForRepaint =  50;
-                        var repaint = function (fridge) {
-                            for (key in fridge.data.tempCam2) {
-                                var x = parseInt(key);
-                                var y = parseFloat(fridge.data.tempCam2[key]);
-                                seriesTemCam2.addPoint([x, y], true, true);
-                            }
-                            for (key in fridge.data.tempCam1) {
-                                var x = parseInt(key);
-                                var y = parseFloat(fridge.data.tempCam1[key]);
-                                seriesTemCam1.addPoint([x, y], true, true);
-                            }
-                        };
+        chart: {
+            events: {
+                load: function () {
+                    var seriesTemCam1 = this.series[0];
+                    var seriesTemCam2 = this.series[1];
+                    var timerForRepaint = 50;
+                    var repaint = function (fridge) {
+                        for (key in fridge.data.tempCam2) {
+                            var x = parseInt(key);
+                            var y = parseFloat(fridge.data.tempCam2[key]);
+                            seriesTemCam2.addPoint([x, y], true, true);
+                        }
+                        for (key in fridge.data.tempCam1) {
+                            var x = parseInt(key);
+                            var y = parseFloat(fridge.data.tempCam1[key]);
+                            seriesTemCam1.addPoint([x, y], true, true);
+                        }
+                    };
 
-                        var timerId = setInterval(function () {
-                            if (showDataFromWS === true) {
-                                var fridge = fridges.shift()
-                                if (fridge !== undefined) {
-                                    repaint(fridge)
-                                }
+                    var timerId = setInterval(function () {
+                        if (showDataFromWS === true) {
+                            var fridge = fridges.shift()
+                            if (fridge !== undefined) {
+                                repaint(fridge)
                             }
-                        }, timerForRepaint)
-                    }
+                        }
+                    }, timerForRepaint)
                 }
-            },
+            }
+        },
 
-            rangeSelector: {
-                buttons: [{
-                    count: 1,
-                    type: 'minute',
-                    text: '1M'
-                }, {
-                    count: 5,
-                    type: 'minute',
-                    text: '5M'
-                }, {
-                    type: 'all',
-                    text: 'All'
-                }],
-                inputEnabled: false,
-                selected: 0
-            },
-
-            exporting: {
-                enabled: false
-            },
-
-            series: [{
-                name: 'TempCam1',
-                data: (function () {
-                    var data = [];
-                    for (var i = 0; i < obj["data"]["TempCam1"].length; ++i) {
-                        data.push({
-                            x: parseInt(obj["data"]["TempCam1"][i].split(':')[0]),
-                            y: parseFloat(obj["data"]["TempCam1"][i].split(':')[1])
-                        });
-                    }
-                    return data;
-                }())
+        rangeSelector: {
+            buttons: [{
+                count: 1,
+                type: 'minute',
+                text: '1M'
             }, {
-                name: 'TempCam2',
-                data: (function () {
-                    var data = [];
-                    for (var i = 0; i < obj["data"]["TempCam2"].length; ++i) {
-                        data.push({
-                            x: parseInt(obj["data"]["TempCam2"][i].split(':')[0]),
-                            y: parseFloat(obj["data"]["TempCam2"][i].split(':')[1])
-                        });
-                    }
-                    return data;
-                }())
-            }]
-        })
+                count: 5,
+                type: 'minute',
+                text: '5M'
+            }, {
+                type: 'all',
+                text: 'All'
+            }],
+            inputEnabled: false,
+            selected: 0
+        },
+
+        exporting: {
+            enabled: false
+        },
+
+        series: [{
+            name: 'TempCam1',
+            data: (function () {
+                var data = [];
+                for (var i = 0; i < obj["data"]["TempCam1"].length; ++i) {
+                    data.push({
+                        x: parseInt(obj["data"]["TempCam1"][i].split(':')[0]),
+                        y: parseFloat(obj["data"]["TempCam1"][i].split(':')[1])
+                    });
+                }
+                return data;
+            }())
+        }, {
+            name: 'TempCam2',
+            data: (function () {
+                var data = [];
+                for (var i = 0; i < obj["data"]["TempCam2"].length; ++i) {
+                    data.push({
+                        x: parseInt(obj["data"]["TempCam2"][i].split(':')[0]),
+                        y: parseFloat(obj["data"]["TempCam2"][i].split(':')[1])
+                    });
+                }
+                return data;
+            }())
+        }]
+    })
 }
 
 var url = window.location.href.split("/");
 var urlParams = parseURLParams(window.location.href);
 var domen = url[2].split(":");
-console.dir(url)
+
 var showDataFromWS = true;
 var fridges = [];
-
-var socket = new WebSocket("ws://" + domen[0] + ":2540" + "/devices/" + String(urlParams["id"]).split(":")[2]);
+console.dir(String(urlParams["mac"]))
+var socket = new WebSocket("ws://" + domen[0] + ":2540" + "/devices/" + String(urlParams["mac"]));
 socket.onmessage = function (event) {
     var incomingMessage = event.data;
     var fridge = JSON.parse(incomingMessage)
@@ -190,13 +200,13 @@ socket.onmessage = function (event) {
 $(document).ready(function () {
     var urlParams = parseURLParams(window.location.href);
 
-    $.get("/devices/id/data"+"?mac="+urlParams["mac"]+"&type="+urlParams["type"]+"&name="+urlParams["name"] , function (data) {
+    $.get("/devices/id/data" + "?mac=" + urlParams["mac"] + "&type=" + urlParams["type"] + "&name=" + urlParams["name"], function (data) {
         var obj = JSON.parse(data);
         setDevDataFields(obj);
         printFridgeChart(obj);
     });
 
-    $.get("/devices/" + urlParams["id"] + "/config", function (data) {
+    $.get("/devices/" + urlParams["mac"] + "/config?mac=" + urlParams["mac"] + "&type=" + urlParams["type"] + "&name=" + urlParams["name"], function (data) {
         var obj = JSON.parse(data);
         setDevConfigFields(obj);
     });
@@ -205,14 +215,14 @@ $(document).ready(function () {
         var value = this.innerHTML;
         if (value === "On") {
             sendDevConfigTurnedOn(
-                urlParams["id"],
+                urlParams["mac"],
                 false
             );
             this.innerHTML = "Off";
             this.className = "btn btn-danger";
         } else {
             sendDevConfigTurnedOn(
-                urlParams["id"],
+                urlParams["mac"],
                 true
             );
             this.innerHTML = "On";
@@ -222,7 +232,7 @@ $(document).ready(function () {
 
     document.getElementById("updateBtn").onclick = function () {
         sendDevConfigFreq(
-            urlParams["id"],
+            urlParams["mac"],
             parseInt(document.getElementById('collectFreq').value),
             parseInt(document.getElementById('sendFreq').value)
         );
