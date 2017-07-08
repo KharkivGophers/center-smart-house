@@ -44,16 +44,6 @@ func NewTCPDevConfigServerDefault(local Server, db Server, controller RoutinesCo
 }
 
 
-
-func NewDefaultConfig() *DevConfig {
-	return &DevConfig{
-		TurnedOn:    true,
-		StreamOn:    true,
-		CollectFreq: 1000,
-		SendFreq:    5000,
-	}
-}
-
 func (server *TCPDevConfigServer) Run() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -135,7 +125,7 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	} else {
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
-		config = NewDefaultConfig()
+		config = device.GetDefaultConfig()
 		device.SetDevConfig(configInfo, config, dbClient.GetClient())
 	}
 

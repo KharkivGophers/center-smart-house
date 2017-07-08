@@ -10,6 +10,7 @@ type DevConfigDriver interface {
 	GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig)
 	SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver)
 	ValidateDevData(config DevConfig) (bool, string)
+	GetDefaultConfig() (*DevConfig)
 }
 
 type DevDataDriver interface {

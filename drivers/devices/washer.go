@@ -27,15 +27,14 @@ type WasherConfig struct {
 	SpinTurnovers  int64    `json:"spinTurnovers"`
 }
 
-func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	return nil
-}
-func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
+var (
+	LightMode WasherConfig = WasherConfig{WashTime: 60, WashTurnovers: 240, RinseTime: 30, RinseTurnovers: 120, SpinTime: 30, SpinTurnovers: 60}
+)
 
-}
-func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
-	return true, ""
-}
+func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig)  { return &DevConfig{} }
+func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {}
+func (washer *Washer) ValidateDevData(config DevConfig) (bool, string)                         { return true, "" }
+func (washer *Washer) GetDefaultConfig() (*DevConfig)                                          { return &DevConfig{} }
 
 func (washer *Washer) GetDevData(devParamsKey string, devParamsKeysTokens DevMeta, worker DbRedisDriver) DevData {
 	return DevData{}

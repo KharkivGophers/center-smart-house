@@ -13,12 +13,19 @@ import (
 
 type Fridge struct {
 	Data   FridgeData `json:"data"`
-	Config DevConfig
+	Config FridgeConfig
 	Meta   DevMeta `json:"meta"`
 }
 type FridgeData struct {
 	TempCam1 map[int64]float32 `json:"tempCam1"`
 	TempCam2 map[int64]float32 `json:"tempCam2"`
+}
+
+type FridgeConfig struct {
+	TurnedOn    bool   `json:"turnedOn"`
+	StreamOn    bool   `json:"streamOn"`
+	CollectFreq int64  `json:"collectFreq"`
+	SendFreq    int64  `json:"sendFreq"`
 }
 
 func (fridge *Fridge) GetDevData(devParamsKey string, devMeta DevMeta, worker DbRedisDriver) DevData {
@@ -87,7 +94,8 @@ func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) err
 }
 
 func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	var config DevConfig
+	var config FridgeConfig
+	var devConfig DevConfig
 
 	state, err := worker.HMGet(configInfo, "TurnedOn")
 	CheckError("Get from DB error1: TurnedOn ", err)
@@ -103,46 +111,77 @@ func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver)
 	collectFreqInt, _ := strconv.Atoi(strings.Join(collectFreq, " "))
 	streamOnBool, _ := strconv.ParseBool(strings.Join(streamOn, " "))
 
-	config = DevConfig{
-		MAC:         mac,
+	config = FridgeConfig{
 		TurnedOn:    stateBool,
 		CollectFreq: int64(collectFreqInt),
 		SendFreq:    int64(sendFreqInt),
 		StreamOn:    streamOnBool,
 	}
 
+	arrByte, err:=json.Marshal(config)
+	CheckError("GetDevConfig. Exception in the marshal() ", err)
+
+	devConfig = DevConfig{
+		MAC:mac,
+		Data: arrByte,
+	}
+
 	log.Println("Configuration from DB: ", state, sendFreq, collectFreq)
 
-	return &config
+	return &devConfig
 }
 
 func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
-	_, err := worker.HMSet(configInfo, "TurnedOn", config.TurnedOn)
+	var fridgeConfig FridgeConfig
+	json.Unmarshal(config.Data, fridgeConfig)
+
+	_, err := worker.HMSet(configInfo, "TurnedOn", fridgeConfig.TurnedOn)
 	CheckError("DB error1: TurnedOn", err)
-	_, err = worker.HMSet(configInfo, "CollectFreq", config.CollectFreq)
+	_, err = worker.HMSet(configInfo, "CollectFreq", fridgeConfig.CollectFreq)
 	CheckError("DB error2: CollectFreq", err)
-	_, err = worker.HMSet(configInfo, "SendFreq", config.SendFreq)
+	_, err = worker.HMSet(configInfo, "SendFreq", fridgeConfig.SendFreq)
 	CheckError("DB error3: SendFreq", err)
-	_, err = worker.HMSet(configInfo, "StreamOn", config.StreamOn)
+	_, err = worker.HMSet(configInfo, "StreamOn", fridgeConfig.StreamOn)
 	CheckError("DB error4: StreamOn", err)
 }
 
 func (fridge *Fridge) ValidateDevData(config DevConfig) (bool, string) {
+	var fridgeConfig FridgeConfig
+	json.Unmarshal(config.Data, fridgeConfig)
+
 	if !ValidateMAC(config.MAC) {
 		log.Error("Invalid MAC")
 		return false, "Invalid MAC"
-	} else if !ValidateStreamOn(config.StreamOn) {
+	} else if !ValidateStreamOn(fridgeConfig.StreamOn) {
 		log.Error("Invalid Stream Value")
 		return false, "Invalid Stream Value"
-	} else if !ValidateTurnedOn(config.TurnedOn) {
+	} else if !ValidateTurnedOn(fridgeConfig.TurnedOn) {
 		log.Error("Invalid Turned Value")
 		return false, "Invalid Turned Value"
-	} else if !ValidateCollectFreq(config.CollectFreq) {
+	} else if !ValidateCollectFreq(fridgeConfig.CollectFreq) {
 		log.Error("Invalid Collect Frequency Value")
 		return false, "Collect Frequency should be more than 150!"
-	} else if !ValidateSendFreq(config.SendFreq) {
+	} else if !ValidateSendFreq(fridgeConfig.SendFreq) {
 		log.Error("Invalid Send Frequency Value")
 		return false, "Send Frequency should be more than 150!"
 	}
 	return true, ""
+}
+
+
+func (fridge *Fridge)GetDefaultConfig() (*DevConfig) {
+	config := FridgeConfig{
+		TurnedOn:    true,
+		StreamOn:    true,
+		CollectFreq: 1000,
+		SendFreq:    5000,
+	}
+
+	arrByte, err:=json.Marshal(config)
+	CheckError("GetDevConfig. Exception in the marshal() ", err)
+
+	return &DevConfig{
+		MAC:fridge.Meta.MAC,
+		Data: arrByte,
+	}
 }
