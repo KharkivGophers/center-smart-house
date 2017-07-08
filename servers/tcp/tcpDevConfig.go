@@ -1,7 +1,7 @@
 package tcp
 
 import (
-	"strings"
+	//"strings"
 	"encoding/json"
 	"time"
 	"net"
@@ -13,6 +13,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	"fmt"
 	. "github.com/KharkivGophers/center-smart-house/drivers"
+	"reflect"
 )
 
 type TCPDevConfigServer struct {
@@ -42,7 +43,6 @@ func NewTCPDevConfigServerDefault(local Server, db Server, controller RoutinesCo
 	reconnect := time.NewTicker(time.Second * 1)
 	return NewTCPDevConfigServer(local, db, reconnect, messages, stopConfigSubscribe, controller)
 }
-
 
 func (server *TCPDevConfigServer) Run() {
 	defer func() {
@@ -83,7 +83,7 @@ func (server *TCPDevConfigServer) sendNewConfiguration(config DevConfig, pool *C
 		return
 	}
 
-	_,err :=connection.Write(config.Data)
+	_, err := connection.Write(config.Data)
 
 	if err != nil {
 		pool.RemoveConn(config.MAC)
@@ -111,17 +111,16 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
+	log.Info(configInfo)
 	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
 
-		state, err := dbClient.GetClient().HMGet(configInfo, "TurnedOn")
-		CheckError("Get from DB error: TurnedOn ", err)
-
-		if strings.Join(state, " ") != "" {
-			config = device.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
-			log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
-		}
+		config = device.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
+		log.Info(reflect.TypeOf(device))
+		log.Info(config)
+		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 
 	} else {
+
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = device.GetDefaultConfig()
@@ -131,8 +130,9 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 
 	//err = json.NewEncoder(conn).Encode(&config)
 	_, err = conn.Write(config.Data)
-	CheckError("sendDefaultConfiguration JSON enc", err)
-	log.Warningln("Configuration has been successfully sent")
+	if CheckError("sendDefaultConfiguration JSON enc", err)==nil {
+		log.Warningln("Configuration has been successfully sent")
+	}
 }
 
 func (server *TCPDevConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {
