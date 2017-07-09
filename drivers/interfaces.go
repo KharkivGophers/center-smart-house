@@ -16,7 +16,7 @@ type DevConfigDriver interface {
 }
 
 type DevDataDriver interface {
-	GetDevData(devParamsKey string, devParamsKeysTokens DevMeta, worker DbRedisDriver) DevData
+	GetDevData(devParamsKey string, devMeta DevMeta, worker DbRedisDriver) DevData
 	SetDevData(req *Request, worker DbRedisDriver) *ServerError
 }
 //Idea: Use this interface in the server. Than we give an opportunity to produce realization work logic samself

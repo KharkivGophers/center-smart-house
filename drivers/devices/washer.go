@@ -17,8 +17,10 @@ Time keep
  */
 type Washer struct {
 	Data   WasherData
-	Config DevConfig
+	Config WasherConfig
 	Meta   DevMeta
+
+	timeStartWash int64
 }
 
 type WasherData struct {
@@ -70,17 +72,29 @@ var (
 func (washer *Washer) selectMode(mode string) (WasherConfig) {
 	switch mode {
 	case "LightMode":
+		washer.Config = LightMode
 		return LightMode
 	case "FastMode":
+		washer.Config = FastMode
 		return FastMode
 	case "StandartMode":
+		washer.Config = StandartMode
 		return StandartMode
 	}
 	return WasherConfig{}
 }
-
+//Washer send request only when dont wash. So  if the database does not data about wash
+//func return empty value, else WasherConfig. But it work only when washer.timeStartWash = 0.
+//If washer.timeStartWash > 0 method return washer.Config. It needed for work with view.
 func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
+	flag, configWasher:= washer.getDevConfig()
 	config := DevConfig{}
+	config.MAC = mac
+
+	if flag {
+		config.Data, _ = json.Marshal(configWasher)
+		return &config
+	}
 
 	t := time.Now().UnixNano() / int64(time.Minute)
 
@@ -89,28 +103,67 @@ func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver)
 		CheckError("Washer. GetDevConfig. Cant perform ZRangeByScore", err)
 	}
 	log.Info("Washer. GetDevConfig. Mode ", mode, "Time ", t)
+
 	if len(mode) == 0 {
 		return &config
 	}
-	configWasher := washer.selectMode(mode[0])
+
+	washer.timeStartWash = t
+	configWasher = washer.selectMode(mode[0])
 	config.Data, err = json.Marshal(configWasher)
-	config.MAC = mac
 
 	CheckError("Washer. GetDevConfig. Cant perform json.Marshal(configWasher)", err)
 
 	return &config
 }
+//This method needed for work with http. If washer is have washing we will
+// return washer.Config, else we will return empty WasherConfig
+func (washer *Washer) getDevConfig()(bool, WasherConfig) {
+	if washer.timeStartWash <= 0 {
+		return  false, WasherConfig{}
+	}
+
+	t := time.Now().UnixNano() / int64(time.Minute)
+	timeAfterStart := t - washer.timeStartWash
+	timeWasherWorking := washer.Config.SpinTime + washer.Config.RinseTime + washer.Config.WashTime
+
+	if timeWasherWorking - timeAfterStart < 0 {
+		washer.timeStartWash = 0
+		washer.Config = WasherConfig{}
+		return false, washer.Config
+	}
+
+	return true, washer.Config
+}
+
 func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
 
 }
-func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) { return true, "" }
+func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
+	return true, ""
+}
 func (washer *Washer) GetDefaultConfig() (*DevConfig) {
 	return &DevConfig{}
 }
-func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) { return []byte{} }
+func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
+	return []byte{}
+}
 
-func (washer *Washer) GetDevData(devParamsKey string, devParamsKeysTokens DevMeta, worker DbRedisDriver) DevData {
-	return DevData{}
+func (washer *Washer) GetDevData(devParamsKey string, devMeta DevMeta, worker DbRedisDriver) DevData {
+	var device DevData
+
+	params, err := worker.SMembers(devParamsKey)
+	CheckError("Cant read members from devParamsKeys", err)
+	device.Meta = devMeta
+	device.Data = make(map[string][]string)
+
+	values := make([][]string, len(params))
+	for i, p := range params {
+		values[i], err = worker.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
+		CheckError("Cant use ZRangeByScore", err)
+		device.Data[p] = values[i]
+	}
+	return device
 }
 func (washer *Washer) SetDevData(req *Request, worker DbRedisDriver) *ServerError {
 
