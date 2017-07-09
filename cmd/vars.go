@@ -15,19 +15,16 @@ var (
 	centerIP = "0.0.0.0"
 
 	// tcp data connection with devices
-	dataConnType    = "tcp"
 	tcpDevDataPort = uint(3030)
 
 	// http connection with browser
 	httpConnPort = uint(8100)
 
 	// tcp config connection with devices
-	configConnType = "tcp"
 	tcpDevConfigPort  = uint(3000)
 
 	// web-socket connection
 	wsPort            = uint(2540)
-	roomIDForDevWSPublish = "devWS"
 )
 
 func getEnvDbPort(key string) uint {

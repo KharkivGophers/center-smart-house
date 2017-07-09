@@ -5,24 +5,9 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
 )
 
-func IdentifyDevConfig(devType string)(*DevConfigDriver){
+// What is that?!
+func IdentifyDevConfig(devType string)(DevConfigDriver){
 	var device DevConfigDriver
-
-	switch devType {
-	case "fridge":
-		device = &Fridge{}
-	case "washer":
-		device = &Washer{}
-	default:
-		log.Println("Device request: unknown device type")
-		return nil
-}
-	return &device
-}
-
-
-func IdentifyDevData(devType string)(DevDataDriver){
-	var device DevDataDriver
 
 	switch devType {
 	case "fridge":
@@ -36,8 +21,8 @@ func IdentifyDevData(devType string)(DevDataDriver){
 	return device
 }
 
-func IdentifyDevHandler(devType string)(DevServerHandler){
-	var device DevServerHandler
+func IdentifyDevData(devType string)(DevDataDriver){
+	var device DevDataDriver
 
 	switch devType {
 	case "fridge":

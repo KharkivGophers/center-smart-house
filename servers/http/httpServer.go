@@ -106,7 +106,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 
 	configInfo := dbClient.GetKeyForConfig(devMeta.MAC) // key
 
-	var device DevConfigDriver = *IdentifyDevConfig(devMeta.Type)
+	var device DevConfigDriver = IdentifyDevConfig(devMeta.Type)
 
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
@@ -117,7 +117,6 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
-
 	var config *DevConfig
 
 	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
@@ -133,7 +132,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 	configInfo := devMeta.MAC + ":" + "config" // key
 
-	var device DevConfigDriver = *IdentifyDevConfig(devMeta.Type)
+	var device DevConfigDriver = IdentifyDevConfig(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return
@@ -141,14 +140,14 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 	err = json.NewDecoder(r.Body).Decode(&config)
 
-	config.Data = device.CheckDevConfigAndMarshal(config.Data, configInfo, devMeta.MAC, dbClient)
+	config.Data = device.CheckAndMarshalDevConfig(config.Data, configInfo, devMeta.MAC, dbClient)
 
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		log.Errorln("NewDec: ", err)
 	}
 
-	valid, message := device.ValidateDevData(*config)
+	valid, message := device.ValidateDevConfig(*config)
 	if  !valid{
 		http.Error(w, message, 400)
 	} else {

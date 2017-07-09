@@ -4,7 +4,6 @@ import (
 	"github.com/KharkivGophers/center-smart-house/servers/webSocket"
 	"github.com/KharkivGophers/center-smart-house/servers/http"
 	. "github.com/KharkivGophers/center-smart-house/models"
-	"time"
 	"github.com/KharkivGophers/center-smart-house/servers/tcp"
 )
 
@@ -22,9 +21,8 @@ func main() {
 		dbServer, controller)
 	go tcpDevConfigServer.Run()
 
-	reconnect := time.NewTicker(time.Second * 1)
-	tcpDevDataServer := tcp.NewTCPDevDataServer(Server{IP: centerIP, Port: tcpDevDataPort},
-		dbServer, reconnect, controller)
+	tcpDevDataServer := tcp.NewTCPDevDataServerDefault(Server{IP: centerIP, Port: tcpDevDataPort},
+		dbServer, controller)
 	go tcpDevDataServer.Run()
 
 	controller.Wait()

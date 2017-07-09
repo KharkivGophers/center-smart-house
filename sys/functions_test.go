@@ -43,8 +43,6 @@ func TestFloat32ToString(t *testing.T) {
 		actual := Float64ToString(0)
 		So(actual,ShouldEqual, expected)
 	})
-
-
 }
 
 func TestInt64ToString(t *testing.T) {
@@ -71,7 +69,6 @@ func TestInt64ToString(t *testing.T) {
 	})
 }
 
-
 func TestValidateMAC(t *testing.T) {
 
 	Convey("Float64ToString. MAC = 00-00-00-00-00-00", t, func() {
@@ -86,5 +83,4 @@ func TestValidateMAC(t *testing.T) {
 		actual := ValidateMAC("12345678912345678")
 		So(actual,ShouldBeFalse)
 	})
-
 }

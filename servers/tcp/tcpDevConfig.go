@@ -37,6 +37,7 @@ func NewTCPDevConfigServer(local Server, db Server, reconnect *time.Ticker, mess
 		StopConfigSubscribe: stopConfigSubscribe,
 	}
 }
+
 func NewTCPDevConfigServerDefault(local Server, db Server, controller RoutinesController) *TCPDevConfigServer {
 	messages := make(chan []string)
 	stopConfigSubscribe := make(chan struct{})
@@ -100,7 +101,7 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	device = *IdentifyDevConfig(req.Meta.Type)//device struct
+	device = IdentifyDevConfig(req.Meta.Type)//device struct
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
 	dbClient := GetDBConnection(server.DbServer)
@@ -126,7 +127,6 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	CheckError("sendDefaultConfiguration JSON enc", err)
 
 	log.Warningln("Configuration has been successfully sent ", err)
-
 }
 
 func (server *TCPDevConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {

@@ -30,6 +30,11 @@ func NewTCPDevDataServer(local Server, db Server, reconnect *time.Ticker, contro
 	}
 }
 
+func NewTCPDevDataServerDefault(local Server, db Server, controller  RoutinesController) *TCPDevDataServer {
+	reconnect := time.NewTicker(time.Second * 1)
+	return NewTCPDevDataServer(local, db, reconnect, controller)
+}
+
 func (server *TCPDevDataServer) Run() {
 	defer func() {
 		if r := recover(); r != nil {
