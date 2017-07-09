@@ -13,7 +13,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	"net"
 
-	"github.com/KharkivGophers/device-smart-house/config"
+
 )
 
 type Fridge struct {
@@ -202,11 +202,13 @@ func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriv
 	var config *DevConfig
 	configInfo := req.Meta.MAC + ":" + "config" // key
 	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
+		log.Info("-----------------------------------------------------------------------------------")
+
 		config = fridge.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
 		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 
 	} else {
-
+		log.Info("----------------------------------------------------------------------------------2")
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = fridge.GetDefaultConfig()

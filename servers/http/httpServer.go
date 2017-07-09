@@ -14,7 +14,6 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	"fmt"
-	"github.com/KharkivGophers/device-smart-house/config"
 )
 
 type HTTPServer struct {
@@ -137,6 +136,8 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 		http.Error(w, "This type is not found", 400)
 		return
 	}
+
+	device.PatchDevConfigHandlerHTTP(w,r,devMeta,dbClient)
 
 
 }

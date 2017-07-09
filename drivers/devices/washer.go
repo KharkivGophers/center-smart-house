@@ -97,21 +97,21 @@ func (washer *Washer) selectMode(mode string) (WasherConfig) {
 //func return empty value, else WasherConfig. But it work only when washer.timeStartWash = 0.
 //If washer.timeStartWash > 0 method return washer.Config. It needed for work with view.
 func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	var fridgeConfig FridgeConfig = *washer.getWashConfig(configInfo, mac, worker)
-	var devConfig DevConfig
+	//var fridgeConfig FridgeConfig = *washer.getWashConfig(configInfo, mac, worker)
+	//var devConfig DevConfig
+	//
+	//arrByte, err := json.Marshal(&fridgeConfig)
+	//CheckError("GetDevConfig. Exception in the marshal() ", err)
+	//
+	//devConfig = DevConfig{
+	//	MAC:  mac,
+	//	Data: arrByte,
+	//}
+	//
+	//log.Println("Configuration from DB: ", fridgeConfig.TurnedOn, fridgeConfig.SendFreq, fridgeConfig.CollectFreq)
 
-	arrByte, err := json.Marshal(&fridgeConfig)
-	CheckError("GetDevConfig. Exception in the marshal() ", err)
+	return &DevConfig{}
 
-	devConfig = DevConfig{
-		MAC:  mac,
-		Data: arrByte,
-	}
-
-	log.Println("Configuration from DB: ", fridgeConfig.TurnedOn, fridgeConfig.SendFreq, fridgeConfig.CollectFreq)
-
-	return &devConfig
-	return &config
 }
 
 //This method needed for work with http. If washer is have washing we will
@@ -227,6 +227,7 @@ func (washer *Washer) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Req
 func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriver, req *Request) ([]byte) {
 	var config *DevConfig
 	configInfo := req.Meta.MAC + ":" + "config" // key
+
 	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
 		config = washer.getActualConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
 		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
@@ -246,7 +247,7 @@ func (washer *Washer)PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Re
 }
 
 func (washer *Washer) getActualConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	config := DevConfig{}
+	config := washer.GetDefaultConfig()
 	config.MAC = mac
 
 	t := time.Now().UnixNano() / int64(time.Minute)
@@ -258,13 +259,12 @@ func (washer *Washer) getActualConfig(configInfo, mac string, worker DbRedisDriv
 	log.Info("Washer. GetDevConfig. Mode ", mode, "Time ", t)
 
 	if len(mode) == 0 {
-		log.Info("EMPTY")
-		return &config
+		return config
 	}
 
 	configWasher := washer.selectMode(mode[0])
 	config.Data, err = json.Marshal(configWasher)
 
 	CheckError("Washer. GetDevConfig. Cant perform json.Marshal(configWasher)", err)
-	return &config
+	return config
 }

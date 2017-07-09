@@ -14,6 +14,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	. "github.com/KharkivGophers/center-smart-house/drivers"
 
+	"reflect"
 )
 
 type TCPDevConfigServer struct {
@@ -94,7 +95,7 @@ func (server *TCPDevConfigServer) sendNewConfiguration(config DevConfig, pool *C
 func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *ConnectionPool) {
 	var (
 		req    Request
-		config *DevConfig
+		config DevConfig
 		device DevServerHandler
 	)
 	err := json.NewDecoder(conn).Decode(&req)
@@ -104,6 +105,7 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	defer dbClient.Close()
 
 	device = IdentifyDevHandler(req.Meta.Type)//device struct
+	log.Info(reflect.TypeOf(device))
 	config.Data = device.SendDefaultConfigurationTCP(conn, dbClient, &req)
 
 	_, err = conn.Write(config.Data)
