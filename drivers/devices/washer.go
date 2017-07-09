@@ -93,66 +93,8 @@ func (washer *Washer) selectMode(mode string) (WasherConfig) {
 	return WasherConfig{}
 }
 
-//Washer send request only when dont wash. So  if the database does not data about wash
-//func return empty value, else WasherConfig. But it work only when washer.timeStartWash = 0.
-//If washer.timeStartWash > 0 method return washer.Config. It needed for work with view.
-func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	//var fridgeConfig FridgeConfig = *washer.getWashConfig(configInfo, mac, worker)
-	//var devConfig DevConfig
-	//
-	//arrByte, err := json.Marshal(&fridgeConfig)
-	//CheckError("GetDevConfig. Exception in the marshal() ", err)
-	//
-	//devConfig = DevConfig{
-	//	MAC:  mac,
-	//	Data: arrByte,
-	//}
-	//
-	//log.Println("Configuration from DB: ", fridgeConfig.TurnedOn, fridgeConfig.SendFreq, fridgeConfig.CollectFreq)
 
-	return &DevConfig{}
-
-}
-
-//This method needed for work with http. If washer is have washing we will
-// return washer.Config, else we will return empty WasherConfig
-//func (washer *Washer) getDevConfig()(bool, WasherConfig) {
-//	if washer.timeStartWash <= 0 {
-//		return  false, WasherConfig{}
-//	}
-//
-//	t := time.Now().UnixNano() / int64(time.Minute)
-//	timeAfterStart := t - washer.timeStartWash
-//	timeWasherWorking := washer.Config.SpinTime + washer.Config.RinseTime + washer.Config.WashTime
-//
-//	if timeWasherWorking - timeAfterStart < 0 {
-//		washer.timeStartWash = 0
-//		washer.Config = WasherConfig{}
-//		return false, washer.Config
-//	}
-//
-//	return true, washer.Config
-//}
-
-func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
-	var timerMode TimerMode
-	json.Unmarshal(config.Data, &timerMode)
-
-	_, err := worker.ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
-	CheckError("DB error1: TurnedOn", err)
-}
-
-func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
-	return true, ""
-}
-func (washer *Washer) GetDefaultConfig() (*DevConfig) {
-	b, _ := json.Marshal(WasherConfig{})
-	return &DevConfig{Data: b}
-}
-func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
-	return []byte{}
-}
-
+//--------------------------------------DevDataDriver--------------------------------------------------------------
 func (washer *Washer) GetDevData(devParamsKey string, devMeta DevMeta, worker DbRedisDriver) DevData {
 	var device DevData
 
@@ -221,6 +163,56 @@ func setDevDataInt64(TempCam map[int64]int64, key string, worker DbRedisDriver) 
 	return nil
 }
 
+
+//--------------------------------------DevConfigDriver--------------------------------------------------------------
+func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
+	return &DevConfig{}
+
+}
+
+//This method needed for work with http. If washer is have washing we will
+// return washer.Config, else we will return empty WasherConfig
+//func (washer *Washer) getDevConfig()(bool, WasherConfig) {
+//	if washer.timeStartWash <= 0 {
+//		return  false, WasherConfig{}
+//	}
+//
+//	t := time.Now().UnixNano() / int64(time.Minute)
+//	timeAfterStart := t - washer.timeStartWash
+//	timeWasherWorking := washer.Config.SpinTime + washer.Config.RinseTime + washer.Config.WashTime
+//
+//	if timeWasherWorking - timeAfterStart < 0 {
+//		washer.timeStartWash = 0
+//		washer.Config = WasherConfig{}
+//		return false, washer.Config
+//	}
+//
+//	return true, washer.Config
+//}
+
+func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
+	var timerMode TimerMode
+	json.Unmarshal(config.Data, &timerMode)
+
+	_, err := worker.ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
+	CheckError("DB error1: TurnedOn", err)
+}
+
+func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
+	return true, ""
+}
+func (washer *Washer) GetDefaultConfig() (*DevConfig) {
+	b, _ := json.Marshal(WasherConfig{})
+	return &DevConfig{Data: b}
+}
+func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
+	return []byte{}
+}
+
+
+
+//--------------------------------------DevServerHandler--------------------------------------------------------------
+
 func (washer *Washer) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver) {
 
 }
@@ -242,7 +234,7 @@ func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriv
 	return config.Data
 }
 
-func (washer *Washer)PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver){
+func (washer *Washer) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver) {
 
 }
 

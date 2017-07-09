@@ -118,10 +118,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 
 func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
-
-
 	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
-
 	_, err :=ValidateDevMeta(devMeta)
 	if err != nil {
 		log.Error(err)
@@ -131,13 +128,10 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
-	var device DevServerHandler = IdentifyDevHandler(devMeta.Type)
+	device  := IdentifyDevHandler(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return
 	}
-
 	device.PatchDevConfigHandlerHTTP(w,r,devMeta,dbClient)
-
-
 }
