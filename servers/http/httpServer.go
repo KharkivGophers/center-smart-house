@@ -14,6 +14,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	"fmt"
+	"github.com/KharkivGophers/device-smart-house/config"
 )
 
 type HTTPServer struct {
@@ -118,7 +119,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 
 func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
-	var config *DevConfig
+
 
 	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
 
@@ -131,31 +132,11 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
-	configInfo := devMeta.MAC + ":" + "config" // key
-
-	var device DevConfigDriver = *IdentifyDevConfig(devMeta.Type)
+	var device DevServerHandler = IdentifyDevHandler(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&config)
 
-	config.Data = device.CheckDevConfigAndMarshal(config.Data, configInfo, devMeta.MAC, dbClient)
-
-	if err != nil {
-		http.Error(w, err.Error(), 400)
-		log.Errorln("NewDec: ", err)
-	}
-
-	valid, message := device.ValidateDevData(*config)
-	if  !valid{
-		http.Error(w, message, 400)
-	} else {
-		// Save New Configuration to DB
-		device.SetDevConfig(configInfo,config, dbClient.GetClient())
-		log.Println("New Config was added to DB: ", config.MAC)
-		JSONСonfig, _ := json.Marshal(config)
-		dbClient.Publish("configChan",JSONСonfig)
-	}
 }

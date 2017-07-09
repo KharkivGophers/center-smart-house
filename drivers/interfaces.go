@@ -5,6 +5,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	"net/http"
 
+	"net"
 )
 
 type DevConfigDriver interface {
@@ -21,5 +22,7 @@ type DevDataDriver interface {
 }
 //Idea: Use this interface in the server. Than we give an opportunity to produce realization work logic samself
 type DevServerHandler interface{
-	GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta)
+	GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver)
+	SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriver, req *Request)([]byte)
+	PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver)
 }

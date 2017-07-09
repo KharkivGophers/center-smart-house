@@ -95,33 +95,17 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	var (
 		req    Request
 		config *DevConfig
-		device DevConfigDriver
+		device DevServerHandler
 	)
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
-
-	device = *IdentifyDevConfig(req.Meta.Type)//device struct
-	configInfo := req.Meta.MAC + ":" + "config" // key
-
+	pool.AddConn(conn, req.Meta.MAC)
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
-	pool.AddConn(conn, req.Meta.MAC)
+	device = IdentifyDevHandler(req.Meta.Type)//device struct
+	config.Data = device.SendDefaultConfigurationTCP(conn, dbClient, &req)
 
-	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
-		config = device.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
-		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
-
-	} else {
-
-		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
-		log.Warningln("Default Config will be sent.")
-		config = device.GetDefaultConfig()
-
-		device.SetDevConfig(configInfo, config, dbClient.GetClient())
-	}
-
-	//err = json.NewEncoder(conn).Encode(&config)
 	_, err = conn.Write(config.Data)
 	CheckError("sendDefaultConfiguration JSON enc", err)
 

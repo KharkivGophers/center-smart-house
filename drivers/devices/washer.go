@@ -10,6 +10,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
+	"net"
 )
 
 /**
@@ -29,6 +30,7 @@ type WasherData struct {
 }
 
 type WasherConfig struct {
+	Name           string   `json:"name"`
 	MAC            string   `json:"mac"`
 	Temperature    float32  `json:"temperature"`
 	WashTime       int64    `json:"washTime"`
@@ -38,9 +40,14 @@ type WasherConfig struct {
 	SpinTime       int64    `json:"spinTime"`
 	SpinTurnovers  int64    `json:"spinTurnovers"`
 }
+type TimerMode struct {
+	Name      string   `json:"name"`
+	StartTime int64    `json:time`
+}
 
 var (
 	LightMode WasherConfig = WasherConfig{
+		Name:           "LightMode",
 		Temperature:    60,
 		WashTime:       90,
 		WashTurnovers:  240,
@@ -50,6 +57,7 @@ var (
 		SpinTurnovers:  60,
 	}
 	FastMode WasherConfig = WasherConfig{
+		Name:           "FastMode",
 		Temperature:    180,
 		WashTime:       30,
 		WashTurnovers:  300,
@@ -59,6 +67,7 @@ var (
 		SpinTurnovers:  60,
 	}
 	StandartMode WasherConfig = WasherConfig{
+		Name:           "StandartMode",
 		Temperature:    240,
 		WashTime:       120,
 		WashTurnovers:  240,
@@ -83,40 +92,28 @@ func (washer *Washer) selectMode(mode string) (WasherConfig) {
 	}
 	return WasherConfig{}
 }
+
 //Washer send request only when dont wash. So  if the database does not data about wash
 //func return empty value, else WasherConfig. But it work only when washer.timeStartWash = 0.
 //If washer.timeStartWash > 0 method return washer.Config. It needed for work with view.
 func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	//flag, configWasher:= washer.getDevConfig()
-	config := DevConfig{}
-	config.MAC = mac
+	var fridgeConfig FridgeConfig = *washer.getWashConfig(configInfo, mac, worker)
+	var devConfig DevConfig
 
-	//if flag {
-	//	config.Data, _ = json.Marshal(configWasher)
-	//	log.Info("FLAG", config)
-	//	return &config
-	//}
+	arrByte, err := json.Marshal(&fridgeConfig)
+	CheckError("GetDevConfig. Exception in the marshal() ", err)
 
-	t := time.Now().UnixNano() / int64(time.Minute)
-
-	mode, err := worker.ZRangeByScore(configInfo, t-100, t+100)
-	if err != nil {
-		CheckError("Washer. GetDevConfig. Cant perform ZRangeByScore", err)
-	}
-	log.Info("Washer. GetDevConfig. Mode ", mode, "Time ", t)
-
-	if len(mode) == 0 {
-		log.Info("EMPTY")
-		return &config
+	devConfig = DevConfig{
+		MAC:  mac,
+		Data: arrByte,
 	}
 
-	washer.timeStartWash = t
-	configWasher := washer.selectMode(mode[0])
-	config.Data, err = json.Marshal(configWasher)
+	log.Println("Configuration from DB: ", fridgeConfig.TurnedOn, fridgeConfig.SendFreq, fridgeConfig.CollectFreq)
 
-	CheckError("Washer. GetDevConfig. Cant perform json.Marshal(configWasher)", err)
+	return &devConfig
 	return &config
 }
+
 //This method needed for work with http. If washer is have washing we will
 // return washer.Config, else we will return empty WasherConfig
 //func (washer *Washer) getDevConfig()(bool, WasherConfig) {
@@ -138,14 +135,19 @@ func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver)
 //}
 
 func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
+	var timerMode TimerMode
+	json.Unmarshal(config.Data, &timerMode)
 
+	_, err := worker.ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
+	CheckError("DB error1: TurnedOn", err)
 }
+
 func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
 	return true, ""
 }
 func (washer *Washer) GetDefaultConfig() (*DevConfig) {
 	b, _ := json.Marshal(WasherConfig{})
-	return &DevConfig{Data:b}
+	return &DevConfig{Data: b}
 }
 func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
 	return []byte{}
@@ -219,6 +221,50 @@ func setDevDataInt64(TempCam map[int64]int64, key string, worker DbRedisDriver) 
 	return nil
 }
 
-func (washer *Washer) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta) {
+func (washer *Washer) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver) {
 
+}
+func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriver, req *Request) ([]byte) {
+	var config *DevConfig
+	configInfo := req.Meta.MAC + ":" + "config" // key
+	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
+		config = washer.getActualConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
+		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
+
+	} else {
+		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
+		log.Warningln("Default Config will be sent.")
+		config = washer.GetDefaultConfig()
+		washer.SetDevConfig(configInfo, config, dbClient.GetClient())
+	}
+
+	return config.Data
+}
+
+func (washer *Washer)PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver){
+
+}
+
+func (washer *Washer) getActualConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
+	config := DevConfig{}
+	config.MAC = mac
+
+	t := time.Now().UnixNano() / int64(time.Minute)
+
+	mode, err := worker.ZRangeByScore(configInfo, t-100, t+100)
+	if err != nil {
+		CheckError("Washer. GetDevConfig. Cant perform ZRangeByScore", err)
+	}
+	log.Info("Washer. GetDevConfig. Mode ", mode, "Time ", t)
+
+	if len(mode) == 0 {
+		log.Info("EMPTY")
+		return &config
+	}
+
+	configWasher := washer.selectMode(mode[0])
+	config.Data, err = json.Marshal(configWasher)
+
+	CheckError("Washer. GetDevConfig. Cant perform json.Marshal(configWasher)", err)
+	return &config
 }

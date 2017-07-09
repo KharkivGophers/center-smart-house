@@ -11,6 +11,9 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/sys"
+	"net"
+
+	"github.com/KharkivGophers/device-smart-house/config"
 )
 
 type Fridge struct {
@@ -191,6 +194,50 @@ func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac strin
 	return arr
 }
 
-func (fridge *Fridge) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta) {
+func (fridge *Fridge) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver) {
 
+}
+
+func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriver, req *Request)([]byte) {
+	var config *DevConfig
+	configInfo := req.Meta.MAC + ":" + "config" // key
+	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
+		config = fridge.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
+		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
+
+	} else {
+
+		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
+		log.Warningln("Default Config will be sent.")
+		config = fridge.GetDefaultConfig()
+
+		fridge.SetDevConfig(configInfo, config, dbClient.GetClient())
+	}
+
+	return  config.Data
+}
+
+func (fridge *Fridge) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, devMeta DevMeta, dbClient DbDriver){
+	var config *DevConfig
+	configInfo := devMeta.MAC + ":" + "config" // key
+
+	err := json.NewDecoder(r.Body).Decode(&config)
+
+	config.Data = fridge.CheckDevConfigAndMarshal(config.Data, configInfo, devMeta.MAC, dbClient)
+
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		log.Errorln("NewDec: ", err)
+	}
+
+	valid, message := fridge.ValidateDevData(*config)
+	if  !valid{
+		http.Error(w, message, 400)
+	} else {
+		// Save New Configuration to DB
+		fridge.SetDevConfig(configInfo,config, dbClient.GetClient())
+		log.Println("New Config was added to DB: ", config.MAC)
+		JSONСonfig, _ := json.Marshal(config)
+		dbClient.Publish("configChan",JSONСonfig)
+	}
 }
