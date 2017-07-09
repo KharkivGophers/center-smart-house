@@ -15,6 +15,8 @@ type DbDriver interface {
 	GetAllDevices() ([]DevData)
 	GetClient() DbRedisDriver
 
+	GetKeyForConfig(mac string)string
+
 	// Not yet implemented.
 	//GetDevConfig(configInfo, devType string, mac string) (*DevConfig)
 	//SetDevConfig(configInfo string, devType string, config *DevConfig)

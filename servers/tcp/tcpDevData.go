@@ -12,7 +12,6 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/drivers"
 	"fmt"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	. "github.com/KharkivGophers/center-smart-house/drivers/devices"
 )
 
 type TCPDevDataServer struct {
@@ -64,13 +63,11 @@ func (server *TCPDevDataServer) tcpDataHandler(conn net.Conn) {
 	for {
 		err := json.NewDecoder(conn).Decode(&req)
 		if err != nil {
-			log.Errorln("requestHandler JSON Decod", err)
+			log.Errorln("tcpDataHandler. requestHandler JSON Decod", err)
 			return
 		}
 		//sends resp struct from  devTypeHandler by channel;
 		go server.devTypeHandler(req)
-
-		log.Println("Data has been received")
 
 		res = Response{
 			Status: 200,
@@ -90,17 +87,12 @@ func (server TCPDevDataServer) devTypeHandler(req Request) string {
 
 	switch req.Action {
 	case "update":
-		var data DevDataDriver
-
-		switch req.Meta.Type {
-		case "fridge":
-			data = &Fridge{}
-		case "washer":
-			return string("We havent washer")
-		default:
-			log.Println("Device request: unknown device type")
+		data := IdentifyDevData(req.Meta.Type)
+		if data == nil{
 			return string("Device request: unknown device type")
 		}
+		log.Println("Data has been received")
+
 		data.SetDevData(&req, dbClient.GetClient())
 		go PublishWS(req, "devWS", &RedisClient{DbServer: server.DbServer})
 		//go publishWS(req)

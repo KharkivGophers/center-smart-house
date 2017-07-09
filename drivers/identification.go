@@ -35,3 +35,18 @@ func IdentifyDevData(devType string)(DevDataDriver){
 	}
 	return device
 }
+
+func IdentifyDevHandler(devType string)(DevServerHandler){
+	var device DevServerHandler
+
+	switch devType {
+	case "fridge":
+		device = &Fridge{}
+	case "washer":
+		device = &Washer{}
+	default:
+		log.Println("Device request: unknown device type")
+		return nil
+	}
+	return device
+}
