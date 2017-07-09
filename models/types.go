@@ -41,8 +41,8 @@ type Response struct {
 }
 
 type DevConfig struct{
-MAC         string `json:"mac"`
-Data   json.RawMessage `json:"data"`
+	MAC         string `json:"mac"`
+	Data   json.RawMessage `json:"data"`
 }
 
 type DevMeta struct {

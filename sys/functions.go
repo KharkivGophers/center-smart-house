@@ -12,12 +12,13 @@ import (
 func CheckError(desc string, err error) error {
 	if err != nil {
 		log.Errorln(desc, err)
+
 		return err
 	}
 	return nil
 }
 
-func Float32ToString(num float32) string {
+func Float64ToString(num float32) string {
 	return strconv.FormatFloat(float64(num), 'f', -1, 32)
 }
 

@@ -82,7 +82,7 @@ func (fridge *Fridge) SetDevData(req *Request, worker DbRedisDriver) *ServerErro
 
 func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) error {
 	for time, value := range TempCam {
-		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float32ToString(value))
+		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 		if CheckError("DB error14", err) != nil {
 			return err
 		}

@@ -61,8 +61,10 @@ func TestSetDevConfigWithRedis(t *testing.T) {
 	dbWorker.Connect()
 	defer dbWorker.Close()
 	fridge := Fridge{}
-	devConfig := models.DevConfig{true, true,
-				      int64(200), int64(200), "00-00-00-11-11-11"}
+
+	fridge.Config = FridgeConfig{true, true, int64(200), int64(200)}
+	b,_ := json.Marshal(fridge.Config)
+	devConfig := models.DevConfig{"00-00-00-11-11-11", b}
 
 	Convey("Should be all ok", t, func() {
 		fridge.SetDevConfig("00-00-00-11-11-11:config", &devConfig, dbWorker.Client)
@@ -80,26 +82,33 @@ func TestValidateDevData(t *testing.T) {
 	fridge := Fridge{}
 	var devConfig models.DevConfig
 	Convey("Invalid MAC. Should be false", t, func() {
-		devConfig = models.DevConfig{true, true,
-					     int64(0), int64(0), "Invalid mac"}
+		fridge.Config = FridgeConfig{true, true, int64(0), int64(0)}
+		b,_ := json.Marshal(fridge.Config)
+		devConfig = models.DevConfig{"Invalid mac", b}
 		valid, _ := fridge.ValidateDevData(devConfig)
 		So(valid, ShouldBeFalse)
 	})
 	Convey("Valid DevConfig. Should be false", t, func() {
-		devConfig = models.DevConfig{true, true,
-					     int64(200), int64(200), "00-00-00-11-11-11"}
+
+		fridge.Config = FridgeConfig{true, true, int64(200), int64(200)}
+		b,_ := json.Marshal(fridge.Config)
+		devConfig = models.DevConfig{"00-00-00-11-11-11", b}
+
 		valid, _ := fridge.ValidateDevData(devConfig)
 		So(valid, ShouldBeTrue)
 	})
 	Convey("Collect Frequency should be more than 150!", t, func() {
-		devConfig = models.DevConfig{true, true,
-					     int64(100), int64(200), "00-00-00-11-11-11"}
+
+		fridge.Config = FridgeConfig{true, true, int64(100), int64(200)}
+		b,_ := json.Marshal(fridge.Config)
+		devConfig = models.DevConfig{"00-00-00-11-11-11", b}
 		valid, _ := fridge.ValidateDevData(devConfig)
 		So(valid, ShouldBeFalse)
 	})
 	Convey("Send Frequency should be more than 150!", t, func() {
-		devConfig = models.DevConfig{true, true,
-					     int64(200), int64(100), "00-00-00-11-11-11"}
+		fridge.Config = FridgeConfig{true, true, int64(200), int64(100)}
+		b,_ := json.Marshal(fridge.Config)
+		devConfig = models.DevConfig{"00-00-00-11-11-11", b}
 		valid, _ := fridge.ValidateDevData(devConfig)
 		So(valid, ShouldBeFalse)
 	})

@@ -87,54 +87,55 @@ func (washer *Washer) selectMode(mode string) (WasherConfig) {
 //func return empty value, else WasherConfig. But it work only when washer.timeStartWash = 0.
 //If washer.timeStartWash > 0 method return washer.Config. It needed for work with view.
 func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	flag, configWasher:= washer.getDevConfig()
+	//flag, configWasher:= washer.getDevConfig()
 	config := DevConfig{}
 	config.MAC = mac
 
-	if flag {
-		config.Data, _ = json.Marshal(configWasher)
-		return &config
-	}
+	//if flag {
+	//	config.Data, _ = json.Marshal(configWasher)
+	//	log.Info("FLAG", config)
+	//	return &config
+	//}
 
 	t := time.Now().UnixNano() / int64(time.Minute)
 
-	mode, err := worker.ZRangeByScore(configInfo, t-1, t+1)
+	mode, err := worker.ZRangeByScore(configInfo, t-100, t+100)
 	if err != nil {
 		CheckError("Washer. GetDevConfig. Cant perform ZRangeByScore", err)
 	}
 	log.Info("Washer. GetDevConfig. Mode ", mode, "Time ", t)
 
 	if len(mode) == 0 {
+		log.Info("EMPTY")
 		return &config
 	}
 
 	washer.timeStartWash = t
-	configWasher = washer.selectMode(mode[0])
+	configWasher := washer.selectMode(mode[0])
 	config.Data, err = json.Marshal(configWasher)
 
 	CheckError("Washer. GetDevConfig. Cant perform json.Marshal(configWasher)", err)
-
 	return &config
 }
 //This method needed for work with http. If washer is have washing we will
 // return washer.Config, else we will return empty WasherConfig
-func (washer *Washer) getDevConfig()(bool, WasherConfig) {
-	if washer.timeStartWash <= 0 {
-		return  false, WasherConfig{}
-	}
-
-	t := time.Now().UnixNano() / int64(time.Minute)
-	timeAfterStart := t - washer.timeStartWash
-	timeWasherWorking := washer.Config.SpinTime + washer.Config.RinseTime + washer.Config.WashTime
-
-	if timeWasherWorking - timeAfterStart < 0 {
-		washer.timeStartWash = 0
-		washer.Config = WasherConfig{}
-		return false, washer.Config
-	}
-
-	return true, washer.Config
-}
+//func (washer *Washer) getDevConfig()(bool, WasherConfig) {
+//	if washer.timeStartWash <= 0 {
+//		return  false, WasherConfig{}
+//	}
+//
+//	t := time.Now().UnixNano() / int64(time.Minute)
+//	timeAfterStart := t - washer.timeStartWash
+//	timeWasherWorking := washer.Config.SpinTime + washer.Config.RinseTime + washer.Config.WashTime
+//
+//	if timeWasherWorking - timeAfterStart < 0 {
+//		washer.timeStartWash = 0
+//		washer.Config = WasherConfig{}
+//		return false, washer.Config
+//	}
+//
+//	return true, washer.Config
+//}
 
 func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
 
@@ -143,7 +144,8 @@ func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
 	return true, ""
 }
 func (washer *Washer) GetDefaultConfig() (*DevConfig) {
-	return &DevConfig{}
+	b, _ := json.Marshal(WasherConfig{})
+	return &DevConfig{Data:b}
 }
 func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
 	return []byte{}
@@ -200,7 +202,7 @@ func (washer *Washer) SetDevData(req *Request, worker DbRedisDriver) *ServerErro
 
 func setDevDataFloat32(TempCam map[int64]float32, key string, worker DbRedisDriver) error {
 	for time, value := range TempCam {
-		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float32ToString(value))
+		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 		if CheckError("setDevDataFloat32. Exception with ZAdd", err) != nil {
 			return err
 		}
