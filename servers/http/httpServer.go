@@ -141,7 +141,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 	err = json.NewDecoder(r.Body).Decode(&config)
 
-	config.Data = device.CheckDevConfig(config.Data, configInfo, devMeta.MAC, dbClient)
+	config.Data = device.CheckDevConfigAndMarshal(config.Data, configInfo, devMeta.MAC, dbClient)
 
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -154,7 +154,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	} else {
 		// Save New Configuration to DB
 		device.SetDevConfig(configInfo,config, dbClient.GetClient())
-		log.Println("New Config was added to DB: ", config)
+		log.Println("New Config was added to DB: ", config.MAC)
 		JSONСonfig, _ := json.Marshal(config)
 		dbClient.Publish("configChan",JSONСonfig)
 	}

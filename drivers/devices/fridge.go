@@ -190,7 +190,7 @@ func (fridge *Fridge)GetDefaultConfig() (*DevConfig) {
 }
 
 
-func (fridge *Fridge)CheckDevConfig(arr []byte, configInfo, mac string, client DbDriver)([]byte){
+func (fridge *Fridge)CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver)([]byte){
 	fridgeConfig := fridge.getFridgeConfig(configInfo, mac, client.GetClient())
 	json.Unmarshal(arr,&fridgeConfig)
 	arr,_ = json.Marshal(fridgeConfig)
