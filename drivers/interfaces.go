@@ -3,6 +3,7 @@ package drivers
 import (
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/dao"
+	"net/http"
 
 )
 
@@ -17,4 +18,8 @@ type DevConfigDriver interface {
 type DevDataDriver interface {
 	GetDevData(devParamsKey string, devParamsKeysTokens DevMeta, worker DbRedisDriver) DevData
 	SetDevData(req *Request, worker DbRedisDriver) *ServerError
+}
+//Idea: Use this interface in the server. Than we give an opportunity to produce realization work logic samself
+type DevServerHandler interface{
+	GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta)
 }

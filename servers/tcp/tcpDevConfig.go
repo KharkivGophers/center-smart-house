@@ -1,19 +1,18 @@
 package tcp
 
 import (
-	//"strings"
 	"encoding/json"
 	"time"
 	"net"
+	"fmt"
 
 	log "github.com/Sirupsen/logrus"
 
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	"fmt"
 	. "github.com/KharkivGophers/center-smart-house/drivers"
-	"reflect"
+
 )
 
 type TCPDevConfigServer struct {
@@ -100,23 +99,16 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 
-	device = *IdentifyDevConfig(req.Meta.Type)
-
-	// Send Default Configuration to Device
+	device = *IdentifyDevConfig(req.Meta.Type)//device struct
+	configInfo := req.Meta.MAC + ":" + "config" // key
 
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
 	pool.AddConn(conn, req.Meta.MAC)
 
-	configInfo := req.Meta.MAC + ":" + "config" // key
-
-	log.Info(configInfo)
 	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
-
 		config = device.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
-		log.Info(reflect.TypeOf(device))
-		log.Info(config)
 		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 
 	} else {
@@ -130,9 +122,10 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 
 	//err = json.NewEncoder(conn).Encode(&config)
 	_, err = conn.Write(config.Data)
-	if CheckError("sendDefaultConfiguration JSON enc", err)==nil {
-		log.Warningln("Configuration has been successfully sent")
-	}
+	CheckError("sendDefaultConfiguration JSON enc", err)
+
+	log.Warningln("Configuration has been successfully sent ", err)
+
 }
 
 func (server *TCPDevConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {

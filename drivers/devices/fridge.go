@@ -3,18 +3,20 @@ package devices
 import (
 	"strconv"
 	"strings"
-	log "github.com/Sirupsen/logrus"
 	"encoding/json"
+	"net/http"
+
+	log "github.com/Sirupsen/logrus"
+
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-
 )
 
 type Fridge struct {
 	Data   FridgeData `json:"data"`
 	Config FridgeConfig
-	Meta   DevMeta `json:"meta"`
+	Meta   DevMeta    `json:"meta"`
 }
 type FridgeData struct {
 	TempCam1 map[int64]float32 `json:"tempCam1"`
@@ -46,20 +48,15 @@ func (fridge *Fridge) GetDevData(devParamsKey string, devMeta DevMeta, worker Db
 }
 
 func (fridge *Fridge) SetDevData(req *Request, worker DbRedisDriver) *ServerError {
-	defer worker.Close()
 
 	var devData FridgeData
-	mac := req.Meta.MAC
-	devReqTime := req.Time
-	devType := req.Meta.Type
-	devName := req.Meta.Name
 
-	devKey := "device" + ":" + devType + ":" + devName + ":" + mac
+	devKey := "device" + ":" +  req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"
 
 	_, err := worker.SAdd("devParamsKeys", devParamsKey)
 	CheckError("DB error11", err)
-	_, err = worker.HMSet(devKey, "ReqTime", devReqTime)
+	_, err = worker.HMSet(devKey, "ReqTime", req.Time)
 	CheckError("DB error12", err)
 	_, err = worker.SAdd(devParamsKey, "TempCam1", "TempCam2")
 	CheckError("DB error13", err)
@@ -94,14 +91,14 @@ func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) err
 }
 
 func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	var fridgeConfig FridgeConfig = *fridge.getFridgeConfig(configInfo,mac,worker)
+	var fridgeConfig FridgeConfig = *fridge.getFridgeConfig(configInfo, mac, worker)
 	var devConfig DevConfig
 
-	arrByte, err:=json.Marshal(&fridgeConfig)
+	arrByte, err := json.Marshal(&fridgeConfig)
 	CheckError("GetDevConfig. Exception in the marshal() ", err)
 
 	devConfig = DevConfig{
-		MAC:mac,
+		MAC:  mac,
 		Data: arrByte,
 	}
 
@@ -132,7 +129,6 @@ func (fridge *Fridge) getFridgeConfig(configInfo, mac string, worker DbRedisDriv
 		StreamOn:    streamOnBool,
 	}
 }
-
 
 func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
 	var fridgeConfig FridgeConfig
@@ -171,8 +167,7 @@ func (fridge *Fridge) ValidateDevData(config DevConfig) (bool, string) {
 	return true, ""
 }
 
-
-func (fridge *Fridge)GetDefaultConfig() (*DevConfig) {
+func (fridge *Fridge) GetDefaultConfig() (*DevConfig) {
 	config := FridgeConfig{
 		TurnedOn:    true,
 		StreamOn:    true,
@@ -180,19 +175,22 @@ func (fridge *Fridge)GetDefaultConfig() (*DevConfig) {
 		SendFreq:    5000,
 	}
 
-	arrByte, err:=json.Marshal(config)
+	arrByte, err := json.Marshal(config)
 	CheckError("GetDevConfig. Exception in the marshal() ", err)
 
 	return &DevConfig{
-		MAC:fridge.Meta.MAC,
+		MAC:  fridge.Meta.MAC,
 		Data: arrByte,
 	}
 }
 
-
-func (fridge *Fridge)CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver)([]byte){
+func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
 	fridgeConfig := fridge.getFridgeConfig(configInfo, mac, client.GetClient())
-	json.Unmarshal(arr,&fridgeConfig)
-	arr,_ = json.Marshal(fridgeConfig)
-	return  arr
+	json.Unmarshal(arr, &fridgeConfig)
+	arr, _ = json.Marshal(fridgeConfig)
+	return arr
+}
+
+func (fridge *Fridge) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta) {
+
 }

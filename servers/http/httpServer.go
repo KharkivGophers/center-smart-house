@@ -95,19 +95,19 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 
 func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
-	_, err :=ValidateDevMeta(devMeta)
-	if err != nil {
-		log.Error(err)
+	flag, err :=ValidateDevMeta(devMeta)
+	if !flag {
+		log.Errorf("getDevConfigHandler. %v. Exit the method",err)
 		return
 	}
 
 	dbClient := GetDBConnection(server.DbServer)
 	defer dbClient.Close()
 
-	configInfo := devMeta.MAC + ":" + "config" // key
+	configInfo := dbClient.GetKeyForConfig(devMeta.MAC) // key
 
 	var device DevConfigDriver = *IdentifyDevConfig(devMeta.Type)
-	log.Info(device)
+
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return

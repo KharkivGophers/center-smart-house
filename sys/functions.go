@@ -100,13 +100,9 @@ func ValidateStreamOn(streamOn interface{}) bool {
 }
 
 func ValidateDevMeta(meta DevMeta) (bool, error) {
-	var err string
 	if !ValidateMAC(meta.MAC) {
 		log.Error("Invalid MAC")
-		err += "Invalid MAC. "
-	}
-	if err != "" {
-		return false, errors.New(err)
+		return false, errors.New("Invalid MAC. ")
 	}
 	return true, nil
 }

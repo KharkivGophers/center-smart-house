@@ -1,51 +1,55 @@
 package dao
 
 import (
-	"menteslibres.net/gosexy/redis"
-	. "github.com/KharkivGophers/center-smart-house/models"
-	. "github.com/KharkivGophers/center-smart-house/sys"
-	log "github.com/Sirupsen/logrus"
-
-
 	"time"
 	"errors"
 	"encoding/json"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
+	"menteslibres.net/gosexy/redis"
+
+	. "github.com/KharkivGophers/center-smart-house/models"
+	. "github.com/KharkivGophers/center-smart-house/sys"
+)
+
+const (
+	partKeyToConfig = ":config"
 )
 
 type RedisClient struct {
-	Client *redis.Client
+	Client   *redis.Client
 	DbServer Server
 }
 
-func (rc *RedisClient) FlushAll () error {
+func (rc *RedisClient) FlushAll() error {
 	_, err := rc.Client.FlushAll()
 	return err
 }
 
 func (rc *RedisClient) GetClient() DbRedisDriver {
-	return  rc.Client
+	return rc.Client
 }
 
-func (rc *RedisClient)Publish (channel string, message interface{}) (int64, error){
-	return rc.Client.Publish(channel,message)
+func (rc *RedisClient) Publish(channel string, message interface{}) (int64, error) {
+	return rc.Client.Publish(channel, message)
 }
 
-func (rc *RedisClient)Connect() (error) {
-	if rc.DbServer.IP == "" || rc.DbServer.Port == 0{
+func (rc *RedisClient) Connect() (error) {
+	if rc.DbServer.IP == "" || rc.DbServer.Port == 0 {
 		return errors.New("Empty value. Check Host or Port.")
 	}
 	rc.Client = redis.New()
 	err := rc.Client.Connect(rc.DbServer.IP, rc.DbServer.Port)
-	return  err
+	return err
 }
 
 func (rc *RedisClient) Subscribe(cn chan []string, channel ...string) error {
 	return rc.Client.Subscribe(cn, channel...)
 }
 
-func (rc *RedisClient) Close() error{
-	return  rc.Client.Close()
+func (rc *RedisClient) Close() error {
+	return rc.Client.Close()
 }
 
 func (rc *RedisClient) RunDBConnection() (error) {
@@ -60,7 +64,7 @@ func (rc *RedisClient) RunDBConnection() (error) {
 	return err
 }
 
-func  PublishWS(req Request, roomID string, worker DbDriver) {
+func PublishWS(req Request, roomID string, worker DbDriver) {
 	pubReq, err := json.Marshal(req)
 	CheckError("Marshal for publish.", err)
 
@@ -108,5 +112,7 @@ func (rc *RedisClient) GetAllDevices() []DevData {
 	return devices
 }
 
-
+func (rc *RedisClient) GetKeyForConfig(mac string) string {
+	return mac + partKeyToConfig
+}
 
