@@ -129,3 +129,15 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
+
+.btn-primary {
+    background-color: green;
+}
+.btn-primary:hover{
+    background-color: green;
+}
+
+.btn-primary:target{
+    background-color: green;
+}
+
