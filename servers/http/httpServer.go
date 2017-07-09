@@ -120,7 +120,6 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	var config *DevConfig
 
 	devMeta := DevMeta{r.FormValue("type"),r.FormValue("name"),r.FormValue("mac"),""}
-
 	_, err :=ValidateDevMeta(devMeta)
 	if err != nil {
 		log.Error(err)
@@ -133,6 +132,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 	configInfo := devMeta.MAC + ":" + "config" // key
 
 	var device DevConfigDriver = IdentifyDevConfig(devMeta.Type)
+
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return
