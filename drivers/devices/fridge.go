@@ -16,7 +16,7 @@ import (
 
 type Fridge struct {
 	Data   FridgeData `json:"data"`
-	Config FridgeConfig
+	Config FridgeConfig `json:"config"`
 	Meta   DevMeta    `json:"meta"`
 }
 type FridgeData struct {
@@ -94,6 +94,7 @@ func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) err
 	return nil
 }
 
+// What is that?!
 func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
 	var fridgeConfig FridgeConfig = *fridge.getFridgeConfig(configInfo, mac, worker)
 	var devConfig DevConfig

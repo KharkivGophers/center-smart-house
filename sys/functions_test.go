@@ -70,7 +70,6 @@ func TestInt64ToString(t *testing.T) {
 	})
 }
 
-
 func TestValidateMAC(t *testing.T) {
 
 	Convey("ValidateMAC. MAC = 00-00-00-00-00-00", t, func() {
@@ -85,6 +84,7 @@ func TestValidateMAC(t *testing.T) {
 		actual := ValidateMAC("12345678912345678")
 		So(actual,ShouldBeFalse)
 	})
+
 	Convey("ValidateMAC. MAC = ", t, func() {
 		actual := ValidateMAC("")
 		So(actual,ShouldBeFalse)
