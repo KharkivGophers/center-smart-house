@@ -5,7 +5,7 @@ import (
 )
 
 // Abstract database interface.
-type DbDriver interface {
+type DbClient interface {
 	FlushAll() (error)
 	Publish(channel string, message interface{}) (int64, error)
 	Connect()(error)

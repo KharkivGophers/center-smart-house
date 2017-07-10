@@ -19,14 +19,16 @@ type TCPDevDataServer struct {
 	LocalServer Server
 	Reconnect   *time.Ticker
 	Controller  RoutinesController
+	DbClient  DbClient
 }
 
-func NewTCPDevDataServer(local Server, db Server, reconnect *time.Ticker, controller  RoutinesController) *TCPDevDataServer {
+func NewTCPDevDataServer(local Server, db Server, reconnect *time.Ticker, controller  RoutinesController,dbClient DbClient) *TCPDevDataServer {
 	return &TCPDevDataServer{
 		LocalServer: local,
 		DbServer:    db,
 		Reconnect:   reconnect,
 		Controller:  controller,
+		DbClient: dbClient,
 	}
 }
 
@@ -82,12 +84,12 @@ func (server *TCPDevDataServer) tcpDataHandler(conn net.Conn) {
 Checks  type device and call special func for send data to DB.
 */
 func (server TCPDevDataServer) devTypeHandler(req Request) string {
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
 	switch req.Action {
 	case "update":
-		data := IdentifyDevData(req.Meta.Type)
+		data := IdentifyDevice(req.Meta.Type)
 		if data == nil{
 			return string("Device request: unknown device type")
 		}

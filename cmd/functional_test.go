@@ -23,7 +23,7 @@ import (
 
 var timeForSleep time.Duration = 1000 * time.Millisecond
 
-func deleteAllInBase(dbClient dao.DbDriver) {
+func deleteAllInBase(dbClient dao.DbClient) {
 	defer treatmentPanic("Recovered in TestCheckJSONToServer")
 	err := dbClient.FlushAll()
 	CheckError("Some error with FlushAll()", err)
@@ -104,7 +104,7 @@ func TestSendJSONToServer(t *testing.T) {
 	}
 	//Create redis client------------------------------------------------------------
 	defer treatmentPanic("Recovered in TestCheckJSONToServer")
-	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
+	var dbCli dao.DbClient = &dao.RedisClient{DbServer: dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ func TestCheckJSONToServer(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	defer treatmentPanic("Recovered in TestCheckJSONToServer")
-	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
+	var dbCli dao.DbClient = &dao.RedisClient{DbServer: dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -346,7 +346,7 @@ func TestHTTPConnection(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	defer treatmentPanic("Recovered in TestCheckJSONToServer")
-	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
+	var dbCli dao.DbClient = &dao.RedisClient{DbServer: dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -375,7 +375,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
-	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
+	var dbCli dao.DbClient = &dao.RedisClient{DbServer: dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
@@ -586,7 +586,7 @@ func TestWSConnection(t *testing.T) {
 
 	//Create redis client------------------------------------------------------------
 	defer treatmentPanic("Recovered in TestWSConnection")
-	var dbCli dao.DbDriver = &dao.RedisClient{DbServer:dbServer}
+	var dbCli dao.DbClient = &dao.RedisClient{DbServer: dbServer}
 	dbCli.Connect()
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------

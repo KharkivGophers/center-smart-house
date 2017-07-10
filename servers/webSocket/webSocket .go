@@ -20,9 +20,9 @@ type WSServer struct {
 	LocalServer Server
 	Connections WSConnectionsMap
 	PubSub      PubSub
-	DbServer    Server
 	Upgrader    websocket.Upgrader
 	Controller  RoutinesController
+	DbClient DbClient
 }
 
 func NewWSConnections() *WSConnectionsMap {
@@ -50,15 +50,15 @@ func NewPubSub(roomIDForWSPubSub string, stopSub chan bool, subWSChannel chan []
 	}
 }
 
-func NewWebSocketServer(ws, db Server, controller RoutinesController) *WSServer {
+func NewWebSocketServer(ws Server, controller RoutinesController, dbClient DbClient) *WSServer {
 	var (
 		roomIDForDevWSPublish = "devWS"
 		stopSub               = make(chan bool)
 		subWSChannel          = make(chan []string)
 	)
 
-	return NewWSServer(ws, db, *NewPubSub(roomIDForDevWSPublish, stopSub, subWSChannel),
-		*NewWSConnections(), controller)
+	return NewWSServer(ws, *NewPubSub(roomIDForDevWSPublish, stopSub, subWSChannel),
+		*NewWSConnections(), controller, dbClient)
 }
 
 // Return referenced address on the WSServer with default Upgrader where:
@@ -67,7 +67,7 @@ func NewWebSocketServer(ws, db Server, controller RoutinesController) *WSServer 
 // 	CheckOrigin: func(r *http.Request) bool {
 //			return true
 //	}
-func NewWSServer(ws, db Server, pubSub PubSub, wsConnections WSConnectionsMap, controller RoutinesController) *WSServer {
+func NewWSServer(ws Server, pubSub PubSub, wsConnections WSConnectionsMap, controller RoutinesController, dbClient DbClient) *WSServer {
 	var (
 		upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
@@ -84,9 +84,9 @@ func NewWSServer(ws, db Server, pubSub PubSub, wsConnections WSConnectionsMap, c
 		LocalServer: ws,
 		Connections: wsConnections,
 		PubSub:      pubSub,
-		DbServer:    db,
 		Upgrader:    upgrader,
 		Controller:  controller,
+		DbClient: dbClient,
 	}
 }
 
@@ -102,7 +102,7 @@ func (server *WSServer) Run() {
 		}
 	}()
 
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 
 	go server.Close()
 	go server.Subscribe(dbClient)
@@ -166,7 +166,7 @@ func (server *WSServer) Close() {
 /*
 Listens changes in database. If they have, we will send to all websocket which working with them.
 */
-func (server *WSServer) Subscribe(dbWorker DbDriver) {
+func (server *WSServer) Subscribe(dbWorker DbClient) {
 	dbWorker.Subscribe(server.PubSub.SubWSChannel, server.PubSub.RoomIDForWSPubSub)
 	for {
 		select {

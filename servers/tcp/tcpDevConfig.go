@@ -25,10 +25,11 @@ type TCPDevConfigServer struct {
 	Messages            chan []string
 	StopConfigSubscribe chan struct{}
 	Controller          RoutinesController
+	DbClient 	    DbClient
 }
 
 func NewTCPDevConfigServer(local Server, db Server, reconnect *time.Ticker, messages chan []string, stopConfigSubscribe chan struct{},
-	controller RoutinesController) *TCPDevConfigServer {
+	controller RoutinesController, dbClient DbClient) *TCPDevConfigServer {
 	return &TCPDevConfigServer{
 		LocalServer:         local,
 		DbServer:            db,
@@ -36,13 +37,14 @@ func NewTCPDevConfigServer(local Server, db Server, reconnect *time.Ticker, mess
 		Messages:            messages,
 		Controller:          controller,
 		StopConfigSubscribe: stopConfigSubscribe,
+		DbClient: dbClient,
 	}
 }
-func NewTCPDevConfigServerDefault(local Server, db Server, controller RoutinesController) *TCPDevConfigServer {
+func NewTCPDevConfigServerDefault(local Server, db Server, controller RoutinesController, dbClient DbClient) *TCPDevConfigServer {
 	messages := make(chan []string)
 	stopConfigSubscribe := make(chan struct{})
 	reconnect := time.NewTicker(time.Second * 1)
-	return NewTCPDevConfigServer(local, db, reconnect, messages, stopConfigSubscribe, controller)
+	return NewTCPDevConfigServer(local, db, reconnect, messages, stopConfigSubscribe, controller,dbClient)
 }
 
 func (server *TCPDevConfigServer) Run() {
@@ -56,7 +58,7 @@ func (server *TCPDevConfigServer) Run() {
 
 	server.Pool.Init()
 
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
 	ln, err := net.Listen("tcp", server.LocalServer.IP+":"+fmt.Sprint(server.LocalServer.Port))
@@ -101,10 +103,10 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 	err := json.NewDecoder(conn).Decode(&req)
 	CheckError("sendDefaultConfiguration JSON Decod", err)
 	pool.AddConn(conn, req.Meta.MAC)
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
-	device = IdentifyDevHandler(req.Meta.Type)//device struct
+	device = IdentifyDevice(req.Meta.Type)//device struct
 	log.Info(reflect.TypeOf(device))
 	config.Data = device.SendDefaultConfigurationTCP(conn, dbClient, &req)
 
@@ -116,7 +118,7 @@ func (server *TCPDevConfigServer) sendDefaultConfiguration(conn net.Conn, pool *
 }
 
 func (server *TCPDevConfigServer) configSubscribe(roomID string, message chan []string, pool *ConnectionPool) {
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
 	dbClient.Subscribe(message, roomID)

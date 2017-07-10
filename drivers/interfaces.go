@@ -13,7 +13,7 @@ type DevConfigDriver interface {
 	SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver)
 	ValidateDevData(config DevConfig) (bool, string)
 	GetDefaultConfig() (*DevConfig)
-	CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver)([]byte)
+	CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbClient)([]byte)
 }
 
 type DevDataDriver interface {
@@ -22,7 +22,12 @@ type DevDataDriver interface {
 }
 //Idea: Use this interface in the server. Than we give an opportunity to produce realization work logic samself
 type DevServerHandler interface{
-	GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver)
-	SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriver, req *Request)([]byte)
-	PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver)
+	GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient)
+	SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClient, req *Request)([]byte)
+	PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient)
+}
+type DevDriver interface{
+	DevDataDriver
+	DevServerHandler
+	DevConfigDriver
 }

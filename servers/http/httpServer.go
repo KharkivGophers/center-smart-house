@@ -20,13 +20,17 @@ type HTTPServer struct {
 	LocalServer Server
 	DbServer    Server
 	Controller  RoutinesController
+
+	DbClient DbClient
 }
 
-func NewHTTPServer (local , db Server, controller RoutinesController) *HTTPServer{
+func NewHTTPServer (local , db Server, controller RoutinesController, dbClient DbClient) *HTTPServer{
 	return &HTTPServer{
 		LocalServer:local,
 		DbServer: db,
 		Controller: controller,
+
+		DbClient: dbClient,
 	}
 }
 
@@ -66,7 +70,7 @@ func (server *HTTPServer) Run() {
 //----------------------http Dynamic Connection----------------------------------------------------------------------------------
 
 func (server *HTTPServer) getDevicesHandler(w http.ResponseWriter, r *http.Request) {
-	dbClient:= GetDBConnection(server.DbServer)
+	dbClient:= GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
 	devices := dbClient.GetAllDevices()
@@ -76,7 +80,7 @@ func (server *HTTPServer) getDevicesHandler(w http.ResponseWriter, r *http.Reque
 
 func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
 	log.Info(dbClient.GetClient())
@@ -86,7 +90,7 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 	devID := "device:" + devMeta.Type+":"+devMeta.Name+":"+devMeta.MAC
 	devParamsKey := devID + ":" + "params"
 
-	device := IdentifyDevData(devMeta.Type)
+	device := IdentifyDevice(devMeta.Type)
 	deviceData := device.GetDevData(devParamsKey, devMeta, dbClient.GetClient())
 
 	err := json.NewEncoder(w).Encode(deviceData)
@@ -101,12 +105,12 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
 	configInfo := dbClient.GetKeyForConfig(devMeta.MAC) // key
 
-	var device DevConfigDriver = *IdentifyDevConfig(devMeta.Type)
+	var device DevConfigDriver = IdentifyDevice(devMeta.Type)
 
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
@@ -125,10 +129,10 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	dbClient := GetDBConnection(server.DbServer)
+	dbClient := GetDBDriver(server.DbClient)
 	defer dbClient.Close()
 
-	device  := IdentifyDevHandler(devMeta.Type)
+	device  := IdentifyDevice(devMeta.Type)
 	if device==nil{
 		http.Error(w, "This type is not found", 400)
 		return

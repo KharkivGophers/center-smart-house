@@ -1,15 +1,12 @@
 package dao
 
-import (
-	. "github.com/KharkivGophers/center-smart-house/models"
-)
 
-func GetDBConnection(db Server) (DbDriver) {
-	client := &RedisClient{DbServer: db}
-	client.RunDBConnection()
-	return client
+
+func GetDBDriver(db DbClient) (DbClient) {
+	db.RunDBConnection()
+	return db
 }
-//func GetDBConnection(db Server) (DbDriver) {
+//func GetDBDriver(db Server) (DbClient) {
 //	client := &DBMock{DbServer: db}
 //	client.RunDBConnection()
 //	return client

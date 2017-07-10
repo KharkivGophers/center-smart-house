@@ -205,7 +205,7 @@ func (washer *Washer) GetDefaultConfig() (*DevConfig) {
 	b, _ := json.Marshal(WasherConfig{})
 	return &DevConfig{Data: b}
 }
-func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
+func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbClient) ([]byte) {
 	return []byte{}
 }
 
@@ -213,10 +213,10 @@ func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac strin
 
 //--------------------------------------DevServerHandler--------------------------------------------------------------
 
-func (washer *Washer) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver) {
+func (washer *Washer) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient) {
 
 }
-func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriver, req *Request) ([]byte) {
+func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClient, req *Request) ([]byte) {
 	var config *DevConfig
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
@@ -234,7 +234,7 @@ func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriv
 	return config.Data
 }
 
-func (washer *Washer) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver) {
+func (washer *Washer) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient) {
 
 }
 

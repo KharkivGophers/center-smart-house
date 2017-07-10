@@ -44,7 +44,7 @@ func (rc *RedisClient) Connect() (error) {
 	return err
 }
 
-func (rc *RedisClient) Subscribe(cn chan []string, channel ...string) error {
+func (rc *RedisClient)Subscribe(cn chan []string, channel ...string) error{
 	return rc.Client.Subscribe(cn, channel...)
 }
 
@@ -64,7 +64,7 @@ func (rc *RedisClient) RunDBConnection() (error) {
 	return err
 }
 
-func PublishWS(req Request, roomID string, worker DbDriver) {
+func PublishWS(req Request, roomID string, worker DbClient) {
 	pubReq, err := json.Marshal(req)
 	CheckError("Marshal for publish.", err)
 
@@ -115,4 +115,6 @@ func (rc *RedisClient) GetAllDevices() []DevData {
 func (rc *RedisClient) GetKeyForConfig(mac string) string {
 	return mac + partKeyToConfig
 }
+
+
 

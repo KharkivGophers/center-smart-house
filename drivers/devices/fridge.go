@@ -49,18 +49,18 @@ func (fridge *Fridge) GetDevData(devParamsKey string, devMeta DevMeta, worker Db
 	return device
 }
 
-func (fridge *Fridge) SetDevData(req *Request, worker DbRedisDriver) *ServerError {
+func (fridge *Fridge) SetDevData(req *Request, client DbRedisDriver) *ServerError {
 
 	var devData FridgeData
 
 	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"
 
-	_, err := worker.SAdd("devParamsKeys", devParamsKey)
+	_, err := client.SAdd("devParamsKeys", devParamsKey)
 	CheckError("DB error11", err)
-	_, err = worker.HMSet(devKey, "ReqTime", req.Time)
+	_, err = client.HMSet(devKey, "ReqTime", req.Time)
 	CheckError("DB error12", err)
-	_, err = worker.SAdd(devParamsKey, "TempCam1", "TempCam2")
+	_, err = client.SAdd(devParamsKey, "TempCam1", "TempCam2")
 	CheckError("DB error13", err)
 
 	err = json.Unmarshal([]byte(req.Data), &devData)
@@ -69,12 +69,12 @@ func (fridge *Fridge) SetDevData(req *Request, worker DbRedisDriver) *ServerErro
 		return &ServerError{Error: err}
 	}
 
-	err = setDevData(devData.TempCam1, devParamsKey+":"+"TempCam1", worker)
+	err = setDevData(devData.TempCam1, devParamsKey+":"+"TempCam1", client)
 	if CheckError("DB error14", err) != nil {
 		return &ServerError{Error: err}
 	}
 
-	err = setDevData(devData.TempCam2, devParamsKey+":"+"TempCam2", worker)
+	err = setDevData(devData.TempCam2, devParamsKey+":"+"TempCam2", client)
 	if CheckError("DB error14", err) != nil {
 		return &ServerError{Error: err}
 	}
@@ -187,7 +187,7 @@ func (fridge *Fridge) GetDefaultConfig() (*DevConfig) {
 	}
 }
 
-func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbDriver) ([]byte) {
+func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbClient) ([]byte) {
 	fridgeConfig := fridge.getFridgeConfig(configInfo, mac, client.GetClient())
 	json.Unmarshal(arr, &fridgeConfig)
 	arr, _ = json.Marshal(fridgeConfig)
@@ -195,11 +195,11 @@ func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac strin
 }
 
 //--------------------------------------DevServerHandler--------------------------------------------------------------
-func (fridge *Fridge) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbDriver) {
+func (fridge *Fridge) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient) {
 
 }
 
-func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriver, req *Request) ([]byte) {
+func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClient, req *Request) ([]byte) {
 	var config *DevConfig
 	configInfo := req.Meta.MAC + ":" + "config" // key
 	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
@@ -218,7 +218,7 @@ func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbDriv
 	return config.Data
 }
 
-func (fridge *Fridge) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, devMeta DevMeta, dbClient DbDriver) {
+func (fridge *Fridge) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, devMeta DevMeta, dbClient DbClient) {
 	var config *DevConfig
 	configInfo := devMeta.MAC + ":" + "config" // key
 
