@@ -12,21 +12,22 @@ import (
 func main() {
 
 	var dbClient dao.DbClient = &dao.RedisClient{}
+	dbClient.SetDBServer(dbServer)
 	var controller RoutinesController
 
-	httpServer := http.NewHTTPServer(Server{IP: centerIP, Port: httpConnPort}, dbServer, controller, dbClient)
+	httpServer := http.NewHTTPServer(Server{IP: centerIP, Port: httpConnPort}, controller, dbClient)
 	go httpServer.Run()
 
 	webSocketServer := webSocket.NewWebSocketServer(Server{IP: centerIP, Port: wsPort}, controller,dbClient)
 	go webSocketServer.Run()
 
 	tcpDevConfigServer := tcp.NewTCPDevConfigServerDefault(Server{IP: centerIP, Port: tcpDevConfigPort},
-		dbServer, controller, dbClient)
+		 controller, dbClient)
 	go tcpDevConfigServer.Run()
 
 	reconnect := time.NewTicker(time.Second * 1)
 	tcpDevDataServer := tcp.NewTCPDevDataServer(Server{IP: centerIP, Port: tcpDevDataPort},
-		dbServer, reconnect, controller,dbClient)
+		 reconnect, controller,dbClient)
 	go tcpDevDataServer.Run()
 
 	controller.Wait()
