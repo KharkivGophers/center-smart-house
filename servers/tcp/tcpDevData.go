@@ -98,7 +98,7 @@ func (server TCPDevDataServer) devTypeHandler(req Request) string {
 		}
 		log.Println("Data has been received")
 
-		data.SetDevData(&req, dbClient.GetClient())
+		data.SetDevData(&req, dbClient)
 		go PublishWS(req, "devWS", server.DbClient)
 		//go publishWS(req)
 

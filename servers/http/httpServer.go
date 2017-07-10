@@ -88,7 +88,7 @@ func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Reque
 	devParamsKey := devID + ":" + "params"
 
 	device := IdentifyDevice(devMeta.Type)
-	deviceData := device.GetDevData(devParamsKey, devMeta, dbClient.GetClient())
+	deviceData := device.GetDevData(devParamsKey, devMeta, dbClient)
 
 	err := json.NewEncoder(w).Encode(deviceData)
 	CheckError("getDevDataHandler JSON enc", err)
@@ -113,7 +113,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "This type is not found", 400)
 		return
 	}
-	config := device.GetDevConfig(configInfo, devMeta.MAC, dbClient.GetClient())
+	config := device.GetDevConfig(configInfo, devMeta.MAC, dbClient)
 	w.Write(config.Data)
 }
 

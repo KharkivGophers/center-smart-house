@@ -136,7 +136,7 @@ func TestSmallSetDevData(t *testing.T) {
 
 	Convey("", t, func() {
 		expected := []string{"1:1","2:2"}
-		setDevData(tempCam, key, dbWorker.Client)
+		setDevData(tempCam, key, dbWorker)
 		actual, _ := dbWorker.Client.ZRangeByScore(key, "-inf", "inf")
 		So(actual, ShouldResemble, expected)
 	})
@@ -166,7 +166,7 @@ func TestSetDevData(t *testing.T) {
 
 	Convey("Must bu all ok", t, func() {
 
-		fridge.SetDevData(&req, dbWorker.Client)
+		fridge.SetDevData(&req, dbWorker)
 		dbWorker.Connect()
 		devParamsKey:="device:" +meta.Type +":"+meta.Name+":"+meta.MAC+":params"
 

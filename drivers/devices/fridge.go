@@ -32,42 +32,42 @@ type FridgeConfig struct {
 }
 
 //--------------------------------------DevDataDriver--------------------------------------------------------------
-func (fridge *Fridge) GetDevData(devParamsKey string, devMeta DevMeta, worker DbRedisDriver) DevData {
+func (fridge *Fridge) GetDevData(devParamsKey string, devMeta DevMeta, client DbClient) DevData {
 	var device DevData
 
-	params, err := worker.SMembers(devParamsKey)
+	params, err := client.GetClient().SMembers(devParamsKey)
 	CheckError("Cant read members from devParamsKeys", err)
 	device.Meta = devMeta
 	device.Data = make(map[string][]string)
 
 	values := make([][]string, len(params))
 	for i, p := range params {
-		values[i], err = worker.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
+		values[i], err = client.GetClient().ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
 		CheckError("Cant use ZRangeByScore", err)
 		device.Data[p] = values[i]
 	}
 	return device
 }
 
-func (fridge *Fridge) SetDevData(req *Request, client DbRedisDriver) *ServerError {
+func (fridge *Fridge) SetDevData(req *Request, client DbClient) *ServerError {
 
 	var devData FridgeData
 
 	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"
 
-	_, err := client.SAdd("devParamsKeys", devParamsKey)
-	CheckError("DB error11", err)
-	_, err = client.HMSet(devKey, "ReqTime", req.Time)
-	CheckError("DB error12", err)
-	_, err = client.SAdd(devParamsKey, "TempCam1", "TempCam2")
-	CheckError("DB error13", err)
-
-	err = json.Unmarshal([]byte(req.Data), &devData)
+	err := json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
 		log.Error("Error in fridgedatahandler")
 		return &ServerError{Error: err}
 	}
+
+	_, err = client.GetClient().SAdd("devParamsKeys", devParamsKey)
+	CheckError("DB error11", err)
+	_, err =  client.GetClient().HMSet(devKey, "ReqTime", req.Time)
+	CheckError("DB error12", err)
+	_, err =  client.GetClient().SAdd(devParamsKey, "TempCam1", "TempCam2")
+	CheckError("DB error13", err)
 
 	err = setDevData(devData.TempCam1, devParamsKey+":"+"TempCam1", client)
 	if CheckError("DB error14", err) != nil {
@@ -84,9 +84,9 @@ func (fridge *Fridge) SetDevData(req *Request, client DbRedisDriver) *ServerErro
 
 //--------------------------------------DevConfigDriver--------------------------------------------------------------
 
-func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) error {
+func setDevData(TempCam map[int64]float32, key string, client DbClient) error {
 	for time, value := range TempCam {
-		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
+		_, err :=  client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 		if CheckError("DB error14", err) != nil {
 			return err
 		}
@@ -95,8 +95,8 @@ func setDevData(TempCam map[int64]float32, key string, worker DbRedisDriver) err
 }
 
 // What is that?!
-func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
-	var fridgeConfig FridgeConfig = *fridge.getFridgeConfig(configInfo, mac, worker)
+func (fridge *Fridge) GetDevConfig(configInfo, mac string, client DbClient) (*DevConfig) {
+	var fridgeConfig FridgeConfig = *fridge.getFridgeConfig(configInfo, mac, client)
 	var devConfig DevConfig
 
 	arrByte, err := json.Marshal(&fridgeConfig)
@@ -111,14 +111,14 @@ func (fridge *Fridge) GetDevConfig(configInfo, mac string, worker DbRedisDriver)
 	return &devConfig
 }
 
-func (fridge *Fridge) getFridgeConfig(configInfo, mac string, worker DbRedisDriver) (*FridgeConfig) {
-	state, err := worker.HMGet(configInfo, "TurnedOn")
+func (fridge *Fridge) getFridgeConfig(configInfo, mac string, client DbClient) (*FridgeConfig) {
+	state, err := client.GetClient().HMGet(configInfo, "TurnedOn")
 	CheckError("Get from DB error1: TurnedOn ", err)
-	sendFreq, err := worker.HMGet(configInfo, "SendFreq")
+	sendFreq, err := client.GetClient().HMGet(configInfo, "SendFreq")
 	CheckError("Get from DB error2: SendFreq ", err)
-	collectFreq, err := worker.HMGet(configInfo, "CollectFreq")
+	collectFreq, err := client.GetClient().HMGet(configInfo, "CollectFreq")
 	CheckError("Get from DB error3: CollectFreq ", err)
-	streamOn, err := worker.HMGet(configInfo, "StreamOn")
+	streamOn, err := client.GetClient().HMGet(configInfo, "StreamOn")
 	CheckError("Get from DB error4: StreamOn ", err)
 
 	stateBool, _ := strconv.ParseBool(strings.Join(state, " "))
@@ -134,17 +134,17 @@ func (fridge *Fridge) getFridgeConfig(configInfo, mac string, worker DbRedisDriv
 	}
 }
 
-func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
+func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, client DbClient) {
 	var fridgeConfig FridgeConfig
 	json.Unmarshal(config.Data, &fridgeConfig)
 
-	_, err := worker.HMSet(configInfo, "TurnedOn", fridgeConfig.TurnedOn)
+	_, err := client.GetClient().HMSet(configInfo, "TurnedOn", fridgeConfig.TurnedOn)
 	CheckError("DB error1: TurnedOn", err)
-	_, err = worker.HMSet(configInfo, "CollectFreq", fridgeConfig.CollectFreq)
+	_, err = client.GetClient().HMSet(configInfo, "CollectFreq", fridgeConfig.CollectFreq)
 	CheckError("DB error2: CollectFreq", err)
-	_, err = worker.HMSet(configInfo, "SendFreq", fridgeConfig.SendFreq)
+	_, err = client.GetClient().HMSet(configInfo, "SendFreq", fridgeConfig.SendFreq)
 	CheckError("DB error3: SendFreq", err)
-	_, err = worker.HMSet(configInfo, "StreamOn", fridgeConfig.StreamOn)
+	_, err = client.GetClient().HMSet(configInfo, "StreamOn", fridgeConfig.StreamOn)
 	CheckError("DB error4: StreamOn", err)
 }
 
@@ -189,7 +189,7 @@ func (fridge *Fridge) GetDefaultConfig() (*DevConfig) {
 }
 
 func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbClient) ([]byte) {
-	fridgeConfig := fridge.getFridgeConfig(configInfo, mac, client.GetClient())
+	fridgeConfig := fridge.getFridgeConfig(configInfo, mac, client)
 	json.Unmarshal(arr, &fridgeConfig)
 	arr, _ = json.Marshal(fridgeConfig)
 	return arr
@@ -205,7 +205,7 @@ func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClie
 	configInfo := req.Meta.MAC + ":" + "config" // key
 	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
 
-		config = fridge.GetDevConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
+		config = fridge.GetDevConfig(configInfo, req.Meta.MAC, dbClient)
 		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 
 	} else {
@@ -213,7 +213,7 @@ func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClie
 		log.Warningln("Default Config will be sent.")
 		config = fridge.GetDefaultConfig()
 
-		fridge.SetDevConfig(configInfo, config, dbClient.GetClient())
+		fridge.SetDevConfig(configInfo, config, dbClient)
 	}
 
 	return config.Data
@@ -237,7 +237,7 @@ func (fridge *Fridge) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.R
 		http.Error(w, message, 400)
 	} else {
 		// Save New Configuration to DB
-		fridge.SetDevConfig(configInfo, config, dbClient.GetClient())
+		fridge.SetDevConfig(configInfo, config, dbClient)
 		log.Println("New Config was added to DB: ", config.MAC)
 		JSONСonfig, _ := json.Marshal(config)
 		dbClient.Publish("configChan", JSONСonfig)

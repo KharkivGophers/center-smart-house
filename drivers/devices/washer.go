@@ -95,24 +95,24 @@ func (washer *Washer) selectMode(mode string) (WasherConfig) {
 
 
 //--------------------------------------DevDataDriver--------------------------------------------------------------
-func (washer *Washer) GetDevData(devParamsKey string, devMeta DevMeta, worker DbRedisDriver) DevData {
+func (washer *Washer) GetDevData(devParamsKey string, devMeta DevMeta, client DbClient) DevData {
 	var device DevData
 
-	params, err := worker.SMembers(devParamsKey)
+	params, err := client.GetClient().SMembers(devParamsKey)
 	CheckError("Cant read members from devParamsKeys", err)
 	device.Meta = devMeta
 	device.Data = make(map[string][]string)
 
 	values := make([][]string, len(params))
 	for i, p := range params {
-		values[i], err = worker.ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
+		values[i], err = client.GetClient().ZRangeByScore(devParamsKey+":"+p, "-inf", "inf")
 		CheckError("Cant use ZRangeByScore", err)
 		device.Data[p] = values[i]
 	}
 	return device
 }
 
-func (washer *Washer) SetDevData(req *Request, worker DbRedisDriver) *ServerError {
+func (washer *Washer) SetDevData(req *Request, worker DbClient) *ServerError {
 
 	var devData WasherData
 
@@ -138,18 +138,18 @@ func (washer *Washer) SetDevData(req *Request, worker DbRedisDriver) *ServerErro
 	return nil
 }
 
-func setDevDataFloat32(TempCam map[int64]float32, key string, worker DbRedisDriver) error {
+func setDevDataFloat32(TempCam map[int64]float32, key string, client DbClient) error {
 	for time, value := range TempCam {
-		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
+		_, err := client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 		if CheckError("setDevDataFloat32. Exception with ZAdd", err) != nil {
 			return err
 		}
 	}
 	return nil
 }
-func setDevDataInt64(TempCam map[int64]int64, key string, worker DbRedisDriver) error {
+func setDevDataInt64(TempCam map[int64]int64, key string, client DbClient) error {
 	for time, value := range TempCam {
-		_, err := worker.ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Int64ToString(value))
+		_, err := client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Int64ToString(value))
 		if CheckError("setDevDataInt64. Exception with ZAdd", err) != nil {
 			return err
 		}
@@ -159,7 +159,7 @@ func setDevDataInt64(TempCam map[int64]int64, key string, worker DbRedisDriver) 
 
 
 //--------------------------------------DevConfigDriver--------------------------------------------------------------
-func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
+func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbClient) (*DevConfig) {
 	return &DevConfig{}
 
 }
@@ -184,14 +184,14 @@ func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver)
 //	return true, washer.Config
 //}
 
-func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
+func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, client DbClient) {
 	var timerMode TimerMode
 	json.Unmarshal(config.Data, &timerMode)
-	_, err := worker.ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
+	_, err := client.GetClient().ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
 	CheckError("DB error1: TurnedOn", err)
 }
 
-func (washer *Washer) setDevToBD(configInfo string, config *DevConfig, worker DbRedisDriver, req *Request) {
+func (washer *Washer) setDevToBD(configInfo string, config *DevConfig, client DbClient, req *Request) {
 
 	var timerMode TimerMode
 	json.Unmarshal(config.Data, &timerMode)
@@ -199,14 +199,14 @@ func (washer *Washer) setDevToBD(configInfo string, config *DevConfig, worker Db
 	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"
 
-	_, err := worker.SAdd("devParamsKeys", devParamsKey)
+	_, err := client.GetClient().SAdd("devParamsKeys", devParamsKey)
 	CheckError("SetDevData. Exception with SAdd", err)
-	_, err = worker.HMSet(devKey, "ReqTime", req.Time)
+	_, err = client.GetClient().HMSet(devKey, "ReqTime", req.Time)
 	CheckError("SetDevData. Exception with HMSet", err)
-	_, err = worker.SAdd(devParamsKey, "Turnovers", "WaterTemp")
+	_, err = client.GetClient().SAdd(devParamsKey, "Turnovers", "WaterTemp")
 	CheckError("SetDevData. Exception with SAdd", err)
 
-	_, err = worker.ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
+	_, err = client.GetClient().ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
 	CheckError("DB error1: TurnedOn", err)
 }
 
@@ -233,14 +233,14 @@ func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClie
 	configInfo := req.Meta.MAC + ":" + "config" // key
 
 	if ok, _ := dbClient.GetClient().Exists(configInfo); ok {
-		config = washer.getActualConfig(configInfo, req.Meta.MAC, dbClient.GetClient())
+		config = washer.getActualConfig(configInfo, req.Meta.MAC, dbClient)
 		log.Println("Old Device with MAC: ", req.Meta.MAC, "detected.")
 
 	} else {
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = washer.GetDefaultConfig()
-		washer.setDevToBD(configInfo, config, dbClient.GetClient(), req)
+		washer.setDevToBD(configInfo, config, dbClient, req)
 	}
 	return config.Data
 }
@@ -249,13 +249,13 @@ func (washer *Washer) PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.R
 
 }
 
-func (washer *Washer) getActualConfig(configInfo, mac string, worker DbRedisDriver) (*DevConfig) {
+func (washer *Washer) getActualConfig(configInfo, mac string, client DbClient) (*DevConfig) {
 	config := washer.GetDefaultConfig()
 	config.MAC = mac
 
 	t := time.Now().UnixNano() / int64(time.Minute)
 
-	mode, err := worker.ZRangeByScore(configInfo, t-100, t+100)
+	mode, err := client.GetClient().ZRangeByScore(configInfo, t-100, t+100)
 	if err != nil {
 		CheckError("Washer. GetDevConfig. Cant perform ZRangeByScore", err)
 	}
