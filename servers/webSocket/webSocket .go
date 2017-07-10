@@ -90,9 +90,7 @@ func NewWSServer(ws Server, pubSub PubSub, wsConnections WSConnectionsMap, contr
 	}
 }
 
-//http web socket connection
-func (server *WSServer) Run() {
-	defer func() {
+func (server *WSServer) wsRecover(){
 		if r := recover(); r != nil {
 			server.Connections.StopCloseWS <- ""
 			server.PubSub.StopSub <- false
@@ -100,7 +98,12 @@ func (server *WSServer) Run() {
 			server.Controller.Close()
 			log.Error("WebSocketServer Failed")
 		}
-	}()
+
+}
+
+//http web socket connection
+func (server *WSServer) Run() {
+	defer  server.wsRecover()
 
 	dbClient := server.DbClient.NewDBConnection()
 
@@ -146,6 +149,7 @@ func (server *WSServer) WSHandler(w http.ResponseWriter, r *http.Request) {
 Delete connections in mapConn
 */
 func (server *WSServer) Close() {
+	defer  server.wsRecover()
 	for {
 		select {
 		case connAddres := <-server.Connections.ConnChanCloseWS:
@@ -167,6 +171,7 @@ func (server *WSServer) Close() {
 Listens changes in database. If they have, we will send to all websocket which working with them.
 */
 func (server *WSServer) Subscribe(dbWorker DbClient) {
+	defer  server.wsRecover()
 	dbWorker.Subscribe(server.PubSub.SubWSChannel, server.PubSub.RoomIDForWSPubSub)
 	for {
 		select {
