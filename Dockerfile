@@ -15,4 +15,4 @@ RUN \
  chmod +x center-smart-house
   
 USER daemon
-ENTRYPOINT ./center-smart-house
+#ENTRYPOINT ./center-smart-house
