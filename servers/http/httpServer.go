@@ -18,16 +18,13 @@ import (
 
 type HTTPServer struct {
 	LocalServer Server
-	DbServer    Server
 	Controller  RoutinesController
-
 	DbClient DbClient
 }
 
-func NewHTTPServer (local , db Server, controller RoutinesController, dbClient DbClient) *HTTPServer{
+func NewHTTPServer (local Server, controller RoutinesController, dbClient DbClient) *HTTPServer{
 	return &HTTPServer{
 		LocalServer:local,
-		DbServer: db,
 		Controller: controller,
 
 		DbClient: dbClient,
@@ -70,7 +67,7 @@ func (server *HTTPServer) Run() {
 //----------------------http Dynamic Connection----------------------------------------------------------------------------------
 
 func (server *HTTPServer) getDevicesHandler(w http.ResponseWriter, r *http.Request) {
-	dbClient:= GetDBDriver(server.DbClient)
+	dbClient := server.DbClient.NewDBConnection()
 	defer dbClient.Close()
 
 	devices := dbClient.GetAllDevices()
@@ -80,7 +77,7 @@ func (server *HTTPServer) getDevicesHandler(w http.ResponseWriter, r *http.Reque
 
 func (server *HTTPServer) getDevDataHandler(w http.ResponseWriter, r *http.Request) {
 
-	dbClient := GetDBDriver(server.DbClient)
+	dbClient := server.DbClient.NewDBConnection()
 	defer dbClient.Close()
 
 	log.Info(dbClient.GetClient())
@@ -105,7 +102,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	dbClient := GetDBDriver(server.DbClient)
+	dbClient :=server.DbClient.NewDBConnection()
 	defer dbClient.Close()
 
 	configInfo := dbClient.GetKeyForConfig(devMeta.MAC) // key
@@ -129,7 +126,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	dbClient := GetDBDriver(server.DbClient)
+	dbClient :=server.DbClient.NewDBConnection()
 	defer dbClient.Close()
 
 	device  := IdentifyDevice(devMeta.Type)

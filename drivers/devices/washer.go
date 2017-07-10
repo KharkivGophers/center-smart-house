@@ -111,6 +111,7 @@ func (washer *Washer) GetDevData(devParamsKey string, devMeta DevMeta, worker Db
 	}
 	return device
 }
+
 func (washer *Washer) SetDevData(req *Request, worker DbRedisDriver) *ServerError {
 
 	var devData WasherData
@@ -118,14 +119,7 @@ func (washer *Washer) SetDevData(req *Request, worker DbRedisDriver) *ServerErro
 	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"
 
-	_, err := worker.SAdd("devParamsKeys", devParamsKey)
-	CheckError("SetDevData. Exception with SAdd", err)
-	_, err = worker.HMSet(devKey, "ReqTime", req.Time)
-	CheckError("SetDevData. Exception with HMSet", err)
-	_, err = worker.SAdd(devParamsKey, "Turnovers", "WaterTemp")
-	CheckError("SetDevData. Exception with SAdd", err)
-
-	err = json.Unmarshal([]byte(req.Data), &devData)
+	err := json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
 		log.Errorf("Error in SetDevData. %v", err)
 		return &ServerError{Error: err}
@@ -193,8 +187,26 @@ func (washer *Washer) GetDevConfig(configInfo, mac string, worker DbRedisDriver)
 func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, worker DbRedisDriver) {
 	var timerMode TimerMode
 	json.Unmarshal(config.Data, &timerMode)
-
 	_, err := worker.ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
+	CheckError("DB error1: TurnedOn", err)
+}
+
+func (washer *Washer) setDevToBD(configInfo string, config *DevConfig, worker DbRedisDriver, req *Request) {
+
+	var timerMode TimerMode
+	json.Unmarshal(config.Data, &timerMode)
+
+	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
+	devParamsKey := devKey + ":" + "params"
+
+	_, err := worker.SAdd("devParamsKeys", devParamsKey)
+	CheckError("SetDevData. Exception with SAdd", err)
+	_, err = worker.HMSet(devKey, "ReqTime", req.Time)
+	CheckError("SetDevData. Exception with HMSet", err)
+	_, err = worker.SAdd(devParamsKey, "Turnovers", "WaterTemp")
+	CheckError("SetDevData. Exception with SAdd", err)
+
+	_, err = worker.ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
 	CheckError("DB error1: TurnedOn", err)
 }
 
@@ -214,8 +226,8 @@ func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac strin
 //--------------------------------------DevServerHandler--------------------------------------------------------------
 
 func (washer *Washer) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient) {
-
 }
+
 func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClient, req *Request) ([]byte) {
 	var config *DevConfig
 	configInfo := req.Meta.MAC + ":" + "config" // key
@@ -228,9 +240,8 @@ func (washer *Washer) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClie
 		log.Warningln("New Device with MAC: ", req.Meta.MAC, "detected.")
 		log.Warningln("Default Config will be sent.")
 		config = washer.GetDefaultConfig()
-		washer.SetDevConfig(configInfo, config, dbClient.GetClient())
+		washer.setDevToBD(configInfo, config, dbClient.GetClient(), req)
 	}
-
 	return config.Data
 }
 

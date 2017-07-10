@@ -102,7 +102,7 @@ func (server *WSServer) Run() {
 		}
 	}()
 
-	dbClient := GetDBDriver(server.DbClient)
+	dbClient := server.DbClient.NewDBConnection()
 
 	go server.Close()
 	go server.Subscribe(dbClient)

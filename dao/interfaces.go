@@ -11,11 +11,12 @@ type DbClient interface {
 	Connect()(error)
 	Subscribe(cn chan []string, channel ...string) error
 	Close() (error)
-	RunDBConnection() (error)
+	NewDBConnection()(DbClient)
 	GetAllDevices() ([]DevData)
 	GetClient() DbRedisDriver
 
 	GetKeyForConfig(mac string)string
+	SetDBServer(server Server)
 
 	// Not yet implemented.
 	//GetDevConfig(configInfo, devType string, mac string) (*DevConfig)

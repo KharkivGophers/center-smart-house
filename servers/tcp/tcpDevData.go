@@ -15,26 +15,24 @@ import (
 )
 
 type TCPDevDataServer struct {
-	DbServer    Server
 	LocalServer Server
 	Reconnect   *time.Ticker
 	Controller  RoutinesController
 	DbClient  DbClient
 }
 
-func NewTCPDevDataServer(local Server, db Server, reconnect *time.Ticker, controller  RoutinesController,dbClient DbClient) *TCPDevDataServer {
+func NewTCPDevDataServer(local Server, reconnect *time.Ticker, controller  RoutinesController,dbClient DbClient) *TCPDevDataServer {
 	return &TCPDevDataServer{
 		LocalServer: local,
-		DbServer:    db,
 		Reconnect:   reconnect,
 		Controller:  controller,
 		DbClient: dbClient,
 	}
 }
 
-func NewTCPDevDataServerDefault(local Server, db Server, controller  RoutinesController,dbClient DbClient) *TCPDevDataServer {
+func NewTCPDevDataServerDefault(local Server, controller  RoutinesController,dbClient DbClient) *TCPDevDataServer {
 	reconnect := time.NewTicker(time.Second * 1)
-	return NewTCPDevDataServer(local, db, reconnect, controller,dbClient)
+	return NewTCPDevDataServer(local, reconnect, controller,dbClient)
 }
 
 func (server *TCPDevDataServer) Run() {
@@ -89,7 +87,7 @@ func (server *TCPDevDataServer) tcpDataHandler(conn net.Conn) {
 Checks  type device and call special func for send data to DB.
 */
 func (server TCPDevDataServer) devTypeHandler(req Request) string {
-	dbClient := GetDBDriver(server.DbClient)
+	dbClient := server.DbClient.NewDBConnection()
 	defer dbClient.Close()
 
 	switch req.Action {
@@ -101,7 +99,7 @@ func (server TCPDevDataServer) devTypeHandler(req Request) string {
 		log.Println("Data has been received")
 
 		data.SetDevData(&req, dbClient.GetClient())
-		go PublishWS(req, "devWS", &RedisClient{DbServer: server.DbServer})
+		go PublishWS(req, "devWS", server.DbClient)
 		//go publishWS(req)
 
 	default:

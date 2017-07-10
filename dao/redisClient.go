@@ -22,6 +22,10 @@ type RedisClient struct {
 	DbServer Server
 }
 
+func (rc *RedisClient) SetDBServer(server Server){
+	rc.DbServer = server
+}
+
 func (rc *RedisClient) FlushAll() error {
 	_, err := rc.Client.FlushAll()
 	return err
@@ -52,16 +56,16 @@ func (rc *RedisClient) Close() error {
 	return rc.Client.Close()
 }
 
-func (rc *RedisClient) RunDBConnection() (error) {
+func (rc RedisClient) NewDBConnection() (DbClient) {
 	err := rc.Connect()
-	CheckError("RunDBConnection error: ", err)
+	CheckError("NewDBConnection error: ", err)
 	for err != nil {
 		log.Errorln("Database: connection has failed:", err)
 		time.Sleep(time.Second)
 		err = rc.Connect()
 	}
-
-	return err
+	var dbClient DbClient = &rc
+	return dbClient
 }
 
 func PublishWS(req Request, roomID string, worker DbClient) {
@@ -76,7 +80,7 @@ func PublishWS(req Request, roomID string, worker DbClient) {
 }
 
 func (rc *RedisClient) GetAllDevices() []DevData {
-	rc.RunDBConnection()
+	rc.NewDBConnection()
 
 	var device DevData
 	var devices []DevData
