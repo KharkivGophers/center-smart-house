@@ -1,4 +1,4 @@
-FROM golang:alpine
+FROM alpine
 MAINTAINER Kharkiv Gophers (kostyamol@gmail.com)
 
 EXPOSE 6379 3030 3000 8100 2540
@@ -15,4 +15,4 @@ RUN \
  chmod +x center-smart-house
   
 USER daemon
-#ENTRYPOINT ./center-smart-house
+ENTRYPOINT ./center-smart-house
