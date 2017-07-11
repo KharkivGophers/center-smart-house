@@ -22,7 +22,6 @@ type DevDataDriver interface {
 }
 //Idea: Use this interface in the server. Than we give an opportunity to produce realization work logic samself
 type DevServerHandler interface{
-	GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient)
 	SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClient, req *Request)([]byte)
 	PatchDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient)
 }

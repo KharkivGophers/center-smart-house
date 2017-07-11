@@ -81,10 +81,7 @@ func (fridge *Fridge) SetDevData(req *Request, client DbClient) *ServerError {
 
 func setDevData(TempCam map[int64]float32, key string, client DbClient) error {
 	for time, value := range TempCam {
-		_, err :=  client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
-		if CheckError("DB error14", err) != nil {
-			return err
-		}
+		 client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 	}
 	return nil
 }
@@ -194,9 +191,7 @@ func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac strin
 }
 
 //--------------------------------------DevServerHandler--------------------------------------------------------------
-func (fridge *Fridge) GetDevConfigHandlerHTTP(w http.ResponseWriter, r *http.Request, meta DevMeta, client DbClient) {
 
-}
 
 func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClient, req *Request) ([]byte) {
 	var config *DevConfig

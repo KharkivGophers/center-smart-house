@@ -31,11 +31,14 @@ type DbClient interface {
 type DbRedisDriver interface {
 	SAdd(key string, member ...interface{}) (int64, error)
 	ZAdd(key string, arguments ...interface{}) (int64, error)
+	ZRem(key string, arguments ...interface{}) (int64, error)
+	ZRange(key string, values ...interface{}) ([]string, error)
+	ZRangeByScore(key string, values ...interface{}) ([]string, error)
+	ZScore(key string, member interface{}) (int64, error)
 
 	HMSet(key string, values ...interface{}) (string, error)
 	HMGet(key string, fields ...string) ([]string, error)
 
-	ZRangeByScore(key string, values ...interface{}) ([]string, error)
 	SMembers(key string) ([]string, error)
 
 	Close() error
@@ -46,4 +49,6 @@ type DbRedisDriver interface {
 	Multi() (string, error)
 	Discard()  (string, error)
 	Exec()  ([]interface{}, error)
+
+
 }

@@ -130,3 +130,15 @@ func (rc *RedisClient) Discard()  (string, error)  {
 func (rc *RedisClient) Exec()  ([]interface{}, error) {
 	return rc.Client.Exec()
 }
+
+func (rc *RedisClient)  ZRem(key string, arguments ...interface{}) (int64, error) {
+	return rc.Client.ZRem(key, arguments)
+}
+
+func (rc *RedisClient)  ZRange(key string, values ...interface{}) ([]string, error) {
+	return rc.Client.ZRange(key, values)
+}
+
+func (rc *RedisClient)  ZScore(key string, member interface{}) (int64, error)  {
+	return rc.Client.ZScore(key, member)
+}

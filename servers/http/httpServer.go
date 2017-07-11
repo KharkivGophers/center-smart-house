@@ -46,6 +46,8 @@ func (server *HTTPServer) Run() {
 
 	r.HandleFunc("/devices/{id}/config", server.patchDevConfigHandler).Methods(http.MethodPatch)
 
+	r.HandleFunc("/devices/{id}/config", server.postDevConfigHandler).Methods(http.MethodPost)
+
 	//provide static html pages
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("../view/")))
 
@@ -135,4 +137,10 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	device.PatchDevConfigHandlerHTTP(w,r,devMeta,dbClient)
+}
+
+func  (server *HTTPServer) postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
+
+	var devMeta DevMeta
+	json.Unmarshal(r.Body, devMeta)
 }
