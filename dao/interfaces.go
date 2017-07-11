@@ -42,4 +42,8 @@ type DbRedisDriver interface {
 	Connect(host string, port uint) (err error)
 
 	Exists(key string) (bool, error)
+
+	Multi() (string, error)
+	Discard()  (string, error)
+	Exec()  ([]interface{}, error)
 }

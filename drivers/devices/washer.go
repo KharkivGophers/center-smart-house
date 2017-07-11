@@ -112,7 +112,7 @@ func (washer *Washer) GetDevData(devParamsKey string, devMeta DevMeta, client Db
 	return device
 }
 
-func (washer *Washer) SetDevData(req *Request, worker DbClient) *ServerError {
+func (washer *Washer) SetDevData(req *Request, client DbClient) *ServerError {
 
 	var devData WasherData
 
@@ -125,13 +125,13 @@ func (washer *Washer) SetDevData(req *Request, worker DbClient) *ServerError {
 		return &ServerError{Error: err}
 	}
 
-	err = setDevDataInt64(devData.Turnovers, devParamsKey+":"+"Turnovers", worker)
-	if err != nil {
-		return &ServerError{Error: err}
-	}
+	client.GetClient().Multi()
+	err = setDevDataInt64(devData.Turnovers, devParamsKey+":"+"Turnovers", client)
+	err = setDevDataFloat32(devData.WaterTemp, devParamsKey+":"+"WaterTemp", client)
+	_, err = client.GetClient().Exec()
 
-	err = setDevDataFloat32(devData.WaterTemp, devParamsKey+":"+"WaterTemp", worker)
-	if err != nil {
+	if CheckError("Error in SetDevData", err) != nil {
+		client.GetClient().Discard()
 		return &ServerError{Error: err}
 	}
 
@@ -199,15 +199,16 @@ func (washer *Washer) setDevToBD(configInfo string, config *DevConfig, client Db
 	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"
 
-	_, err := client.GetClient().SAdd("devParamsKeys", devParamsKey)
-	CheckError("SetDevData. Exception with SAdd", err)
-	_, err = client.GetClient().HMSet(devKey, "ReqTime", req.Time)
-	CheckError("SetDevData. Exception with HMSet", err)
-	_, err = client.GetClient().SAdd(devParamsKey, "Turnovers", "WaterTemp")
-	CheckError("SetDevData. Exception with SAdd", err)
+	client.GetClient().Multi()
+	client.GetClient().SAdd("devParamsKeys", devParamsKey)
+	client.GetClient().HMSet(devKey, "ReqTime", req.Time)
+	client.GetClient().SAdd(devParamsKey, "Turnovers", "WaterTemp")
+	client.GetClient().ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
+	_, err := client.GetClient().Exec()
 
-	_, err = client.GetClient().ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
-	CheckError("DB error1: TurnedOn", err)
+	if CheckError("DB error14", err) != nil {
+		client.GetClient().Discard()
+	}
 }
 
 func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {

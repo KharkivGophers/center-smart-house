@@ -58,27 +58,22 @@ func (fridge *Fridge) SetDevData(req *Request, client DbClient) *ServerError {
 
 	err := json.Unmarshal([]byte(req.Data), &devData)
 	if err != nil {
-		log.Error("Error in fridgedatahandler")
+		log.Error("Error in SetDevData")
 		return &ServerError{Error: err}
 	}
 
-	_, err = client.GetClient().SAdd("devParamsKeys", devParamsKey)
-	CheckError("DB error11", err)
-	_, err =  client.GetClient().HMSet(devKey, "ReqTime", req.Time)
-	CheckError("DB error12", err)
-	_, err =  client.GetClient().SAdd(devParamsKey, "TempCam1", "TempCam2")
-	CheckError("DB error13", err)
+	client.GetClient().Multi()
+	client.GetClient().SAdd("devParamsKeys", devParamsKey)
+	client.GetClient().HMSet(devKey, "ReqTime", req.Time)
+	client.GetClient().SAdd(devParamsKey, "TempCam1", "TempCam2")
+	setDevData(devData.TempCam1, devParamsKey+":"+"TempCam1", client)
+	setDevData(devData.TempCam2, devParamsKey+":"+"TempCam2", client)
+	_, err = client.GetClient().Exec()
 
-	err = setDevData(devData.TempCam1, devParamsKey+":"+"TempCam1", client)
-	if CheckError("DB error14", err) != nil {
+	if CheckError("Error  SetDevData Fridge", err) != nil {
+		client.GetClient().Discard()
 		return &ServerError{Error: err}
 	}
-
-	err = setDevData(devData.TempCam2, devParamsKey+":"+"TempCam2", client)
-	if CheckError("DB error14", err) != nil {
-		return &ServerError{Error: err}
-	}
-
 	return nil
 }
 
@@ -112,6 +107,7 @@ func (fridge *Fridge) GetDevConfig(configInfo, mac string, client DbClient) (*De
 }
 
 func (fridge *Fridge) getFridgeConfig(configInfo, mac string, client DbClient) (*FridgeConfig) {
+
 	state, err := client.GetClient().HMGet(configInfo, "TurnedOn")
 	CheckError("Get from DB error1: TurnedOn ", err)
 	sendFreq, err := client.GetClient().HMGet(configInfo, "SendFreq")
@@ -138,14 +134,16 @@ func (fridge *Fridge) SetDevConfig(configInfo string, config *DevConfig, client 
 	var fridgeConfig FridgeConfig
 	json.Unmarshal(config.Data, &fridgeConfig)
 
-	_, err := client.GetClient().HMSet(configInfo, "TurnedOn", fridgeConfig.TurnedOn)
-	CheckError("DB error1: TurnedOn", err)
-	_, err = client.GetClient().HMSet(configInfo, "CollectFreq", fridgeConfig.CollectFreq)
-	CheckError("DB error2: CollectFreq", err)
-	_, err = client.GetClient().HMSet(configInfo, "SendFreq", fridgeConfig.SendFreq)
-	CheckError("DB error3: SendFreq", err)
-	_, err = client.GetClient().HMSet(configInfo, "StreamOn", fridgeConfig.StreamOn)
-	CheckError("DB error4: StreamOn", err)
+	client.GetClient().Multi()
+	client.GetClient().HMSet(configInfo, "TurnedOn", fridgeConfig.TurnedOn)
+	client.GetClient().HMSet(configInfo, "CollectFreq", fridgeConfig.CollectFreq)
+	client.GetClient().HMSet(configInfo, "SendFreq", fridgeConfig.SendFreq)
+	client.GetClient().HMSet(configInfo, "StreamOn", fridgeConfig.StreamOn)
+	_, err := client.GetClient().Exec()
+
+	if CheckError("SetDevConfig DBError", err) != nil {
+		client.GetClient().Discard()
+	}
 }
 
 func (fridge *Fridge) ValidateDevData(config DevConfig) (bool, string) {

@@ -121,4 +121,12 @@ func (rc *RedisClient) GetKeyForConfig(mac string) string {
 }
 
 
-
+func (rc *RedisClient) Multi() (string, error)   {
+	return rc.Client.Multi()
+}
+func (rc *RedisClient) Discard()  (string, error)  {
+	return rc.Client.Discard()
+}
+func (rc *RedisClient) Exec()  ([]interface{}, error) {
+	return rc.Client.Exec()
+}
