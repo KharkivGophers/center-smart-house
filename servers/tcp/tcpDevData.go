@@ -94,7 +94,7 @@ func (server TCPDevDataServer) devTypeHandler(req Request) string {
 	switch req.Action {
 	case "update":
 		data := IdentifyDevice(req.Meta.Type)
-		if data == nil{
+		if data == nil || !ValidateMAC(req.Meta.MAC){
 			return string("Device request: unknown device type")
 		}
 		log.Println("Data has been received")

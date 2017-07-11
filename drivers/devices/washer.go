@@ -11,6 +11,9 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
+	"fmt"
+	"bytes"
+
 )
 
 /**
@@ -41,7 +44,7 @@ type WasherConfig struct {
 }
 type TimerMode struct {
 	Name      string   `json:"name"`
-	StartTime int64    `json:time`
+	StartTime int64    `json:"time"`
 }
 
 var (
@@ -118,7 +121,7 @@ func (washer *Washer) SetDevData(req *Request, client DbClient) *ServerError {
 	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"
 
-	err := json.Unmarshal([]byte(req.Data), &devData)
+	err :=json.NewDecoder(bytes.NewBuffer(req.Data)).Decode(&devData)
 	if err != nil {
 		log.Errorf("Error in SetDevData. %v", err)
 		return &ServerError{Error: err}
@@ -159,7 +162,7 @@ func (washer *Washer) GetDevConfig(configInfo, mac string, client DbClient) (*De
 
 func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, client DbClient) {
 	var timerMode *TimerMode
-	json.Unmarshal(config.Data, timerMode)
+	json.NewDecoder(bytes.NewBuffer(config.Data)).Decode(&timerMode)
 	client.GetClient().ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
 }
 
@@ -216,7 +219,7 @@ func (washer *Washer) getActualConfig(configInfo, mac string, client DbClient, u
 
 func (washer *Washer) saveDeviceToBD(configInfo string, config *DevConfig, client DbClient, req *Request) {
 	var timerMode TimerMode
-	json.Unmarshal(config.Data, &timerMode)
+	json.NewDecoder(bytes.NewBuffer(config.Data)).Decode(&timerMode)
 
 	devKey := "device" + ":" + req.Meta.Type + ":" + req.Meta.Name + ":" + req.Meta.MAC
 	devParamsKey := devKey + ":" + "params"

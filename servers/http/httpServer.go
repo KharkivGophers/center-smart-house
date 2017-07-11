@@ -14,6 +14,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/drivers"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/sys"
+
 )
 
 type HTTPServer struct {
@@ -44,7 +45,7 @@ func (server *HTTPServer) Run() {
 	r.HandleFunc("/devices/{id}/data", server.getDevDataHandler).Methods(http.MethodGet)
 	r.HandleFunc("/devices/{id}/config", server.getDevConfigHandler).Methods(http.MethodGet)
 	r.HandleFunc("/devices/{id}/config", server.patchDevConfigHandler).Methods(http.MethodPatch)
-	r.HandleFunc("/devices/{id}/config", server.postDevConfigHandler).Methods(http.MethodPost)
+	r.HandleFunc("/devices/washer", server.postDevConfigHandler).Methods(http.MethodPost)
 
 	//provide static html pages
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("../view/")))
@@ -98,7 +99,7 @@ func (server *HTTPServer) getDevConfigHandler(w http.ResponseWriter, r *http.Req
 	devMeta := DevMeta{r.FormValue("type"), r.FormValue("name"), r.FormValue("mac"), ""}
 	flag, err := ValidateDevMeta(devMeta)
 	if !flag {
-		log.Errorf("getDevConfigHandler. %v. Exit the method", err)
+		log.Errorf("getDevConfigHandler. %v. Exit the method %v", err, devMeta.MAC)
 		return
 	}
 
@@ -139,7 +140,7 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 func (server *HTTPServer) postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
-	var config *DevConfig
+	var config DevConfig
 	dbClient := server.DbClient.NewDBConnection()
 	defer dbClient.Close()
 
@@ -150,8 +151,9 @@ func (server *HTTPServer) postDevConfigHandler(w http.ResponseWriter, r *http.Re
 	flag := ValidateMAC(config.MAC)
 	if !flag {
 		log.Errorf("postDevConfigHandler. %v. Exit the method. Mac Invalid")
+		json.NewEncoder(w).Encode(http.StatusOK)
 		return
 	}
 	device := IdentifyDevice("washer")
-	device.SetDevConfig(configInfo, config, dbClient)
+	device.SetDevConfig(configInfo, &config, dbClient)
 }
