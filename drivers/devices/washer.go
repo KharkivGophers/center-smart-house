@@ -11,7 +11,6 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	"net"
-	"github.com/KharkivGophers/device-smart-house/devices/fridge"
 )
 
 /**
@@ -127,8 +126,8 @@ func (washer *Washer) SetDevData(req *Request, client DbClient) *ServerError {
 	}
 
 	client.GetClient().Multi()
-	err = setDevDataInt64(devData.Turnovers, devParamsKey+":"+"Turnovers", client)
-	err = setDevDataFloat32(devData.WaterTemp, devParamsKey+":"+"WaterTemp", client)
+	err = setTurnoversData(devData.Turnovers, devParamsKey+":"+"Turnovers", client)
+	err = setWaterTempData(devData.WaterTemp, devParamsKey+":"+"WaterTemp", client)
 	_, err = client.GetClient().Exec()
 
 	if CheckError("Error in SetDevData", err) != nil {
@@ -139,14 +138,14 @@ func (washer *Washer) SetDevData(req *Request, client DbClient) *ServerError {
 	return nil
 }
 
-func setDevDataFloat32(TempCam map[int64]float32, key string, client DbClient) error {
+func setWaterTempData(TempCam map[int64]float32, key string, client DbClient) error {
 	for time, value := range TempCam {
 		client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 
 	}
 	return nil
 }
-func setDevDataInt64(TempCam map[int64]int64, key string, client DbClient) error {
+func setTurnoversData(TempCam map[int64]int64, key string, client DbClient) error {
 	for time, value := range TempCam {
 		client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Int64ToString(value))
 	}
@@ -160,20 +159,15 @@ func (washer *Washer) GetDevConfig(configInfo, mac string, client DbClient) (*De
 }
 
 func (washer *Washer) SetDevConfig(configInfo string, config *DevConfig, client DbClient) {
-
+	var timerMode *TimerMode
+	json.Unmarshal(config.Data, timerMode)
+	client.GetClient().ZAdd(configInfo, timerMode.StartTime, timerMode.Name)
 }
 
-func (washer *Washer) ValidateDevData(config DevConfig) (bool, string) {
-	return true, ""
-}
 func (washer *Washer) GetDefaultConfig() (*DevConfig) {
 	b, _ := json.Marshal(WasherConfig{})
 	return &DevConfig{Data: b}
 }
-func (washer *Washer) CheckDevConfigAndMarshal(arr []byte, configInfo, mac string, client DbClient) ([]byte) {
-	return []byte{}
-}
-
 
 
 //--------------------------------------DevServerHandler--------------------------------------------------------------

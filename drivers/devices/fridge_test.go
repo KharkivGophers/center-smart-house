@@ -136,7 +136,7 @@ func TestSmallSetDevData(t *testing.T) {
 
 	Convey("", t, func() {
 		expected := []string{"1:1","2:2"}
-		setDevData(tempCam, key, dbWorker)
+		setCameraData(tempCam, key, dbWorker)
 		actual, _ := dbWorker.Client.ZRangeByScore(key, "-inf", "inf")
 		So(actual, ShouldResemble, expected)
 	})

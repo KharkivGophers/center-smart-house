@@ -141,6 +141,19 @@ func (server *HTTPServer) patchDevConfigHandler(w http.ResponseWriter, r *http.R
 
 func  (server *HTTPServer) postDevConfigHandler(w http.ResponseWriter, r *http.Request) {
 
-	var devMeta DevMeta
-	json.Unmarshal(r.Body, devMeta)
+	var config *DevConfig
+	dbClient :=server.DbClient.NewDBConnection()
+	defer dbClient.Close()
+
+	json.NewDecoder(r.Body).Decode(&config)
+
+	configInfo := config.MAC + ":" + "config"
+
+	flag := ValidateMAC(config.MAC)
+	if !flag {
+		log.Errorf("postDevConfigHandler. %v. Exit the method. Mac Invalid")
+		return
+	}
+	device := IdentifyDevice("washer")
+	device.SetDevConfig(configInfo,config,dbClient)
 }

@@ -66,8 +66,8 @@ func (fridge *Fridge) SetDevData(req *Request, client DbClient) *ServerError {
 	client.GetClient().SAdd("devParamsKeys", devParamsKey)
 	client.GetClient().HMSet(devKey, "ReqTime", req.Time)
 	client.GetClient().SAdd(devParamsKey, "TempCam1", "TempCam2")
-	setDevData(devData.TempCam1, devParamsKey+":"+"TempCam1", client)
-	setDevData(devData.TempCam2, devParamsKey+":"+"TempCam2", client)
+	setCameraData(devData.TempCam1, devParamsKey+":"+"TempCam1", client)
+	setCameraData(devData.TempCam2, devParamsKey+":"+"TempCam2", client)
 	_, err = client.GetClient().Exec()
 
 	if CheckError("Error  SetDevData Fridge", err) != nil {
@@ -79,7 +79,7 @@ func (fridge *Fridge) SetDevData(req *Request, client DbClient) *ServerError {
 
 //--------------------------------------DevConfigDriver--------------------------------------------------------------
 
-func setDevData(TempCam map[int64]float32, key string, client DbClient) error {
+func setCameraData(TempCam map[int64]float32, key string, client DbClient) error {
 	for time, value := range TempCam {
 		 client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 	}
