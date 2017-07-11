@@ -1,11 +1,12 @@
 package main
 
 import (
+	"time"
+
 	"github.com/KharkivGophers/center-smart-house/servers/webSocket"
 	"github.com/KharkivGophers/center-smart-house/servers/http"
-	. "github.com/KharkivGophers/center-smart-house/models"
-	"time"
 	"github.com/KharkivGophers/center-smart-house/servers/tcp"
+	. "github.com/KharkivGophers/center-smart-house/models"
 	"github.com/KharkivGophers/center-smart-house/dao"
 )
 

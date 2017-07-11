@@ -18,13 +18,6 @@ type DbClient interface {
 	GetKeyForConfig(mac string)string
 	SetDBServer(server Server)
 
-	// Not yet implemented.
-	//GetDevConfig(configInfo, devType string, mac string) (*DevConfig)
-	//SetDevConfig(configInfo string, devType string, config *DevConfig)
-
-	// Only to Fridge. Must be refactored
-	//GetFridgeConfig(configInfo, mac string) (*DevConfig)
-	//SetFridgeConfig(configInfo string, config *DevConfig)
 }
 
 // Concrete redis database interface.

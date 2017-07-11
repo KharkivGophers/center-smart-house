@@ -1,6 +1,7 @@
 package devices
 
 import (
+	"net"
 	"strconv"
 	"strings"
 	"encoding/json"
@@ -11,7 +12,6 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
 	. "github.com/KharkivGophers/center-smart-house/sys"
-	"net"
 )
 
 type Fridge struct {
@@ -81,7 +81,7 @@ func (fridge *Fridge) SetDevData(req *Request, client DbClient) *ServerError {
 
 func setCameraData(TempCam map[int64]float32, key string, client DbClient) error {
 	for time, value := range TempCam {
-		 client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
+		client.GetClient().ZAdd(key, Int64ToString(time), Int64ToString(time)+":"+Float64ToString(value))
 	}
 	return nil
 }
@@ -191,7 +191,6 @@ func (fridge *Fridge) CheckDevConfigAndMarshal(arr []byte, configInfo, mac strin
 }
 
 //--------------------------------------DevServerHandler--------------------------------------------------------------
-
 
 func (fridge *Fridge) SendDefaultConfigurationTCP(conn net.Conn, dbClient DbClient, req *Request) ([]byte) {
 	var config *DevConfig

@@ -8,60 +8,7 @@ import (
 
 	"reflect"
 	"encoding/json"
-	"strconv"
-	"errors"
 )
-
-// ------------------------With Mock--------------------------------------------------------------
-func TestSetDevConfig(t *testing.T){
-	expectedErr := errors.New("err")
-	dbMock := dao.DBMock{func() error {
-		return expectedErr
-	}}
-
-
-
-	fridge := Fridge{}
-	devConfig := models.DevConfig{true,true,
-		int64(0),int64(0),"mac"}
-
-	Convey("Should be all ok", t, func() {
-		fridge.SetDevConfig("test", &devConfig, dbMock.Client)
-		mustBe := " TurnedOn true CollectFreq 0 SendFreq 0 StreamOn true"
-
-		var actual string
-
-		for _, val := range dbMock.Client.Hash["test"]{
-			arr:=val.([]interface{})
-			for _, val := range arr{
-				switch reflect.TypeOf(val).String() {
-				case "bool":
-					actual += " " + strconv.FormatBool(val.(bool))
-				case "string":
-					actual += " " + val.(string)
-				case "int64":
-					actual += " " + strconv.FormatInt(val.(int64),10)
-				}
-			}
-		}
-		So(actual, ShouldEqual, mustBe)
-	})
-}
-
-func TestGetDevConfig(t *testing.T){
-	dbMock := dao.DBMock{&dao.DbMockClient{}}
-	fridge := Fridge{}
-	devConfig := models.DevConfig{true,true,
-				      int64(0),int64(0),"00-00-00-11-11-11"}
-
-	Convey("Should be all ok", t, func() {
-		fridge.SetDevConfig("test", &devConfig, dbMock.Client)
-		config := fridge.GetDevConfig("test", "00-00-00-11-11-11", dbMock.Client)
-		So(reflect.DeepEqual(*config, devConfig), ShouldBeTrue)
-	})
-}
-
-
 
 //------------------------------------------------------------
 func TestSetDevConfigWithRedis(t *testing.T) {
@@ -75,8 +22,8 @@ func TestSetDevConfigWithRedis(t *testing.T) {
 	devConfig := models.DevConfig{"00-00-00-11-11-11", b}
 
 	Convey("Should be all ok", t, func() {
-		fridge.SetDevConfig("00-00-00-11-11-11:config", &devConfig, dbWorker.Client)
-		isConfig := fridge.GetDevConfig("00-00-00-11-11-11:config", "00-00-00-11-11-11", dbWorker.Client)
+		fridge.SetDevConfig("00-00-00-11-11-11:config", &devConfig, dbWorker)
+		isConfig := fridge.GetDevConfig("00-00-00-11-11-11:config", "00-00-00-11-11-11", dbWorker)
 		dbWorker.FlushAll()
 		So(reflect.DeepEqual(*isConfig, devConfig), ShouldBeTrue)
 	})
@@ -170,7 +117,7 @@ func TestSetDevData(t *testing.T) {
 		dbWorker.Connect()
 		devParamsKey:="device:" +meta.Type +":"+meta.Name+":"+meta.MAC+":params"
 
-		actual := fridge.GetDevData(devParamsKey,meta,dbWorker.Client)
+		actual := fridge.GetDevData(devParamsKey,meta,dbWorker)
 		expected := models.DevData{Meta:meta,Data:dataMap}
 		dbWorker.FlushAll()
 		So(actual, ShouldResemble, expected)

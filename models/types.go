@@ -91,7 +91,6 @@ func (pool *ConnectionPool) RemoveConn(key string)  {
 func (pool *ConnectionPool) Init() {
 	pool.Lock()
 	defer pool.Unlock()
-
 	pool.conn = make(map[string]net.Conn)
 }
 

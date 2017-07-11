@@ -1,6 +1,7 @@
 package devices
 
 import (
+	"net"
 	"time"
 	"net/http"
 	"encoding/json"
@@ -10,7 +11,6 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	. "github.com/KharkivGophers/center-smart-house/dao"
 	. "github.com/KharkivGophers/center-smart-house/models"
-	"net"
 )
 
 /**
@@ -20,7 +20,6 @@ type Washer struct {
 	Data   WasherData
 	Config WasherConfig
 	Meta   DevMeta
-
 	timeStartWash int64
 }
 
@@ -152,8 +151,8 @@ func setTurnoversData(TempCam map[int64]int64, key string, client DbClient) erro
 	return nil
 }
 
-
 //--------------------------------------DevConfigDriver--------------------------------------------------------------
+
 func (washer *Washer) GetDevConfig(configInfo, mac string, client DbClient) (*DevConfig) {
 	return &DevConfig{}
 }
