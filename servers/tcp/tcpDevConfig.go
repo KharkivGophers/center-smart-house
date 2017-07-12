@@ -1,11 +1,11 @@
 package tcp
 
 import (
+	//"strings"
 	"encoding/json"
 	"time"
 	"net"
 	"fmt"
-	"reflect"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -14,7 +14,7 @@ import (
 	. "github.com/KharkivGophers/center-smart-house/sys"
 	. "github.com/KharkivGophers/center-smart-house/drivers"
 
-
+	"reflect"
 )
 
 type TCPDevConfigServer struct {

@@ -35,60 +35,6 @@ func treatmentPanic(message string) {
 	}
 }
 
-//func TestDevTypeHandler(t *testing.T) {
-//
-//	//Create redis client------------------------------------------------------------
-//	var dbCli dao.DbClient = &dao.MyRedis{}
-//	dbCli.Connect()
-//	defer dbCli.Close()
-//	//--------------------------------------------------------------------------------
-//
-//	Convey("Message handles correct", t, func() {
-//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-//		deleteAllInBase(dbCli)
-//	})
-//	Convey("Empty message", t, func() {
-//		req := Request{}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown action")
-//		deleteAllInBase(dbCli)
-//	})
-//	Convey("Type washer message", t, func() {
-//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "washer", Name: "bosh", MAC: "00-15-E9-2B-99-3C"}}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-//		deleteAllInBase(dbCli)
-//	})
-//	Convey("Unknown type message", t, func() {
-//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "nil", Name: "bosh", MAC: "00-15-E9-2B-99-3C"}}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown device type")
-//		deleteAllInBase(dbCli)
-//	})
-//	// need to change handlers
-//	Convey("Empty MAC", t, func() {
-//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: ""}}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-//		deleteAllInBase(dbCli)
-//	})
-//	Convey("Empty Type", t, func() {
-//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request: unknown device type")
-//		deleteAllInBase(dbCli)
-//	})
-//	Convey("Empty Name", t, func() {
-//		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "", MAC: "00-15-E9-2B-99-3C"}}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-//		deleteAllInBase(dbCli)
-//	})
-//	Convey("Empty Time", t, func() {
-//		req := Request{Action: "update", Time: 0, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
-//		So(devTypeHandler(req), ShouldContainSubstring, "Device request correct")
-//		deleteAllInBase(dbCli)
-//	})
-//
-//}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 func TestSendJSONToServer(t *testing.T) {
 	defer treatmentPanic("Recovered in TestSendJSONToServer")
 
@@ -152,6 +98,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	//--------------------------------------------------------------------------------
 
 	Convey("Send Correct JSON to server", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -172,6 +119,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("Warning! Uncorrect JSON was sent to server", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -190,6 +138,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("JSON was sent to server. Action of fridge should be update", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -208,6 +157,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("Warning! JSON was sent to server with uncorrect action value", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "nil", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -226,6 +176,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("JSON was sent to server. Action of washer should be update", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "washer", Name: "bosh0e31", MAC: "00-15-E9-2B-99-3B"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -244,6 +195,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("Warning! JSON was sent to server with uncorrect type value", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "nil", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -262,6 +214,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("Warning! JSON was sent to server without MAC value", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: ""}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -280,6 +233,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("Warning! JSON was sent to server without type value", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -298,6 +252,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("Warning! JSON was sent to server without name value", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 1496741392463499334, Meta: DevMeta{Type: "fridge", Name: "", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -316,6 +271,7 @@ func TestCheckJSONToServer(t *testing.T) {
 	})
 
 	Convey("Warning! JSON was sent to server without time value ", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		req := Request{Action: "update", Time: 0, Meta: DevMeta{Type: "fridge", Name: "hladik0e31", MAC: "00-15-E9-2B-99-3C"}}
 		message, _ := json.Marshal(req)
 		buffer := make([]byte, 1024)
@@ -352,11 +308,13 @@ func TestHTTPConnection(t *testing.T) {
 	//--------------------------------------------------------------------------------
 
 	Convey("Check http://"+centerIP+":"+fmt.Sprint(httpConnPort)+"/devices/{id}/data. Should be without error ", t, func() {
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "//devices/fridge:hladik0e31:00-15-E9-2B-99-3C/data")
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/id/data?type=fridge&name=testName1&mac=00-15-E9-2B-99-3C")
 		So(res, ShouldNotBeNil)
 		deleteAllInBase(dbCli)
 	})
 	Convey("Check http://"+centerIP+":"+fmt.Sprint(httpConnPort)+"/devices. Should be without error ", t, func() {
+		defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices")
 		So(res, ShouldNotBeNil)
 	})
@@ -366,20 +324,26 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 
 	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	conn, _ := net.Dial("tcp", centerIP+":"+fmt.Sprint(tcpDevDataPort))
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	defer conn.Close()
 	var httpClient = &http.Client{}
 
 	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	connForDAta, _ := net.Dial("tcp", centerIP+":"+fmt.Sprint(tcpDevDataPort))
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	defer conn.Close()
 
 	//Create redis client------------------------------------------------------------
 	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	var dbCli dao.DbClient = &dao.RedisClient{DbServer: dbServer}
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	dbCli.Connect()
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	defer dbCli.Close()
 	//--------------------------------------------------------------------------------
 
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send correct JSON. Should be return all ok ", t, func() {
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"10\":10.5}}}"
@@ -396,6 +360,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(dbCli)
 	})
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send JSON where action = wrongValue. Should not be return data about our fridge", t, func() {
 		reqMessage := "{\"action\":\"wrongValue\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName2\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"TempCam1\":[\"10:10.5\"]," +
@@ -412,6 +377,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		So(bodyString, ShouldNotContainSubstring, mustNotHave)
 		deleteAllInBase(dbCli)
 	})
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send JSON where type = wrongValue. Should not to return data about our fridge", t, func() {
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"wrongValue\",\"name\":\"testName3\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
@@ -427,7 +393,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		So(bodyString, ShouldNotContainSubstring, mustNotHave)
 		deleteAllInBase(dbCli)
 	})
-
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send JSON without name. Should not to return data about our fridge", t, func() {
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
@@ -443,7 +409,9 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		So(bodyString, ShouldNotContainSubstring, mustNotHave)
 		deleteAllInBase(dbCli)
 	})
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send JSON without mac. Should not to return data about our fridge", t, func() {
+
 		reqMessage := "{\"action\":\"config\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"fridge4\"" +
 			",\"mac\":\"\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
@@ -458,8 +426,9 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		So(bodyString, ShouldNotContainSubstring, mustNotHave)
 		deleteAllInBase(dbCli)
 	})
-
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send JSON with wrong data. Should not to return data about our fridge", t, func() {
+
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"fridge5\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"qwe\":qwe},\"tempCam2\":{\"" +
 			"qwe\":qwe}}}"
@@ -476,7 +445,9 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		deleteAllInBase(dbCli)
 	})
 	//	// my part
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send correct JSON. Initialize turned on as false ", t, func() {
+
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
@@ -484,14 +455,16 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/00-15-E9-2B-99-3C/config?type=fridge&name=testName1&mac=00-15-E9-2B-99-3C")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(dbCli)
 	})
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send correct JSON. Initialize CollectFreq as 0 ", t, func() {
+
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
@@ -499,14 +472,16 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"collectFreq\":0"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/00-15-E9-2B-99-3C/config?type=fridge&name=testName1&mac=00-15-E9-2B-99-3C")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(dbCli)
 	})
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send correct JSON. Initialize SendFreq as 0 ", t, func() {
+
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
@@ -514,14 +489,16 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"sendFreq\":0"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/00-15-E9-2B-99-3C/config?type=fridge&name=testName1&mac=00-15-E9-2B-99-3C")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(dbCli)
 	})
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send correct JSON. Initialize StreamOn as false ", t, func() {
+
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
@@ -529,7 +506,7 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		mustHave := "\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
 		time.Sleep(timeForSleep)
-		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config")
+		res, _ := httpClient.Get("http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/00-15-E9-2B-99-3C/config?type=fridge&name=testName1&mac=00-15-E9-2B-99-3C")
 
 		bodyBytes, _ := ioutil.ReadAll(res.Body)
 		bodyString := string(bodyBytes)
@@ -537,14 +514,16 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		deleteAllInBase(dbCli)
 
 	})
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send correct JSON. Patch device data: turned on as true ", t, func() {
+
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
 
 		mustHave := "\"turnedOn\":false"
 		conn.Write([]byte(reqMessage))
-		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config"
+		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/00-15-E9-2B-99-3C/config?type=fridge&name=testName1&mac=00-15-E9-2B-99-3C"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"turnedOn\":true}")))
 		httpClient.Do(r)
 		res, _ := httpClient.Get(url)
@@ -554,15 +533,16 @@ func TestWorkingServerAfterSendingJSON(t *testing.T) {
 		So(bodyString, ShouldContainSubstring, mustHave)
 		deleteAllInBase(dbCli)
 	})
-
+	defer treatmentPanic("Recovered in TestWorkingServerAfterSendingJSON")
 	Convey("Send correct JSON. Patch device data: stream on as true ", t, func() {
+
 		reqMessage := "{\"action\":\"update\",\"time\":20,\"meta\":{\"type\":\"fridge\",\"name\":\"testName1\"" +
 			",\"mac\":\"00-15-E9-2B-99-3C\",\"ip\":\"\"},\"data\":{\"tempCam1\":{\"10\":10.5},\"tempCam2\":{\"" +
 			"1500\":15.5}}}"
 
 		mustHave := "\"streamOn\":false"
 		conn.Write([]byte(reqMessage))
-		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/type=fridge&name=testName1&mac=00-15-E9-2B-99-3C/config"
+		url := "http://" + centerIP + ":" + fmt.Sprint(httpConnPort) + "/devices/00-15-E9-2B-99-3C/config?type=fridge&name=testName1&mac=00-15-E9-2B-99-3C"
 		r, _ := http.NewRequest("PATCH", url, bytes.NewBuffer([]byte("{\"streamOn\":true}")))
 		time.Sleep(timeForSleep)
 		httpClient.Do(r)

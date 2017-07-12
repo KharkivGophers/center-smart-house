@@ -22,8 +22,8 @@ func TestSetDevConfigWithRedis(t *testing.T) {
 	devConfig := models.DevConfig{"00-00-00-11-11-11", b}
 
 	Convey("Should be all ok", t, func() {
-		fridge.SetDevConfig("00-00-00-11-11-11:config", &devConfig, dbWorker)
-		isConfig := fridge.GetDevConfig("00-00-00-11-11-11:config", "00-00-00-11-11-11", dbWorker)
+		fridge.SetDevConfig("00-00-00-11-11-11:config", &devConfig, &dbWorker)
+		isConfig := fridge.GetDevConfig("00-00-00-11-11-11:config", "00-00-00-11-11-11", &dbWorker)
 		dbWorker.FlushAll()
 		So(reflect.DeepEqual(*isConfig, devConfig), ShouldBeTrue)
 	})
@@ -83,12 +83,40 @@ func TestSmallSetDevData(t *testing.T) {
 
 	Convey("", t, func() {
 		expected := []string{"1:1","2:2"}
-		setCameraData(tempCam, key, dbWorker)
+		setCameraData(tempCam, key, &dbWorker)
 		actual, _ := dbWorker.Client.ZRangeByScore(key, "-inf", "inf")
 		So(actual, ShouldResemble, expected)
 	})
 	dbWorker.FlushAll()
 }
+
+func TestGetDefaultConfig(t *testing.T) {
+	dbWorker := dao.RedisClient{DbServer: models.Server{IP: "0.0.0.0", Port: uint(6379)}}
+	dbWorker.Connect()
+	defer dbWorker.Close()
+
+	fridge := Fridge{}
+
+	config := FridgeConfig{
+		TurnedOn:    true,
+		StreamOn:    true,
+		CollectFreq: 1000,
+		SendFreq:    5000,
+	}
+
+	data, _ := json.Marshal(config)
+	expected := &models.DevConfig{
+		MAC:  fridge.Meta.MAC,
+		Data: data,
+	}
+
+	Convey("", t, func() {
+		actual:= fridge.GetDefaultConfig()
+		So(actual, ShouldResemble, expected)
+	})
+	dbWorker.FlushAll()
+}
+
 
 func TestSetDevData(t *testing.T) {
 	dbWorker := dao.RedisClient{DbServer: models.Server{IP: "0.0.0.0", Port: uint(6379)}}
@@ -113,11 +141,11 @@ func TestSetDevData(t *testing.T) {
 
 	Convey("Must bu all ok", t, func() {
 
-		fridge.SetDevData(&req, dbWorker)
+		fridge.SetDevData(&req, &	dbWorker)
 		dbWorker.Connect()
 		devParamsKey:="device:" +meta.Type +":"+meta.Name+":"+meta.MAC+":params"
 
-		actual := fridge.GetDevData(devParamsKey,meta,dbWorker)
+		actual := fridge.GetDevData(devParamsKey,meta,&dbWorker)
 		expected := models.DevData{Meta:meta,Data:dataMap}
 		dbWorker.FlushAll()
 		So(actual, ShouldResemble, expected)
